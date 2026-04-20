@@ -1,0 +1,24 @@
+# Ігноруємо всі node_modules у будь-якій вкладеності
+node_modules/
+**/node_modules/
+
+# Результати збірки (Angular та NestJS)
+dist/
+**/dist/
+.angular/
+
+# Файли середовища та секрети
+.env
+.env.*
+!.env.example
+
+# Системні файли
+.DS_Store
+Thumbs.db
+
+# GraphQL артефакти (генеруються автоматично)
+backend/src/schema.gql
+
+# Логи
+*.log
+npm-debug.log*
