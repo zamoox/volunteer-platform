@@ -1,8 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { VolunteerRequest } from './request.entity';
+import { CreateVolunteerRequestInput } from './dto/create-request.input';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class RequestsService {
+
+  constructor(
+    @InjectRepository(VolunteerRequest)
+    private requestsRepository: Repository<VolunteerRequest>,
+  ){}
   private requests: VolunteerRequest[] = [
     {
       id: '1',
@@ -36,4 +44,9 @@ export class RequestsService {
   findAll(): VolunteerRequest[] {
     return this.requests;
   }
+
+  async create(input: CreateVolunteerRequestInput): Promise<VolunteerRequest> {
+  const newRequest = this.requestsRepository.create(input);
+  return this.requestsRepository.save(newRequest);
+}
 }

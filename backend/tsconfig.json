@@ -16,10 +16,13 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "strict": false,                        // Вимикаємо загальний суворий режим
+    "strictNullChecks": false,              // Дозволяємо null/undefined без постійних перевірок
+    "noImplicitAny": false,                 // Дозволяємо не писати типи там, де ліньки
+    "strictPropertyInitialization": false,  // Прибирає помилки в Entity (ті самі "has no initializer")
+    "ignoreDeprecations": "5.0"
   }
 }
