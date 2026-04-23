@@ -1,0 +1,46 @@
+<div class="request-form-overlay">
+  <form [formGroup]="requestForm" (ngSubmit)="onSubmit()" class="request-form">
+    <div class="form-header">
+      <h3>Новий запит на допомогу</h3>
+      <button type="button" class="close-btn" (click)="onCancel()">×</button>
+    </div>
+
+    <div class="form-body">
+      <div class="form-group">
+        <label for="title">Назва запиту</label>
+        <input 
+          id="title"
+          type="text" 
+          formControlName="title" 
+          placeholder="Наприклад: Потрібна питна вода"
+          [class.invalid]="requestForm.get('title')?.invalid && requestForm.get('title')?.touched"
+        >
+        <small class="error-msg" *ngIf="requestForm.get('title')?.invalid && requestForm.get('title')?.touched">
+          Мінімум 3 символи
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Опис ситуації</label>
+        <textarea 
+          id="description"
+          formControlName="description" 
+          placeholder="Опишіть деталі, щоб волонтери знали, як допомогти..."
+          rows="4"
+        ></textarea>
+      </div>
+
+      <div class="coords-info">
+        <span class="label">Локація:</span>
+        <span class="value">{{ lat | number:'1.4-4' }}, {{ lng | number:'1.4-4' }}</span>
+      </div>
+    </div>
+
+    <div class="form-footer">
+      <button type="button" (click)="onCancel()" class="btn-secondary">Скасувати</button>
+      <button type="submit" [disabled]="requestForm.invalid" class="btn-primary">
+        Опублікувати запит
+      </button>
+    </div>
+  </form>
+</div>

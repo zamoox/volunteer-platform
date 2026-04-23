@@ -1,0 +1,56 @@
+.map-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.request-form-overlay {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000; /* Має бути вище за карту */
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  width: 300px;
+}
+
+.request-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.request-form input, .request-form textarea {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.btn-submit {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-submit:disabled {
+  background: #ccc;
+}
+
+.btn-cancel {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+}
