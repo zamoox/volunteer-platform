@@ -15,6 +15,7 @@ export class RequestFormComponent {
 
   @Input() lat!: number;
   @Input() lng!: number;
+  @Input() address: string = '';
   @Output() closed = new EventEmitter<void>();
   @Output() submitted = new EventEmitter<void>();
 
@@ -23,29 +24,30 @@ export class RequestFormComponent {
     description: new FormControl('', [Validators.required])
   });
 
-onSubmit() {
-  if (this.requestForm.valid) {
-    const { title, description } = this.requestForm.value;
-    
-    this.requestService.createRequest(
-      title!, 
-      description!, 
-      this.lat, 
-      this.lng
-    ).subscribe({
-      next: (result) => {
-        console.log('Запит створено успішно!', result);
-        // Сповіщаємо мапу, що все готово, щоб вона закрила форму і прибрала червоний маркер
-        this.submitted.emit(); 
-        alert('Запит опубліковано!');
-      },
-      error: (err) => {
-        console.error('Помилка при створенні:', err);
-        alert('Упс! Щось пішло не так при відправці.');
-      }
-    });
+  onSubmit() {
+    if (this.requestForm.valid) {
+      const { title, description } = this.requestForm.value;
+      
+      this.requestService.createRequest(
+        title!, 
+        description!, 
+        this.lat, 
+        this.lng,
+        this.address,
+      ).subscribe({
+        next: (result) => {
+          console.log('Запит створено успішно!', result);
+          // Сповіщаємо мапу, що все готово, щоб вона закрила форму і прибрала червоний маркер
+          this.submitted.emit(); 
+          alert('Запит опубліковано!');
+        },
+        error: (err) => {
+          console.error('Помилка при створенні:', err);
+          alert('Упс! Щось пішло не так при відправці.');
+        }
+      });
+    }
   }
-}
 
   onCancel() {
     this.closed.emit();

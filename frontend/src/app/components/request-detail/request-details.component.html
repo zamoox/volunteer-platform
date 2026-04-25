@@ -1,0 +1,36 @@
+<div class="sidebar" [ngClass]="position" *ngIf="request">
+  <div class="sidebar-header">
+    <h2>{{ request.title }}</h2>
+    <button class="close-btn" (click)="onClose()">×</button>
+  </div>
+  
+  <div class="sidebar-content">
+    <div class="status-badge" [ngClass]="request.status">
+      {{ request.status === 'open' ? 'Відкрито' : 'В процесі' }}
+    </div>
+
+    <div class="detail-item">
+      <label>Категорія:</label>
+      <p>{{ request.category }}</p>
+    </div>
+
+    <div class="detail-item">
+      <label>Опис:</label>
+      <p>{{ request.description }}</p>
+    </div>
+
+    <div class="detail-item" *ngIf="request.location?.address">
+      <label>📍 Точна адреса:</label>
+      <p class="address-text">{{ request.location.address }}</p>
+    </div>
+
+    <div class="detail-item">
+      <label>Координати:</label>
+      <small>{{ request.location?.lat }}, {{ request.location?.lng }}</small>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <button class="btn-help" (click)="onRespond()">Відгукнутися на запит</button>
+  </div>
+</div>

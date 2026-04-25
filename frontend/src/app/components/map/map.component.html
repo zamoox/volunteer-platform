@@ -5,7 +5,15 @@
     *ngIf="showForm"
     [lat]="selectedLat"
     [lng]="selectedLng"
+    [address]="selectedAddress"
     (closed)="showForm = false"
     (submitted)="onFormSubmitted()"
   ></app-request-form>
+
+  <app-request-details 
+    *ngIf="selectedRequest" 
+    [request]="selectedRequest"
+    [position]="'left'" 
+    (closed)="selectedRequest = null">
+  </app-request-details>
 </div>

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { map } from 'rxjs/operators';
+import { HttpClient } from '@angular/common/http';
 
 export const GET_ALL_REQUESTS = gql`
   query ExampleQuery {
@@ -26,6 +27,7 @@ const CREATE_REQUEST = gql`
       location {
         lat
         lng
+        address
       }
     }
   }
@@ -35,7 +37,10 @@ const CREATE_REQUEST = gql`
 @Injectable({ providedIn: 'root' })
 export class VolunteerRequestService {
   
-  constructor(private apollo: Apollo) {}
+  constructor(
+    private apollo: Apollo,
+    private http: HttpClient
+  ) {}
 
   getRequests() {
     return this.apollo.watchQuery<any>({
@@ -48,22 +53,27 @@ export class VolunteerRequestService {
     );
   }
 
-  createRequest(title: string, description: string, lat: number, lng: number) {
+  createRequest(title: string, description: string, lat: number, lng: number, address: string) {
     return this.apollo.mutate({
       mutation: CREATE_REQUEST,
       variables: {
         input: {
           title: title,
           description: description,
-          category: 'OTHER', // АБО будь-який рядок, який очікує твій бекенд
+          category: 'OTHER', 
           location: {
             lat: lat,
-            lng: lng
+            lng: lng,
+            address: address // Додаємо це поле про всяк випадок
           }
-          // ПРИБЕРИ status: 'OPEN', бо бекенд його не приймає в InputDTO
         }
       },
-      refetchQueries: ['GetRequests']
+      refetchQueries: ['ExampleQuery'] 
     });
+  }
+
+  getAddress(lat: number, lng: number) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=uk`;
+    return this.http.get<any>(url);
   }
 }

@@ -41,12 +41,12 @@ export class RequestsService {
     }
   ];
 
-  findAll(): VolunteerRequest[] {
-    return this.requests;
+  async findAll(): Promise<VolunteerRequest[]> {
+    return await this.requestsRepository.find();
   }
 
   async create(input: CreateVolunteerRequestInput): Promise<VolunteerRequest> {
-  const newRequest = this.requestsRepository.create(input);
-  return this.requestsRepository.save(newRequest);
-}
+    const newRequest = this.requestsRepository.create(input);
+    return this.requestsRepository.save(newRequest);
+  }
 }
