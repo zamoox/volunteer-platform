@@ -1,11 +1,11 @@
-<div class="sidebar" [ngClass]="position" *ngIf="request">
+<div class="sidebar bg-blue-500 p-4" [ngClass]="position" *ngIf="request">
   <div class="sidebar-header">
     <h2>{{ request.title }}</h2>
     <button class="close-btn" (click)="onClose()">×</button>
   </div>
   
   <div class="sidebar-content">
-    <div class="status-badge" [ngClass]="request.status">
+    <div class="status-badge text-3xl font-bold underline" [ngClass]="request.status">
       {{ request.status === 'open' ? 'Відкрито' : 'В процесі' }}
     </div>
 

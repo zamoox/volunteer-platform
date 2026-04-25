@@ -16,8 +16,6 @@ import { MapComponent } from './components/map/map.component';
     `
 })
 export class AppComponent implements OnInit {
-  private requestService = inject(VolunteerRequestService);
-  requests$ = this.requestService.getRequests();
 
   ngOnInit() {}
 }
