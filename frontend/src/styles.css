@@ -1,12 +1,31 @@
-/* You can add global styles to this file, and also import other style files */
 
+
+/* 1. Імпортуємо шрифт з Google Fonts (ваги 400, 500, 700) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Onest:wght@100..900&display=swap');
 
 @import 'tailwindcss';
 
+/* 3. Налаштовуємо тему */
 @theme {
-  --color-primary: #007bff;
-  --color-success: #28a745;
+  /* Перевизначаємо стандартний sans шрифт на Onest */
+  --font-sans: "Onest", ui-sans-serif, system-ui, sans-serif;
+  
+  /* Можна також додати окрему назву для зручності */
+  --font-onest: "Onest", sans-serif;
 }
+
+@theme {
+  /* Головний шрифт (Onest) */
+  --font-sans: "Onest", "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  /* Резервний/Допоміжний шрифт (Inter) */
+  --font-inter: "Inter", sans-serif;
+}
+
+*, ::before, ::after {
+  font-family: var(--font-sans);
+}
+
 
 /* @tailwind base;
 @tailwind components;
