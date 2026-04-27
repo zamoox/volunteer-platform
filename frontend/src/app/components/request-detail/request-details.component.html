@@ -1,36 +1,75 @@
-<div class="sidebar bg-blue-500 p-4" [ngClass]="position" *ngIf="request">
-  <div class="sidebar-header">
-    <h2>{{ request.title }}</h2>
-    <button class="close-btn" (click)="onClose()">×</button>
+<div 
+  *ngIf="request"
+  class="fixed top-20 bottom-6 z-[1002] w-96 bg-white/95 backdrop-blur-md shadow-2xl border border-slate-200 rounded-3xl flex flex-col transition-all duration-300 ease-in-out"
+  [ngClass]="position === 'left' ? 'left-6' : 'right-6'"
+>
+  <div class="p-6 border-b border-slate-100 flex justify-between items-start">
+    <div>
+      <h2 class="text-2xl font-black tracking-tight text-slate-900 leading-tight">
+        {{ request.title }}
+      </h2>
+      <div class="mt-2 flex items-center gap-2">
+        <span 
+          class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider"
+          [ngClass]="request.status === 'open' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'"
+        >
+          {{ request.status === 'open' ? '• Відкрито' : '• В процесі' }}
+        </span>
+        <span class="text-xs text-slate-400 font-medium italic">ID: {{ request.id?.slice(0,8) }}</span>
+      </div>
+    </div>
+    <button 
+      (click)="onClose()" 
+      class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-600"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
   </div>
   
-  <div class="sidebar-content">
-    <div class="status-badge text-3xl font-bold underline" [ngClass]="request.status">
-      {{ request.status === 'open' ? 'Відкрито' : 'В процесі' }}
+  <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+    
+    <div>
+      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Категорія допомоги</label>
+      <p class="text-slate-700 font-bold flex items-center gap-2 mt-1 text-lg">
+        <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+        {{ request.category }}
+      </p>
     </div>
 
-    <div class="detail-item">
-      <label>Категорія:</label>
-      <p>{{ request.category }}</p>
+    <div>
+      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Опис потреби</label>
+      <div class="mt-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+        <p class="text-slate-600 leading-relaxed">{{ request.description }}</p>
+      </div>
     </div>
 
-    <div class="detail-item">
-      <label>Опис:</label>
-      <p>{{ request.description }}</p>
-    </div>
+    <div class="space-y-3">
+      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Локація</label>
+      
+      <div *ngIf="request.location?.address" class="flex items-start gap-3 mt-1">
+        <span class="text-xl">📍</span>
+        <p class="text-sm text-slate-700 font-medium leading-snug">{{ request.location.address }}</p>
+      </div>
 
-    <div class="detail-item" *ngIf="request.location?.address">
-      <label>📍 Точна адреса:</label>
-      <p class="address-text">{{ request.location.address }}</p>
-    </div>
-
-    <div class="detail-item">
-      <label>Координати:</label>
-      <small>{{ request.location?.lat }}, {{ request.location?.lng }}</small>
+      <div class="flex items-center gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+        <span class="text-xs font-mono text-blue-600">
+          {{ request.location?.lat | number:'1.4-4' }}, {{ request.location?.lng | number:'1.4-4' }}
+        </span>
+      </div>
     </div>
   </div>
 
-  <div class="sidebar-footer">
-    <button class="btn-help" (click)="onRespond()">Відгукнутися на запит</button>
+  <div class="p-6 bg-white border-t border-slate-100 rounded-b-3xl">
+    <button 
+      (click)="onRespond()"
+      class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2"
+    >
+      <span>Відгукнутися на запит</span>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+      </svg>
+    </button>
   </div>
 </div>
