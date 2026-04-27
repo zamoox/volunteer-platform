@@ -1,46 +1,63 @@
-<div class="request-form-overlay">
-  <form [formGroup]="requestForm" (ngSubmit)="onSubmit()" class="request-form">
-    <div class="form-header">
-      <h3>Новий запит на допомогу</h3>
-      <button type="button" class="close-btn" (click)="onCancel()">×</button>
+<div class="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all">
+  
+  <div class="relative w-full max-w-2xl bg-white shadow-2xl rounded-3xl border border-slate-100 flex flex-col overflow-hidden">
+    
+    <div class="p-8 border-b border-slate-100 flex justify-between items-start">
+      <div>
+        <h2 class="text-3xl font-black tracking-tight text-slate-900 leading-none">Створити запит</h2>
+        <p class="mt-3 text-slate-500 font-medium text-sm">Опишіть, яка допомога вам потрібна на цій локації</p>
+      </div>
+      <button (click)="onClose()" class="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors">
+        ✕
+      </button>
     </div>
 
-    <div class="form-body">
-      <div class="form-group">
-        <label for="title">Назва запиту</label>
+    <form class="p-8 space-y-6 overflow-y-auto max-h-[70vh] custom-scrollbar">
+      
+      <div class="space-y-2">
+        <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Назва запиту</label>
         <input 
-          id="title"
           type="text" 
-          formControlName="title" 
-          placeholder="Наприклад: Потрібна питна вода"
-          [class.invalid]="requestForm.get('title')?.invalid && requestForm.get('title')?.touched"
-        >
-        <small class="error-msg" *ngIf="requestForm.get('title')?.invalid && requestForm.get('title')?.touched">
-          Мінімум 3 символи
-        </small>
+          placeholder="Наприклад: Потрібні ліки" 
+          class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
+        />
       </div>
 
-      <div class="form-group">
-        <label for="description">Опис ситуації</label>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-2">
+          <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Категорія</label>
+          <select class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none appearance-none cursor-pointer">
+            <option>Медицина</option>
+            <option>Продукти</option>
+            <option>Транспорт</option>
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Координати</label>
+          <div class="px-5 py-4 bg-blue-50/50 border border-blue-100 rounded-2xl text-blue-600 font-mono text-sm">
+            50.4501, 30.5234
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Деталі</label>
         <textarea 
-          id="description"
-          formControlName="description" 
-          placeholder="Опишіть деталі, щоб волонтери знали, як допомогти..."
-          rows="4"
+          rows="4" 
+          placeholder="Напишіть детальніше..." 
+          class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none resize-none"
         ></textarea>
       </div>
+    </form>
 
-      <div class="coords-info">
-        <span class="label">Локація:</span>
-        <span class="value">{{ lat | number:'1.4-4' }}, {{ lng | number:'1.4-4' }}</span>
-      </div>
-    </div>
-
-    <div class="form-footer">
-      <button type="button" (click)="onCancel()" class="btn-secondary">Скасувати</button>
-      <button type="submit" [disabled]="requestForm.invalid" class="btn-primary">
+    <div class="p-8 bg-slate-50 border-t border-slate-100 flex justify-end gap-4">
+      <button (click)="onClose()" class="px-6 py-3 text-slate-500 font-bold hover:text-slate-700 transition">
+        Скасувати
+      </button>
+      <button class="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all active:scale-95">
         Опублікувати запит
       </button>
     </div>
-  </form>
+  </div>
 </div>

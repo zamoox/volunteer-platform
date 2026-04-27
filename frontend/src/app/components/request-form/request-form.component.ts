@@ -49,7 +49,9 @@ export class RequestFormComponent {
     }
   }
 
-  onCancel() {
+  onClose() {
     this.closed.emit();
   }
+
+  
 }
