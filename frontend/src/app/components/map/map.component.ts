@@ -162,4 +162,11 @@ export class MapComponent implements OnInit, AfterViewInit {
     }
     this.loadMarkers(); // Оновлюємо список з бази
   }
+
+  openFormManually() {
+    alert('Будь ласка, клікніть на мапу в тому місці, де потрібна допомога!');
+    // Або можна автоматично поставити маркер в центр карти:
+    // const center = this.map.getCenter();
+    // this.onMapClick({ latlng: center });
+  }
 }

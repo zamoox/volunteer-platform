@@ -3,3 +3,23 @@
   width: 100%;
 }
 
+#map {
+  height: 100%;
+  width: 100%;
+  background: #f8fafc; /* Колір-заглушка, поки вантажаться плитки */
+}
+
+/* Прибираємо синю рамку при фокусі на карту */
+.leaflet-container {
+  outline: 0;
+}
+
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+:host ::ng-deep .leaflet-top {
+  top: 20px !important; /* Додатковий відступ зверху для кнопок зуму */
+}
