@@ -1,10 +1,12 @@
 import { AfterViewInit, ChangeDetectorRef, Component, inject, NgZone, OnInit } from '@angular/core';
-import { VolunteerRequestService } from '../../services/volunter-request.service';
+import { VolunteerRequestService } from '../../core/services/volunter-request.service';
 import * as L from 'leaflet';
 import { CommonModule } from '@angular/common';
-import { RequestFormComponent } from '../request-form/request-form.component';
-import { RequestDetailsComponent } from '../request-detail/request-details.component';
-import { UiEventsService } from '../../services/ui-events.service';
+import { 
+  RequestFormComponent, 
+  RequestDetailsComponent 
+} from '../../shared/components';
+import { UiEventsService } from '../../core/services/ui-events.service';
 
 @Component({
   selector: 'app-map',

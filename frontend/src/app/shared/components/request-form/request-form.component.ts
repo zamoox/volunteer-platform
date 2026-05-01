@@ -9,7 +9,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { VolunteerRequestService, PhotonFeature, NominatimResult } from '../../services/volunter-request.service';
+import { VolunteerRequestService, PhotonFeature, NominatimResult } from '../../../core/services/volunter-request.service';
 
 export type RequestCategory = 'MEDICINE' | 'FOOD' | 'TRANSPORT' | 'SHELTER' | 'OTHER';
 

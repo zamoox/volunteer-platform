@@ -1,12 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MapComponent } from './components/map/map.component';
-import { RouterOutlet } from '@angular/router';
-import { HeaderComponent } from './components/header/header.component';
-import { FooterComponent } from './components/footer/footer.component';
-import { Subject, takeUntil } from 'rxjs';
-import { UiEventsService } from './services/ui-events.service';
-import { RequestFormComponent } from './components/request-form/request-form.component';
+import { MapComponent } from './features/map/map.component';
+import { HeaderComponent, FooterComponent } from './shared/components';
 
 @Component({
   selector: 'app-root',

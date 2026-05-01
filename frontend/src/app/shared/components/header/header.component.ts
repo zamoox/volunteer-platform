@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Output } from '@angular/core';
-import { UiEventsService } from '../../services/ui-events.service';
+import { UiEventsService } from '../../../core/services/ui-events.service';
 
 @Component({
   selector: 'app-header',
