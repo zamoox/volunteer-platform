@@ -1,0 +1,52 @@
+<div class="min-h-[80vh] flex items-center justify-center p-6 bg-slate-50 font-sans">
+  <!-- Використовуємо async pipe для отримання даних юзера -->
+  <div *ngIf="authService.currentUser$ | async as user; else noUser" 
+       class="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 overflow-hidden border border-slate-100">
+    
+    <!-- Header профілю -->
+    <div class="bg-blue-600 p-10 text-white relative">
+      <div class="flex items-center gap-6">
+        <div class="w-24 h-24 bg-white/20 rounded-3xl backdrop-blur-md flex items-center justify-center text-4xl border border-white/30">
+          👤
+        </div>
+        <div>
+          <h2 class="text-3xl font-black tracking-tight">{{ user.name }}</h2>
+          <p class="text-blue-100 font-medium opacity-80">{{ user.userType === 'organization' ? 'Організація / ГО' : 'Волонтер' }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Деталі -->
+    <div class="p-10 space-y-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="space-y-1">
+          <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Електронна пошта</p>
+          <p class="text-lg font-bold text-slate-900">{{ user.email }}</p>
+        </div>
+        <div class="space-y-1">
+          <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Локація</p>
+          <p class="text-lg font-bold text-slate-900">{{ user.region }}, {{ user.city }}</p>
+        </div>
+      </div>
+
+      <hr class="border-slate-100">
+
+      <!-- Статистика або дії (заглушка) -->
+      <div class="flex gap-4">
+        <button class="flex-1 py-4 bg-slate-50 hover:bg-slate-100 text-slate-900 rounded-2xl font-black text-sm transition-all border border-slate-200">
+          Мої запити (0)
+        </button>
+        <button (click)="onLogout()" class="px-8 py-4 bg-red-50 hover:bg-red-100 text-red-500 rounded-2xl font-black text-sm transition-all border border-red-100">
+          Вийти
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Якщо дані ще не завантажились -->
+  <ng-template #noUser>
+    <div class="text-center animate-pulse">
+      <p class="text-slate-400 font-bold uppercase tracking-widest">Завантаження профілю...</p>
+    </div>
+  </ng-template>
+</div>
