@@ -1,0 +1,21 @@
+.form-input {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background-color: #f8fafc; /* slate-50 */
+  border: 1px solid #e2e8f0; /* slate-200 */
+  border-radius: 1.25rem;
+  outline: none;
+  font-weight: 500;
+  color: #0f172a; /* slate-900 */
+  transition: all 0.2s ease-in-out;
+}
+
+.form-input:focus {
+  background-color: #ffffff;
+  border-color: #3b82f6; /* blue-500 */
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.form-input::placeholder {
+  color: #cbd5e1; /* slate-300 */
+}
