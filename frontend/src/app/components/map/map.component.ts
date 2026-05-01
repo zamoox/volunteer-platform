@@ -4,6 +4,7 @@ import * as L from 'leaflet';
 import { CommonModule } from '@angular/common';
 import { RequestFormComponent } from '../request-form/request-form.component';
 import { RequestDetailsComponent } from '../request-detail/request-details.component';
+import { UiEventsService } from '../../services/ui-events.service';
 
 @Component({
   selector: 'app-map',
@@ -14,6 +15,7 @@ import { RequestDetailsComponent } from '../request-detail/request-details.compo
 })
 export class MapComponent implements OnInit, AfterViewInit {
   private requestService = inject(VolunteerRequestService);
+  private uiEventsService = inject(UiEventsService);
   private zone = inject(NgZone);
   private cdr = inject(ChangeDetectorRef);
   
@@ -27,7 +29,11 @@ export class MapComponent implements OnInit, AfterViewInit {
   selectedAddress = ''; // Нове поле для адреси
   selectedRequest: any = null;
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.uiEventsService.openCreateRequest$.subscribe(() => {
+      this.handleHeaderCreateRequest();
+    });
+  }
 
   ngAfterViewInit(): void {
     this.initMap();
@@ -163,10 +169,17 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.loadMarkers(); // Оновлюємо список з бази
   }
 
-  openFormManually() {
-    alert('Будь ласка, клікніть на мапу в тому місці, де потрібна допомога!');
-    // Або можна автоматично поставити маркер в центр карти:
-    // const center = this.map.getCenter();
-    // this.onMapClick({ latlng: center });
+  private handleHeaderCreateRequest(): void {
+    const center = this.map.getCenter();
+    
+    // Емулюємо клік по мапі, передаючи координати центру
+    const mockEvent = {
+      latlng: center
+    } as L.LeafletMouseEvent;
+
+    this.onMapClick(mockEvent);
+    
+    // Опціонально: плавно підлітаємо до центру, якщо користувач був далеко
+    this.map.flyTo(center, this.map.getZoom());
   }
 }

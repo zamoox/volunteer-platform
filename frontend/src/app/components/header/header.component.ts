@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Output } from '@angular/core';
+import { UiEventsService } from '../../services/ui-events.service';
 
 @Component({
   selector: 'app-header',
@@ -10,13 +11,16 @@ export class HeaderComponent {
   // Подія для відкриття форми на мапі
   @Output() createRequest = new EventEmitter<void>();
 
+  constructor(
+    private uiEventsService: UiEventsService
+  ){}
+
   goToHome() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  onCreateClick() {
-    this.createRequest.emit();
-    // Можна також додати скрол до мапи, якщо юзер десь внизу
-    document.getElementById('map')?.scrollIntoView({ behavior: 'smooth' });
+  onCreateRequestClick() {
+    console.log('Кнопка в хедері натиснута!');
+    this.uiEventsService.emitOpenCreateRequest();
   }
 }

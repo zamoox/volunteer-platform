@@ -1,62 +1,176 @@
-<div class="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all">
-  
-  <div class="relative w-full max-w-2xl bg-white shadow-2xl rounded-3xl border border-slate-100 flex flex-col overflow-hidden">
-    
-    <div class="p-8 border-b border-slate-100 flex justify-between items-start">
+<div class="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+
+  <div class="relative w-full max-w-2xl bg-white shadow-2xl rounded-3xl border border-slate-100 flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+
+    <!-- ===== HEADER ===== -->
+    <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-start">
       <div>
         <h2 class="text-3xl font-black tracking-tight text-slate-900 leading-none">Створити запит</h2>
-        <p class="mt-3 text-slate-500 font-medium text-sm">Опишіть, яка допомога вам потрібна на цій локації</p>
+        <p class="mt-2 text-slate-500 text-sm font-medium">Опишіть, яка допомога вам потрібна на цій локації</p>
       </div>
-      <button (click)="onClose()" class="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors">
+      <button (click)="onClose()" type="button"
+        class="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-colors text-lg leading-none">
         ✕
       </button>
     </div>
 
-    <form class="p-8 space-y-6 overflow-y-auto max-h-[70vh] custom-scrollbar">
-      
+    <!-- ===== FORM BODY ===== -->
+    <form [formGroup]="requestForm" (ngSubmit)="onSubmit()"
+      class="p-8 space-y-6 overflow-y-auto max-h-[70vh] custom-scrollbar">
+
+      <!-- Назва запиту -->
       <div class="space-y-2">
         <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Назва запиту</label>
-        <input 
-          type="text" 
-          placeholder="Наприклад: Потрібні ліки" 
-          class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
+        <input
+          formControlName="title"
+          type="text"
+          placeholder="Наприклад: Потрібні ліки для літнього чоловіка"
+          class="w-full px-5 py-4 bg-slate-50 border rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
+          [class.border-red-400]="isFieldInvalid('title')"
+          [class.border-slate-200]="!isFieldInvalid('title')"
         />
+        <p *ngIf="isFieldInvalid('title')" class="text-xs text-red-500 ml-1">
+          Назва має містити щонайменше 5 символів
+        </p>
       </div>
 
+      <!-- Категорія + Координати -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Категорія — ВИПРАВЛЕНО: підключена до forGroup через formControlName -->
         <div class="space-y-2">
           <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Категорія</label>
-          <select class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none appearance-none cursor-pointer">
-            <option>Медицина</option>
-            <option>Продукти</option>
-            <option>Транспорт</option>
-          </select>
+          <div class="relative">
+            <select
+              formControlName="category"
+              class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none appearance-none cursor-pointer"
+            >
+              <option *ngFor="let cat of categories" [value]="cat.value">
+                {{ cat.icon }} {{ cat.label }}
+              </option>
+            </select>
+            <span class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▼</span>
+          </div>
         </div>
 
+        <!-- Координати -->
         <div class="space-y-2">
           <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Координати</label>
-          <div class="px-5 py-4 bg-blue-50/50 border border-blue-100 rounded-2xl text-blue-600 font-mono text-sm">
-            50.4501, 30.5234
+          <div class="px-5 py-4 bg-blue-50/50 border border-blue-100 rounded-2xl text-blue-600 font-mono text-sm flex items-center justify-center h-[58px] select-none">
+            {{ lat | number:'1.4-4' }}, {{ lng | number:'1.4-4' }}
           </div>
         </div>
       </div>
 
+      <!-- ===== БЛОК АДРЕСИ (ВИПРАВЛЕНО: єдиний relative-контейнер) ===== -->
+      <div class="space-y-4">
+        <p class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1 italic">📍 Точна адреса</p>
+
+        <!-- Місто — кастомний autocomplete -->
+        <div class="space-y-2 relative">
+          <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Місто</label>
+
+          <div class="relative">
+            <input
+              formControlName="city"
+              type="text"
+              placeholder="Почніть вводити місто..."
+              autocomplete="off"
+              (focus)="onCityFocus()"
+              (blur)="onCityBlur()"
+              class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none pr-12"
+              [class.border-red-400]="isFieldInvalid('city')"
+              [class.border-slate-200]="!isFieldInvalid('city')"
+            />
+            <!-- Спінер або іконка -->
+            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+              <div *ngIf="isCitySearching" class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <span *ngIf="!isCitySearching" class="text-slate-400 text-xs">▼</span>
+            </div>
+          </div>
+
+          <!-- Dropdown міст -->
+          <ul *ngIf="cityInputFocused && citySuggestions.length > 0"
+            class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-100 shadow-2xl rounded-2xl overflow-hidden z-[5001] max-h-52 overflow-y-auto custom-scrollbar">
+            <li *ngFor="let city of citySuggestions"
+              (mousedown)="selectCity(city)"
+              class="px-5 py-3 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-none transition-colors flex items-center gap-2">
+              <span class="text-slate-400">📍</span>
+              <span>{{ city }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Вулиця + autocomplete (ВИПРАВЛЕНО: один relative-wrapper, один спінер) -->
+        <div class="space-y-2 relative">
+          <label class="text-xs font-black uppercase tracking-widest text-blue-600 ml-1 italic">
+            📍 Вулиця та будинок
+          </label>
+
+          <div class="relative">
+            <input
+              formControlName="address"
+              type="text"
+              placeholder="Наприклад: Хрещатик 22"
+              autocomplete="off"
+              (blur)="closeSuggestions()"
+              class="w-full px-5 py-4 bg-blue-50/30 border rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none pr-12"
+              [class.border-red-400]="isFieldInvalid('address')"
+              [class.border-blue-100]="!isFieldInvalid('address')"
+            />
+            <!-- Спінер — ВИПРАВЛЕНО: лише один, всередині input-wrapper -->
+            <div *ngIf="isSearching" class="absolute right-4 top-1/2 -translate-y-1/2">
+              <div class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          </div>
+
+          <p *ngIf="isFieldInvalid('address')" class="text-xs text-red-500 ml-1">
+            Введіть адресу
+          </p>
+
+          <!-- Dropdown список підказок -->
+          <ul *ngIf="suggestions.length > 0"
+            class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-100 shadow-2xl rounded-2xl overflow-hidden z-[5000]">
+            <li *ngFor="let s of suggestions"
+              (mousedown)="selectSuggestion(s)"
+              class="px-5 py-3 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-none transition-colors">
+              <span class="font-medium">{{ formatPhotonFeature(s) }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Деталі -->
       <div class="space-y-2">
         <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Деталі</label>
-        <textarea 
-          rows="4" 
-          placeholder="Напишіть детальніше..." 
-          class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none resize-none"
+        <textarea
+          formControlName="description"
+          rows="4"
+          placeholder="Напишіть детальніше — що потрібно, скільки, до якого часу..."
+          class="w-full px-5 py-4 bg-slate-50 border rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none resize-none"
+          [class.border-red-400]="isFieldInvalid('description')"
+          [class.border-slate-200]="!isFieldInvalid('description')"
         ></textarea>
+        <p *ngIf="isFieldInvalid('description')" class="text-xs text-red-500 ml-1">
+          Опис має містити щонайменше 10 символів
+        </p>
       </div>
     </form>
 
-    <div class="p-8 bg-slate-50 border-t border-slate-100 flex justify-end gap-4">
-      <button (click)="onClose()" class="px-6 py-3 text-slate-500 font-bold hover:text-slate-700 transition">
+    <!-- ===== FOOTER ===== -->
+    <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex justify-end items-center gap-4">
+      <button (click)="onClose()" type="button"
+        class="px-6 py-3 text-slate-500 font-bold hover:text-slate-800 transition">
         Скасувати
       </button>
-      <button class="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all active:scale-95">
-        Опублікувати запит
+      <button
+        (click)="onSubmit()"
+        type="button"
+        [disabled]="requestForm.invalid || isSubmitting"
+        class="min-w-[180px] px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+      >
+        <span *ngIf="isSubmitting" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+        <span>{{ isSubmitting ? 'Публікуємо...' : 'Опублікувати запит' }}</span>
       </button>
     </div>
   </div>
