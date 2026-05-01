@@ -1,23 +1,49 @@
 <header class="fixed top-0 left-0 right-0 z-[1001] bg-white/80 backdrop-blur-md border-b border-slate-200">
   <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-    <div class="flex items-center gap-2 cursor-pointer" (click)="goToHome()">
+    
+    <!-- Logo -->
+    <div class="flex items-center gap-2 cursor-pointer" routerLink="/">
       <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">V</div>
       <span class="text-xl font-black tracking-tight text-slate-900">Volunteer<span class="text-blue-600 text-sm align-top">.ua</span></span>
     </div>
 
+    <!-- Navigation -->
     <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-      <a href="#" class="hover:text-blue-600 transition-colors">Карта запитів</a>
+      <a routerLink="/" routerLinkActive="text-blue-600" class="hover:text-blue-600 transition-colors">Карта запитів</a>
       <a href="#" class="hover:text-blue-600 transition-colors">Як допомогти</a>
       <a href="#" class="hover:text-blue-600 transition-colors">Про проєкт</a>
     </nav>
 
     <div class="flex items-center gap-3">
-      <button class="px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition">Увійти</button>
+      <!-- Блок авторизації -->
+      <ng-container *ngIf="!(authService.currentUser$ | async); else userMenu">
+        <button 
+          routerLink="/login"
+          class="px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition"
+        >
+          Увійти
+        </button>
+      </ng-container>
+
+      <!-- Випадаюче меню або кнопка профілю, якщо залогінений -->
+      <ng-template #userMenu>
+        <div class="flex items-center gap-3 pr-2">
+          <div class="text-right hidden sm:block">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">Волонтер</p>
+            <button (click)="onLogout()" class="text-[10px] font-bold text-red-400 hover:text-red-600 transition-colors">ВИЙТИ</button>
+          </div>
+          <div class="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200">👤</div>
+        </div>
+      </ng-template>
+
+      <!-- Кнопка створення запиту -->
       <button  
         type="button"
-        class="px-4 py-2 text-sm font-bold bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 transition"
-        (click)="onCreateRequestClick()"
-      >Створити запит</button>
+        class="px-4 py-2 text-sm font-bold bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 transition active:scale-95"
+        (click)="onCreateRequest()"
+      >
+        Створити запит
+      </button>
     </div>
   </div>
 </header>

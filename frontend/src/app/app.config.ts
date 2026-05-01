@@ -6,6 +6,7 @@ import { HttpLink } from 'apollo-angular/http';
 import { InMemoryCache } from '@apollo/client/core';
 
 import { routes } from './app.routes';
+import { provideRouter } from '@angular/router';
 
 export const appConfig: ApplicationConfig = {
 providers: [
@@ -17,7 +18,7 @@ providers: [
         cache: new InMemoryCache(),
       };
     }),
-    // ... твої інші провайдери (router, etc.)
+    provideRouter(routes)
   ],
   
 };
