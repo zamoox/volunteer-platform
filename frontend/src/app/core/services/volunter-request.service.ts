@@ -137,12 +137,18 @@ export class VolunteerRequestService {
     description: string,
     lat: number,
     lng: number,
-    address: string
+    address: string,
+    category: string,
   ) {
     return this.apollo.mutate({
       mutation: CREATE_REQUEST,
       variables: {
-        input: { title, description, category: 'OTHER', location: { lat, lng, address } }
+        input: { 
+          title,
+          description,
+          category,
+          location: { lat, lng, address } 
+        }
       },
       refetchQueries: ['ExampleQuery']
     });

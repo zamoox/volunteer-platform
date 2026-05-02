@@ -193,10 +193,12 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
       this.requestForm.markAllAsTouched();
       return;
     }
-    const { title, description, address } = this.requestForm.value;
+    const { title, description, address, category } = this.requestForm.value;
+    
     this.isSubmitting = true;
+
     this.requestService
-      .createRequest(title!, description!, this.lat, this.lng, address!)
+      .createRequest(title!, description!, this.lat, this.lng, address!, category!)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => { this.isSubmitting = false; this.submitted.emit(); },
