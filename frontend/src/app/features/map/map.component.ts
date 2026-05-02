@@ -1,6 +1,7 @@
 import { AfterViewInit, ChangeDetectorRef, Component, inject, NgZone, OnInit } from '@angular/core';
 import { VolunteerRequestService } from '../../core/services/volunter-request.service';
 import * as L from 'leaflet';
+import 'leaflet.markercluster';
 import { CommonModule } from '@angular/common';
 import { 
   RequestFormComponent, 
@@ -25,6 +26,12 @@ export class MapComponent implements OnInit, AfterViewInit {
   private map!: L.Map;
   private temporaryMarker?: L.Marker;
   private markersGroup = L.layerGroup(); // Група для зручного очищення маркерів з бази
+
+  private markersClusterGroup = L.markerClusterGroup({
+    showCoverageOnHover: false, // Опціонально: прибирає синій контур при наведенні
+    spiderfyOnMaxZoom: true,     // Розгортає маркери "павутинкою" на макс. зумі
+    chunkedLoading: true        // Покращує продуктивність при великій кількості точок
+  });
 
   showForm = false;
   selectedLat = 0;
@@ -68,6 +75,8 @@ export class MapComponent implements OnInit, AfterViewInit {
       shadowSize: [41, 41]
     });
     L.Marker.prototype.options.icon = iconDefault;
+
+    this.map.addLayer(this.markersClusterGroup);
 
     this.map.on('click', (e: L.LeafletMouseEvent) => {
       this.onMapClick(e);
@@ -139,46 +148,51 @@ export class MapComponent implements OnInit, AfterViewInit {
 
 // map.component.ts
 
-  updateMarkersOnMap(requests: any[]): void {
-    if (!this.map) return;
+updateMarkersOnMap(requests: any[]): void {
+  if (!this.map) return;
+  
+  // Очищуємо кластери
+  this.markersClusterGroup.clearLayers();
+
+  const newMarkers: L.Marker[] = [];
+
+  requests.forEach((req: any) => {
+    const categoryInfo = this.requestService.getCategories().find(c => c.id === req.category);
     
-    this.markersGroup.clearLayers();
-
-    requests.forEach((req: any) => {
-      // Створюємо кастомний маркер залежно від категорії
-      const categoryInfo = this.requestService.getCategories().find(c => c.id === req.category);
-      
-      const customIcon = L.divIcon({
-        className: 'custom-category-marker',
-        html: `
-          <div style="
-            background-color: ${categoryInfo?.color || '#6b7280'};
-            width: 34px; height: 34px;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            display: flex; align-items: center; justify-content: center;
-            border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-          ">
-            <span style="transform: rotate(45deg); font-size: 16px;">
-              ${categoryInfo?.label.split(' ')[0] || '📍'}
-            </span>
-          </div>`,
-        iconSize: [34, 34],
-        iconAnchor: [17, 34]
-      });
-
-      const marker = L.marker([req.location.lat, req.location.lng], { icon: customIcon });
-      
-      marker.on('click', () => {
-        this.zone.run(() => {
-          this.selectedRequest = req;
-          this.cdr.detectChanges();
-        });
-      });
-
-      marker.addTo(this.markersGroup);
+    const customIcon = L.divIcon({
+      className: 'custom-category-marker',
+      html: `
+        <div style="
+          background-color: ${categoryInfo?.color || '#6b7280'};
+          width: 34px; height: 34px;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          display: flex; align-items: center; justify-content: center;
+          border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        ">
+          <span style="transform: rotate(45deg); font-size: 16px;">
+            ${categoryInfo?.label.split(' ')[0] || '📍'}
+          </span>
+        </div>`,
+      iconSize: [34, 34],
+      iconAnchor: [17, 34]
     });
-  }
+
+    const marker = L.marker([req.location.lat, req.location.lng], { icon: customIcon });
+    
+    marker.on('click', () => {
+      this.zone.run(() => {
+        this.selectedRequest = req;
+        this.cdr.detectChanges();
+      });
+    });
+
+    newMarkers.push(marker);
+  });
+
+  // Додаємо всі маркери одним махом для кращої продуктивності
+  this.markersClusterGroup.addLayers(newMarkers);
+}
 
 
   onFormSubmitted() {
