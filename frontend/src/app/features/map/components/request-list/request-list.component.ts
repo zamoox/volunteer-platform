@@ -13,6 +13,7 @@ import { BehaviorSubject, distinctUntilChanged, Observable, startWith, switchMap
 export class RequestListComponent {
 
   @Output() requestsFiltered = new EventEmitter<any[]>();
+  @Output() requestSelected = new EventEmitter<any>();
   
   private requestService = inject(VolunteerRequestService);
   public selectedCategory$ = new BehaviorSubject<string | null>(null);
@@ -41,7 +42,7 @@ export class RequestListComponent {
 
   // Метод для центрування карти (реалізуємо через сервіс подій пізніше)
   onSelectRequest(req: any) {
-    console.log('Обрано запит:', req);
+    this.requestSelected.emit(req);
   }
   
 }

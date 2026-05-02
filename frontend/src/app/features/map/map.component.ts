@@ -205,17 +205,43 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.map.flyTo(center, this.map.getZoom());
   }
 
+// src/app/features/map/map.component.ts
+
   onSelectFromList(request: any) {
-    this.selectedRequest = request; // Відкриваємо деталі
-    this.showForm = false; // Закриваємо форму, якщо була відкрита
-    
-    // Плавно переміщуємо карту до вибраного запиту
-    if (request.location) {
-      this.map.flyTo([request.location.lat, request.location.lng], 16, {
-        animate: true,
-        duration: 1.5
-      });
+    // 1. Зберігаємо вибраний запит для відображення деталей (app-request-details)
+    this.selectedRequest = request; 
+    this.showForm = false; // Закриваємо форму, якщо вона була відкрита
+
+    // Якщо це мобільний пристрій, можна автоматично скролити до карти
+    // або закривати мобільне меню/сайдбар
+    //::TODO if (window.innerWidth < 768) {
+      // Логіка для мобілок (наприклад, перемикання прапорця isSidebarOpen = false)
+    // }
+
+    // 2. Фокусуємо карту на координатах запиту
+    if (request.location && request.location.lat && request.location.lng) {
+      // flyTo забезпечує плавний "політ" до точки
+      this.map.flyTo(
+        [request.location.lat, request.location.lng], 
+        16, // Рівень зуму (чим більше число, тим ближче фокус)
+        {
+          animate: true,
+          duration: 1.5 // Тривалість анімації в секундах
+        }
+      );
+
+      // 3. (Опціонально) Відкриваємо попап на карті автоматично
+      // Це допоможе користувачу відразу зрозуміти, яка саме мітка вибрана
+      this.openPopupForRequest(request);
     }
+  }
+
+  private openPopupForRequest(request: any) {
+    // Шукаємо маркер у групі або просто створюємо тимчасовий попап
+    L.popup()
+      .setLatLng([request.location.lat, request.location.lng])
+      .setContent(`<b>${request.title}</b><br>${request.location.address}`)
+      .openOn(this.map);
   }
 
   // Оголошуємо метод, якого не вистачає:
