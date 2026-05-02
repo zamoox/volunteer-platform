@@ -14,8 +14,7 @@
         [class.bg-blue-600]="(selectedCategory$ | async) === cat.id"
         [class.text-white]="(selectedCategory$ | async) === cat.id"
         [class.bg-slate-50]="(selectedCategory$ | async) !== cat.id"
-        [class.border-transparent]="(selectedCategory$ | async) !== cat.id"
-      >
+        [class.border-transparent]="(selectedCategory$ | async) !== cat.id">
         {{ cat.label }}
       </button>
     </div>

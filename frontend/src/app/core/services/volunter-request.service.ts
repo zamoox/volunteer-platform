@@ -5,8 +5,8 @@ import { of } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 
 export const GET_ALL_REQUESTS = gql`
-  query ExampleQuery {
-    getAllRequests {
+  query ExampleQuery($category: String) {
+    getAllRequests(category: $category) {
       id
       title
       description
@@ -116,7 +116,7 @@ export class VolunteerRequestService {
   getRequests(category: string | null = null) {
     return this.apollo.watchQuery<any>({
       query: GET_ALL_REQUESTS,
-      variables: { category } 
+      variables: { category }
     }).valueChanges.pipe(
       map(result => result.data?.getAllRequests ?? [])
     );
