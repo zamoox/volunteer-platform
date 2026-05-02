@@ -40,7 +40,6 @@ export class MapComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.initMap();
-    this.loadMarkers();    
 
     setTimeout(() => {
       if (this.map) {
@@ -140,28 +139,47 @@ export class MapComponent implements OnInit, AfterViewInit {
 
 // map.component.ts
 
-  private loadMarkers(): void {
-    this.requestService.getRequests().subscribe({
-      next: (res: any) => {
-        const requests = res.data?.getAllRequests || res;
-        this.markersGroup.clearLayers();
-        
-        requests.forEach((req: any) => {
-          const marker = L.marker([req.location.lat, req.location.lng]);
-          
-          // ЗАМІСТЬ .bindPopup робимо клік
-          marker.on('click', () => {
-            this.zone.run(() => {
-              this.selectedRequest = req; // Передаємо дані в сайдбар
-              this.cdr.detectChanges();
-            });
-          });
+  updateMarkersOnMap(requests: any[]): void {
+    if (!this.map) return;
+    
+    this.markersGroup.clearLayers();
 
-          marker.addTo(this.markersGroup);
+    requests.forEach((req: any) => {
+      // Створюємо кастомний маркер залежно від категорії
+      const categoryInfo = this.requestService.getCategories().find(c => c.id === req.category);
+      
+      const customIcon = L.divIcon({
+        className: 'custom-category-marker',
+        html: `
+          <div style="
+            background-color: ${categoryInfo?.color || '#6b7280'};
+            width: 34px; height: 34px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          ">
+            <span style="transform: rotate(45deg); font-size: 16px;">
+              ${categoryInfo?.label.split(' ')[0] || '📍'}
+            </span>
+          </div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 34]
+      });
+
+      const marker = L.marker([req.location.lat, req.location.lng], { icon: customIcon });
+      
+      marker.on('click', () => {
+        this.zone.run(() => {
+          this.selectedRequest = req;
+          this.cdr.detectChanges();
         });
-      }
+      });
+
+      marker.addTo(this.markersGroup);
     });
   }
+
 
   onFormSubmitted() {
     this.showForm = false;
@@ -169,7 +187,8 @@ export class MapComponent implements OnInit, AfterViewInit {
       this.map.removeLayer(this.temporaryMarker);
       this.temporaryMarker = undefined;
     }
-    this.loadMarkers(); // Оновлюємо список з бази
+    //::TODO this.loadMarkers(); // Оновлюємо список з бази
+
   }
 
   private handleHeaderCreateRequest(): void {

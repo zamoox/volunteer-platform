@@ -1,5 +1,5 @@
  // features/map/components/request-list/request-list.component.ts
-import { Component, inject } from '@angular/core';
+import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { VolunteerRequestService } from '../../../../core/services/volunter-request.service';
 import { BehaviorSubject, distinctUntilChanged, Observable, startWith, switchMap, tap } from 'rxjs';
@@ -11,6 +11,9 @@ import { BehaviorSubject, distinctUntilChanged, Observable, startWith, switchMap
   templateUrl: './request-list.component.html'
 })
 export class RequestListComponent {
+
+  @Output() requestsFiltered = new EventEmitter<any[]>();
+  
   private requestService = inject(VolunteerRequestService);
   public selectedCategory$ = new BehaviorSubject<string | null>(null);
 
@@ -20,7 +23,7 @@ export class RequestListComponent {
   public requests$ = this.selectedCategory$.pipe(
     distinctUntilChanged(),
     switchMap(category => this.requestService.getRequests(category)),
-    tap(data => console.log('Отримано відфільтровані дані:', data))
+    tap(requests => this.requestsFiltered.emit(requests))
   );
 
   getCategoryLabel(id: string): string {

@@ -9,7 +9,10 @@
 
     <!-- Сюди переносимо компонент списку -->
     <div class="flex-1 overflow-y-auto custom-scrollbar">
-      <app-request-list (requestSelected)="onSelectFromList($event)"></app-request-list>
+      <app-request-list 
+      (requestSelected)="onSelectFromList($event)"
+      (requestsFiltered)="updateMarkersOnMap($event)">
+      </app-request-list>
     </div>
   </aside>
 
