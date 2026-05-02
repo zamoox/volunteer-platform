@@ -2,7 +2,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { VolunteerRequestService } from '../../../../core/services/volunter-request.service';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable, startWith, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-request-list',
@@ -12,9 +12,26 @@ import { Observable } from 'rxjs';
 })
 export class RequestListComponent {
   private requestService = inject(VolunteerRequestService);
+  public selectedCategory$ = new BehaviorSubject<string | null>(null);
+
+  categories = this.requestService.getCategories();
   
   // Отримуємо потік запитів прямо з GraphQL
-  requests$: Observable<any[]> = this.requestService.getRequests();
+  public requests$ = this.selectedCategory$.pipe(
+    switchMap(category => this.requestService.getRequests(category))
+  );
+
+  getCategoryLabel(id: string): string {
+    // Шукаємо категорію в масиві, який ми отримали з сервісу
+    const category = this.categories.find(c => c.id === id);
+    
+    // Якщо знайшли — повертаємо лейбл, якщо ні — "📦 Інше"
+    return category ? category.label : '📦 Інше';
+  }
+
+  setCategory(id: string | null) {
+    this.selectedCategory$.next(id);
+  }
 
   // Метод для центрування карти (реалізуємо через сервіс подій пізніше)
   onSelectRequest(req: any) {

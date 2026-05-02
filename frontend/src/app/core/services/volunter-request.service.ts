@@ -10,6 +10,7 @@ export const GET_ALL_REQUESTS = gql`
       id
       title
       description
+      category
       location {
         lat
         lng
@@ -24,6 +25,7 @@ const CREATE_REQUEST = gql`
     createRequest(input: $input) {
       id
       title
+      category
       location {
         lat
         lng
@@ -111,12 +113,23 @@ export class VolunteerRequestService {
     private http: HttpClient
   ) {}
 
-  getRequests() {
+  getRequests(category: string | null = null) {
     return this.apollo.watchQuery<any>({
       query: GET_ALL_REQUESTS,
+      variables: { category } 
     }).valueChanges.pipe(
       map(result => result.data?.getAllRequests ?? [])
     );
+  }
+
+  getCategories() {
+    return [
+      { id: 'FOOD', label: '🍎 Продукти', color: '#ef4444' },
+      { id: 'MEDICINE', label: '💊 Ліки', color: '#10b981' },
+      { id: 'TRANSPORT', label: '🚗 Транспорт', color: '#3b82f6' },
+      { id: 'SHELTER', label: '🏠 Житло', color: '#f59e0b' },
+      { id: 'OTHER', label: '📦 Інше', color: '#6b7280' }
+    ];
   }
 
   createRequest(
@@ -150,23 +163,6 @@ export class VolunteerRequestService {
     return this.http.get<NominatimResult>(`${NOMINATIM_BASE}/reverse`, { params });
   }
 
-  /**
-   * Пошук адреси (autocomplete) — через Photon API.
-   *
-   * Чому не Nominatim:
-   *   Nominatim не підтримує fuzzy-пошук і не знає перейменованих вулиць
-   *   (наприклад "Ломоносова" → "Лобачевського" в Києві після деколонізації).
-   *   Structured query (street+city) для кирилиці ненадійний.
-   *
-   * Чому Photon:
-   *   • Fuzzy match — знаходить навіть при помилках і старих назвах
-   *   • location bias (lat/lon + zoom) — результати прив'язані до центру міста
-   *   • Безкоштовний, без API ключа, базується на тих же OSM даних
-   *   • layer=street,house — тільки адреси, без POI-сміття
-   *
-   * @param street  Вулиця + будинок ("Ломоносова 35")
-   * @param city    Назва міста ("Київ")
-   */
   searchAddress(street: string, city: string) {
     const center = CITY_CENTERS[city];
 
