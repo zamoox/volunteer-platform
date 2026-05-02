@@ -20,4 +20,5 @@ export class RequestListComponent {
   onSelectRequest(req: any) {
     console.log('Обрано запит:', req);
   }
+  
 }

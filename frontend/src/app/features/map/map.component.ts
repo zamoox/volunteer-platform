@@ -7,11 +7,12 @@ import {
   RequestDetailsComponent 
 } from '../../shared/components';
 import { UiEventsService } from '../../core/services/ui-events.service';
+import { RequestListComponent } from './components/request-list/request-list.component';
 
 @Component({
   selector: 'app-map',
   standalone: true, // Переконайтеся, що standalone вказано, якщо це так
-  imports: [CommonModule, RequestFormComponent, RequestDetailsComponent],
+  imports: [CommonModule, RequestFormComponent, RequestDetailsComponent, RequestListComponent],
   templateUrl: './map.component.html',
   styleUrl: './map.component.css',
 })
@@ -184,4 +185,29 @@ export class MapComponent implements OnInit, AfterViewInit {
     // Опціонально: плавно підлітаємо до центру, якщо користувач був далеко
     this.map.flyTo(center, this.map.getZoom());
   }
+
+  onSelectFromList(request: any) {
+    this.selectedRequest = request; // Відкриваємо деталі
+    this.showForm = false; // Закриваємо форму, якщо була відкрита
+    
+    // Плавно переміщуємо карту до вибраного запиту
+    if (request.location) {
+      this.map.flyTo([request.location.lat, request.location.lng], 16, {
+        animate: true,
+        duration: 1.5
+      });
+    }
+  }
+
+  // Оголошуємо метод, якого не вистачає:
+  onResponseSent(requestId: string) {
+    console.log('Користувач відгукнувся на запит з ID:', requestId);
+    
+    // Закриваємо панель деталей після успішного відгуку
+    this.selectedRequest = null;
+    
+    // Тут у майбутньому можна додати виклик Apollo мутації, 
+    // щоб записати відгук у базу даних
+  }
+  
 }

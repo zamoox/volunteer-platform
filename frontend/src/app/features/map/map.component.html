@@ -1,19 +1,35 @@
-<div class="map-wrapper" style="position: relative; width: 100%; height: 600px;">
-  <div id="map" style="width: 100%; height: 100%;"></div>
+<div class="flex h-[calc(100vh-64px)] mt-16 overflow-hidden bg-slate-50">
+  
+  <!-- Бічна панель зі списком -->
+  <aside class="hidden md:flex w-[400px] flex-col border-r border-slate-200 bg-white z-20 shadow-xl">
+    <div class="p-6 border-b border-slate-50 bg-white">
+      <h2 class="text-xl font-black text-slate-900 tracking-tight leading-none">Допомога поруч</h2>
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">Актуальні запити</p>
+    </div>
 
-  <app-request-form 
-    *ngIf="showForm"
-    [lat]="selectedLat"
-    [lng]="selectedLng"
-    [address]="selectedAddress"
-    (closed)="showForm = false"
-    (submitted)="onFormSubmitted()"
-  ></app-request-form>
+    <!-- Сюди переносимо компонент списку -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar">
+      <app-request-list (requestSelected)="onSelectFromList($event)"></app-request-list>
+    </div>
+  </aside>
 
-  <app-request-details 
-    *ngIf="selectedRequest" 
-    [request]="selectedRequest"
-    [position]="'left'" 
-    (closed)="selectedRequest = null">
-  </app-request-details>
+  <!-- Основна область з картою -->
+  <main class="flex-1 relative">
+    <div id="map" class="w-full h-full z-0"></div>
+
+    <!-- Твої модальні компоненти (Form та Details) -->
+    <app-request-form 
+      *ngIf="showForm"
+      [lat]="selectedLat" [lng]="selectedLng" [address]="selectedAddress"
+      (closed)="showForm = false"
+      (submitted)="onFormSubmitted()">
+    </app-request-form>
+
+    <app-request-details 
+      *ngIf="selectedRequest" 
+      [request]="selectedRequest"
+      (closed)="selectedRequest = null"
+      (responded)="onResponseSent($event)">
+    </app-request-details>
+  </main>
 </div>

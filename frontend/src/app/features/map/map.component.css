@@ -7,6 +7,7 @@
   height: 100%;
   width: 100%;
   background: #f8fafc; /* Колір-заглушка, поки вантажаться плитки */
+  outline: none;
 }
 
 /* Прибираємо синю рамку при фокусі на карту */
@@ -22,4 +23,31 @@
 
 :host ::ng-deep .leaflet-top {
   top: 20px !important; /* Додатковий відступ зверху для кнопок зуму */
+}
+
+
+
+/* Робимо скроллбар тонким і сучасним */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0; /* slate-200 */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1; /* slate-300 */
+}
+
+/* Приховуємо список на маленьких екранах, якщо потрібно */
+@media (max-width: 768px) {
+  aside {
+    display: none; /* Або реалізуй мобільне меню */
+  }
 }
