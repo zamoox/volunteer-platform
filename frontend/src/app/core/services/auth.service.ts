@@ -1,47 +1,51 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, of, tap } from 'rxjs'; // Додали 'of'
+import { BehaviorSubject, map, Observable, of, tap } from 'rxjs'; // Додали 'of'
 import { Router } from '@angular/router';
+import { Apollo, gql } from 'apollo-angular';
+
+const LOGIN_MUTATION = gql`
+  mutation Login($email: String!, $password: String!) {
+    login(email: $email, password: $password) {
+      access_token
+      user {
+        id
+        email
+        role
+      }
+    }
+  }
+`;
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private http = inject(HttpClient);
   private router = inject(Router);
-  
-  private readonly API_URL = 'https://api.your-volunteer-project.com/auth';
-
+  private apollo = inject(Apollo);
   private currentUserSubject = new BehaviorSubject<any>(this.getUserFromStorage());
   public currentUser$ = this.currentUserSubject.asObservable();
+
+  private readonly TOKEN_KEY = 'auth_token';
+  private readonly USER_KEY = 'user_data';
 
   private getUserFromStorage(): any {
     const savedUser = localStorage.getItem('user_data');
     return savedUser ? JSON.parse(savedUser) : null;
   }
 
-  /**
-   * Тимчасовий метод для тестування з Dummy User
-   */
-  login(email: string, password: string): Observable<any> {
-    // Створюємо фейкову відповідь від сервера
-    const dummyResponse = {
-      token: 'fake-jwt-token-12345',
-      user: {
-        name: 'Благодійний Фонд "Світло"',
-        email: email, // беремо той, що ввели
-        region: 'Київська',
-        city: 'Київ',
-        userType: 'organization' // Спробуй змінити на 'individual' для тесту
-      }
-    };
-
-    // Симулюємо запит до сервера за допомогою 'of'
-    return of(dummyResponse).pipe(
-      tap(response => {
-        this.handleAuthentication(response.token, response.user);
-      })
-    );
+  login(email: string, password: string) {
+      return this.apollo.mutate<any>({
+        mutation: LOGIN_MUTATION,
+        variables: { email, password }
+      }).pipe(
+        map(result => result.data.login),
+        tap(data => {
+          localStorage.setItem(this.TOKEN_KEY, data.access_token);
+          localStorage.setItem(this.USER_KEY, JSON.stringify(data.user));
+          this.currentUserSubject.next(data.user);
+        })
+      );
   }
 
   register(userData: any): Observable<any> {
@@ -54,23 +58,23 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.USER_KEY);
     this.currentUserSubject.next(null);
     this.router.navigate(['/login']);
   }
 
   isLoggedIn(): boolean {
-    return !!localStorage.getItem('auth_token');
+    return !!localStorage.getItem(this.TOKEN_KEY);
   }
 
   getToken(): string | null {
-    return localStorage.getItem('auth_token');
+    return localStorage.getItem(this.TOKEN_KEY);
   }
 
   private handleAuthentication(token: string, user: any): void {
-    localStorage.setItem('auth_token', token);
-    localStorage.setItem('user_data', JSON.stringify(user));
+    localStorage.setItem(this.TOKEN_KEY, token);
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
     this.currentUserSubject.next(user);
   }
 }
