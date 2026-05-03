@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
+import { VolunteerRequestService } from '../../../core/services/volunter-request.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-request-details',
@@ -14,6 +16,9 @@ export class RequestDetailsComponent {
 
   @Output() closed = new EventEmitter<void>();
   @Output() responded = new EventEmitter<string>();
+
+  private requestService = inject(VolunteerRequestService);
+  private toastService = inject(ToastService);
 
   getCategoryData(id: string) {
     const categories: any = {
@@ -30,10 +35,24 @@ export class RequestDetailsComponent {
     this.closed.emit();
   }
 
-  onRespond() {
-    if (this.request?.id) {
-      this.responded.emit(this.request.id);
-      alert('Дякуємо! Координатор отримав ваш відгук.');
-    }
+onRespond() {
+  if (this.request?.id) {
+    this.requestService.updateStatus(this.request.id, 'in_progress').subscribe({
+      next: () => {
+        this.responded.emit(this.request.id);
+        
+        // Виклик через сервіс
+        this.toastService.show(
+          'Дякуємо за відгук!', 
+          'Координатор зв\'яжеться з вами', 
+          'success'
+        );
+      },
+      error: (err) => {
+        this.toastService.show('Помилка', 'Не вдалося оновити статус', 'error');
+        console.error(err);
+      }
+    });
   }
+}
 }

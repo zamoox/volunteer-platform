@@ -11,6 +11,7 @@ export const GET_ALL_REQUESTS = gql`
       title
       description
       category
+      status
       createdAt
       location {
         lat
@@ -32,6 +33,15 @@ const CREATE_REQUEST = gql`
         lng
         address
       }
+    }
+  }
+`;
+
+const UPDATE_REQUEST_STATUS = gql`
+  mutation UpdateRequestStatus($id: String!, $status: String!) {
+    updateRequestStatus(id: $id, status: $status) {
+      id
+      status
     }
   }
 `;
@@ -155,10 +165,14 @@ export class VolunteerRequestService {
     });
   }
 
-  /**
-   * Reverse geocoding — отримати адресу за координатами.
-   * Nominatim чудово справляється з цим завданням.
-   */
+  updateStatus(id: string, status: string) {
+    return this.apollo.mutate({
+      mutation: UPDATE_REQUEST_STATUS,
+      variables: { id, status },
+      refetchQueries: ['GetAllRequests'] // Оновлюємо список після зміни
+    });
+  }
+
   getAddress(lat: number, lng: number) {
     const params = new HttpParams()
       .set('format', 'jsonv2')
