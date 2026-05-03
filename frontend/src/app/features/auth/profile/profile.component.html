@@ -1,52 +1,137 @@
-<div class="min-h-[80vh] flex items-center justify-center p-6 bg-slate-50 font-sans">
-  <!-- Використовуємо async pipe для отримання даних юзера -->
-  <div *ngIf="authService.currentUser$ | async as user; else noUser" 
-       class="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 overflow-hidden border border-slate-100">
+<div class="min-h-[85vh] flex items-start justify-center p-6 bg-slate-50 font-sans pt-24">
+  <div *ngIf="authService.currentUser$ | async as user" 
+       class="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 overflow-hidden border border-slate-100">
     
-    <!-- Header профілю -->
-    <div class="bg-blue-600 p-10 text-white relative">
+    <!-- Header (залишаємо як було, але компактніше) -->
+    <div class="bg-slate-950 p-8 text-white flex items-center justify-between">
       <div class="flex items-center gap-6">
-        <div class="w-24 h-24 bg-white/20 rounded-3xl backdrop-blur-md flex items-center justify-center text-4xl border border-white/30">
-          👤
+        <div class="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center text-3xl font-black shadow-lg">
+          {{ user.firstName?.[0] || user.email?.[0] | uppercase }}
         </div>
         <div>
-          <h2 class="text-3xl font-black tracking-tight">{{ user.name }}</h2>
-          <p class="text-blue-100 font-medium opacity-80">{{ user.userType === 'organization' ? 'Організація / ГО' : 'Волонтер' }}</p>
+          <h2 class="text-2xl font-black tracking-tight">{{ user.firstName || 'Волонтер' }}</h2>
+          <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">{{ user.role }}</p>
         </div>
       </div>
+      <button (click)="onLogout()" class="p-3 bg-white/5 hover:bg-red-500/20 text-white hover:text-red-400 rounded-xl transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+      </button>
     </div>
 
-    <!-- Деталі -->
-    <div class="p-10 space-y-8">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <!-- Навігація табами -->
+    <div class="flex border-b border-slate-100 px-8 bg-white sticky top-0">
+      <button 
+        (click)="setTab('info')"
+        [class.active-tab]="activeTab === 'info'"
+        class="tab-btn">
+        Особиста інфа
+      </button>
+      <button 
+        (click)="setTab('requests')"
+        [class.active-tab]="activeTab === 'requests'"
+        class="tab-btn">
+        Мої запити
+      </button>
+      <button 
+        (click)="setTab('reviews')"
+        [class.active-tab]="activeTab === 'reviews'"
+        class="tab-btn">
+        Відгуки
+      </button>
+      <button 
+        (click)="setTab('settings')"
+        [class.active-tab]="activeTab === 'settings'"
+        class="tab-btn">
+        Налаштування
+      </button>
+    </div>
+
+    <!-- Контент табів -->
+    <div class="p-10 animate-in fade-in duration-500">
+      
+      <!-- Таб: Інфо -->
+    <div *ngIf="activeTab === 'info'" class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      
+      <!-- Секція: Основні дані -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+        
         <div class="space-y-1">
-          <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Електронна пошта</p>
+          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Ім'я та Прізвище</label>
+          <p class="text-lg font-bold text-slate-900">{{ (user.firstName || '—') + ' ' + (user.lastName || '') }}</p>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Електронна пошта</label>
           <p class="text-lg font-bold text-slate-900">{{ user.email }}</p>
         </div>
+
         <div class="space-y-1">
-          <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Локація</p>
-          <p class="text-lg font-bold text-slate-900">{{ user.region }}, {{ user.city }}</p>
+          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Локація (Місто)</label>
+          <p class="text-lg font-bold text-slate-900">{{ user.city || 'Не вказано' }}</p>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Тип аккаунта</label>
+          <p class="text-lg font-bold text-slate-900">
+            {{ user.role === 'organization' ? 'ГО / Організація' : 'Фізична особа' }}
+          </p>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Роль у системі</label>
+          <div class="pt-1">
+            <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-blue-100">
+              {{ user.role }}
+            </span>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Статус верифікації</label>
+          <div class="flex items-center gap-2 pt-1">
+            <!-- Умовний колір для статусу -->
+            <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+            <p class="text-sm font-black uppercase tracking-widest text-emerald-600">Підтверджено</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Банер для волонтерів (опціонально для диплома) -->
+      <div class="p-6 bg-slate-950 rounded-[2rem] text-white flex items-center justify-between shadow-xl shadow-slate-200">
+        <div>
+          <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Рейтинг довіри</p>
+          <p class="text-xl font-black">Сумлінний волонтер</p>
+        </div>
+        <div class="flex gap-1">
+          <span class="text-yellow-400 text-xl">★</span>
+          <span class="text-yellow-400 text-xl">★</span>
+          <span class="text-yellow-400 text-xl">★</span>
+          <span class="text-yellow-400 text-xl">★</span>
+          <span class="text-slate-700 text-xl">★</span>
+        </div>
+      </div>
+    </div>
+
+      <!-- Таб: Мої запити -->
+      <div *ngIf="activeTab === 'requests'" class="text-center py-20">
+        <div class="text-4xl mb-4">📦</div>
+        <p class="text-slate-400 font-bold uppercase tracking-widest text-xs">У вас поки немає активних запитів</p>
+      </div>
+
+      <!-- Таб: Налаштування -->
+      <div *ngIf="activeTab === 'settings'" class="space-y-6">
+        <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center justify-between">
+          <div>
+            <p class="font-black text-slate-900 text-sm">Змінити пароль</p>
+            <p class="text-xs text-slate-400 font-medium">Оновіть свій захист</p>
+          </div>
+          <button class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">Змінити</button>
         </div>
       </div>
 
-      <hr class="border-slate-100">
-
-      <!-- Статистика або дії (заглушка) -->
-      <div class="flex gap-4">
-        <button class="flex-1 py-4 bg-slate-50 hover:bg-slate-100 text-slate-900 rounded-2xl font-black text-sm transition-all border border-slate-200">
-          Мої запити (0)
-        </button>
-        <button (click)="onLogout()" class="px-8 py-4 bg-red-50 hover:bg-red-100 text-red-500 rounded-2xl font-black text-sm transition-all border border-red-100">
-          Вийти
-        </button>
-      </div>
     </div>
   </div>
-
-  <!-- Якщо дані ще не завантажились -->
-  <ng-template #noUser>
-    <div class="text-center animate-pulse">
-      <p class="text-slate-400 font-bold uppercase tracking-widest">Завантаження профілю...</p>
-    </div>
-  </ng-template>
 </div>

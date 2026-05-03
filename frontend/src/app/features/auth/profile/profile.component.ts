@@ -14,8 +14,25 @@ export class ProfileComponent {
   public authService = inject(AuthService);
   private router = inject(Router);
 
+  activeTab: 'info' | 'settings' | 'reviews' | 'requests' = 'info';
+
+  // Допоміжний метод для гарного відображення ролі
+  getRoleLabel(role: string): string {
+    const roles: Record<string, string> = {
+      volunteer: 'Волонтер',
+      organization: 'Організація',
+      admin: 'Адміністратор'
+    };
+    return roles[role] || 'Користувач';
+  }
+
+  setTab(tab: 'info' | 'settings' | 'reviews' | 'requests') {
+    this.activeTab = tab;
+  }
+
   onLogout() {
     this.authService.logout();
-    this.router.navigate(['/login']);
+    // Навігація вже є всередині authService.logout(), 
+    // але дублювання тут не завадить для наочності
   }
 }
