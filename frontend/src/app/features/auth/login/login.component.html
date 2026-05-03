@@ -1,60 +1,78 @@
-<div class="min-h-[85vh] flex items-center justify-center bg-slate-50 p-4 font-sans">
-  <div class="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 p-10 border border-slate-100 animate-in fade-in zoom-in duration-500">
+<div class="pt-[80px] min-h-screen flex items-center justify-center bg-white p-4 font-sans">
+  <div class="w-full max-w-md p-2" [class.shake]="loginError">
     
     <!-- Header -->
     <div class="text-center mb-10">
-      <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-2xl mb-4">
-        <span class="text-3xl">👋</span>
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-[2rem] mb-6 shadow-2xl shadow-blue-200">
+        <span class="text-white font-black text-3xl">V</span>
       </div>
-      <h2 class="text-3xl font-black tracking-tight text-slate-900 leading-none">З поверненням!</h2>
-      <p class="text-slate-400 mt-3 font-medium text-sm">Увійдіть, щоб продовжити допомагати</p>
+      <h2 class="text-4xl font-black tracking-tighter text-slate-900 leading-none">З поверненням!</h2>
+      <p class="text-slate-400 mt-4 font-medium">Раді бачити тебе знову в строю</p>
     </div>
 
-    <!-- Form -->
-    <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="space-y-6">
+    <!-- Error Alert -->
+    <div *ngIf="loginError" class="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-2">
+      <span class="text-red-500">⚠️</span>
+      <p class="text-xs font-bold text-red-600 uppercase tracking-tight">Невірний логін або пароль</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="space-y-5">
       
+      <!-- Email -->
       <div class="space-y-2">
-        <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Електронна пошта</label>
-        <input 
-          formControlName="email" 
-          type="email" 
-          placeholder="your@email.com" 
-          class="form-input"
-          [class.border-red-500]="loginForm.get('email')?.touched && loginForm.get('email')?.invalid"
-        >
+        <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Пошта</label>
+        <div class="relative">
+          <input 
+            formControlName="email" 
+            type="email" 
+            placeholder="example@volunteer.ua" 
+            class="form-input"
+            [class.border-red-400]="loginForm.get('email')?.touched && loginForm.get('email')?.invalid"
+          >
+          <span *ngIf="loginForm.get('email')?.valid" class="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500">✓</span>
+        </div>
       </div>
 
+      <!-- Password -->
       <div class="space-y-2">
         <div class="flex justify-between items-center px-1">
           <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Пароль</label>
-          <a class="text-[10px] font-bold text-blue-500 hover:underline cursor-pointer uppercase tracking-wider">Забули?</a>
+          <a class="text-[10px] font-bold text-blue-500 hover:text-blue-700 cursor-pointer uppercase tracking-widest">Відновити</a>
         </div>
-        <input 
-          formControlName="password" 
-          type="password" 
-          placeholder="••••••••" 
-          class="form-input"
-          [class.border-red-500]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid"
-        >
+        <div class="relative">
+          <input 
+            formControlName="password" 
+            [type]="showPassword ? 'text' : 'password'" 
+            placeholder="••••••••" 
+            class="form-input"
+            [class.border-red-400]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid"
+          >
+          <button 
+            type="button"
+            (click)="togglePassword()"
+            class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors"
+          >
+            {{ showPassword ? '🙈' : '👁️' }}
+          </button>
+        </div>
       </div>
 
       <button 
         type="submit" 
         [disabled]="loginForm.invalid || isLoading" 
-        class="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+        class="w-full py-5 bg-slate-950 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-slate-200 hover:bg-blue-600 hover:shadow-blue-200 transition-all duration-300 active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
       >
-        <span *ngIf="isLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-        {{ isLoading ? 'Входимо...' : 'Увійти в систему' }}
+        <div class="flex items-center justify-center gap-3">
+          <span *ngIf="isLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+          <span>{{ isLoading ? 'Перевірка...' : 'Увійти в кабінет' }}</span>
+        </div>
       </button>
     </form>
 
-    <!-- Footer link -->
-    <p class="mt-10 text-center text-sm text-slate-400 font-medium">
-      Ще не з нами? 
-      <a 
-        routerLink="/register"
-        class="text-blue-600 font-black hover:text-blue-700 transition-colors ml-1">
-        Створити акаунт
+    <p class="mt-12 text-center text-[11px] font-black uppercase tracking-widest text-slate-400">
+      Немає акаунта? 
+      <a routerLink="/register" class="text-blue-600 hover:text-slate-900 transition-colors ml-1 underline decoration-2 underline-offset-4">
+        Приєднатися
       </a>
     </p>
   </div>

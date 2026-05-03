@@ -1,21 +1,16 @@
-.form-input {
-  width: 100%;
-  padding: 1rem 1.25rem;
-  background-color: #f8fafc; /* slate-50 */
-  border: 1px solid #e2e8f0; /* slate-200 */
-  border-radius: 1.25rem;
-  outline: none;
-  font-weight: 500;
-  color: #0f172a; /* slate-900 */
-  transition: all 0.2s ease-in-out;
+/* .form-input {
+  @apply w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 
+         placeholder:text-slate-300 outline-none transition-all duration-200
+         focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5;
 }
 
-.form-input:focus {
-  background-color: #ffffff;
-  border-color: #3b82f6; /* blue-500 */
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+.shake {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
 }
 
-.form-input::placeholder {
-  color: #cbd5e1; /* slate-300 */
-}
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+} */

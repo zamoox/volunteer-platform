@@ -14,6 +14,8 @@ import { AuthService } from '../../../core/services/auth.service';
 export class LoginComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
+  showPassword = false;
+  loginError = false;
 
   loginForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
@@ -25,19 +27,22 @@ export class LoginComponent {
   onLogin() {
     if (this.loginForm.valid) {
       this.isLoading = true;
+      this.loginError = false;
       
       const { email, password } = this.loginForm.value;
       
       this.authService.login(email!, password!).subscribe({
-        next: () => {
-          this.router.navigate(['/']); // Повертаємо на карту після успішного входу
-        },
-        error: (err) => {
+        next: () => this.router.navigate(['/']),
+        error: () => {
           this.isLoading = false;
-          alert('Неправильний email або пароль');
-          console.error(err);
+          this.loginError = true; // Тригеримо анімацію shake
+          setTimeout(() => this.loginError = false, 500);
         }
       });
     }
   }
+
+  togglePassword() {
+    this.showPassword = !this.showPassword;
+  } 
 }

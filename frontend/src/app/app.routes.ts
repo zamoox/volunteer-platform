@@ -13,7 +13,8 @@ export const routes: Routes = [
   {
     path: 'map',
     component: MapComponent,
-    title: 'Карта допомоги | Volunteer.ua'
+    title: 'Карта допомоги | Volunteer.ua',
+    canActivate: [authGuard],
   },
   {
     path: 'login',
@@ -28,7 +29,7 @@ export const routes: Routes = [
   {
     path: 'profile',
     loadComponent: () => import('./features/auth/profile/profile.component').then(m => m.ProfileComponent),
-    // canActivate: [authGuard],
+    canActivate: [authGuard],
     title: 'Мій профіль | Volunteer.ua'
   },
   // Редірект для будь-яких невідомих шляхів на головну сторінку

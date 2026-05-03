@@ -9,8 +9,6 @@ export const authGuard: CanActivateFn = (route, state) => {
   if (authService.isLoggedIn()) {
     return true
   } else {
-    // Редірект на логін, якщо не авторизований
-    router.navigate(['/login']);
-    return false; // Блокуємо перехід
+    return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
   }
 };
