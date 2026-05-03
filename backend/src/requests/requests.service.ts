@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { VolunteerRequest } from './request.entity';
 import { CreateVolunteerRequestInput } from './dto/create-request.input';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,44 +9,31 @@ export class RequestsService {
 
   constructor(
     @InjectRepository(VolunteerRequest)
-    private requestsRepository: Repository<VolunteerRequest>,
+    private requestRepository: Repository<VolunteerRequest>,
   ){}
-  private requests: VolunteerRequest[] = [
-    {
-      id: '1',
-      title: 'Допомога з ліками (Оболонь)',
-      description: 'Потрібно купити та завезти інсулін для пенсіонера.',
-      category: 'medical',
-      status: 'open',
-      createdAt: new Date(),
-      // Додаємо локацію, бо в Entity вона тепер обов'язкова
-      location: {
-        lat: 50.5067, 
-        lng: 30.4966,
-        address: 'вул. Маршала Тимошенка, 12'
-      }
-    },
-    {
-      id: '2',
-      title: 'Перевезення гуманітарки',
-      description: 'Потрібен водій з бусом для доставки продуктів.',
-      category: 'transport',
-      status: 'open',
-      createdAt: new Date(),
-      location: {
-        lat: 50.4501,
-        lng: 30.5234,
-        address: 'Майдан Незалежності'
-      }
-    }
-  ];
 
-  async findAll(): Promise<VolunteerRequest[]> {
-    return await this.requestsRepository.find();
+  async findAll(category?: string): Promise<VolunteerRequest[]> {
+  if (category) {
+    // Якщо категорія є — фільтруємо в БД
+    return this.requestRepository.find({ where: { category } });
+  }
+    // Якщо немає — повертаємо все
+    return this.requestRepository.find();
   }
 
   async create(input: CreateVolunteerRequestInput): Promise<VolunteerRequest> {
-    const newRequest = this.requestsRepository.create(input);
-    return this.requestsRepository.save(newRequest);
+    const newRequest = this.requestRepository.create(input);
+    return this.requestRepository.save(newRequest);
+  }
+
+  async updateStatus(id: string, status: string): Promise<VolunteerRequest> {
+    const request = await this.requestRepository.findOneBy({ id });
+    
+    if (!request) {
+      throw new NotFoundException(`Запит з ID ${id} не знайдено`);
+    }
+
+    request.status = status;
+    return this.requestRepository.save(request);
   }
 }

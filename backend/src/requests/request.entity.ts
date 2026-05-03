@@ -37,14 +37,14 @@ export class VolunteerRequest {
   category!: string;
 
   @Field()
-  @Column({ default: 'pending' })
+  @Column({ default: 'open' })
   status!: string;
 
   @Field(() => Location)
   @Column('jsonb') // Зберігаємо локацію як JSON-об'єкт
   location!: Location;
 
-  @Field()
+  @Field(() => Date)
   @CreateDateColumn() // Авто-дата створення
   createdAt!: Date;
 }
