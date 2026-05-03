@@ -1,9 +1,8 @@
 <div class="relative min-h-screen w-full overflow-hidden bg-slate-950">
   
-  <!-- Місце для твоєї крутої анімації (Canvas) -->
   <div class="absolute inset-0 z-0">
-    <!-- Сюди ти пізніше вставиш свій <canvas> або окремий компонент з Three.js -->
-    <div class="absolute inset-0 bg-gradient-to-b from-blue-600/10 via-transparent to-slate-950/80"></div>
+    <app-hero-canvas></app-hero-canvas>
+    <div class="absolute inset-0 bg-gradient-to-b from-blue-600/10 via-transparent to-slate-950/90"></div>
   </div>
 
   <!-- Контентна частина -->
@@ -29,15 +28,16 @@
       <!-- Кнопки -->
       <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
         <button 
-          routerLink="/map"
-          class="group relative px-8 py-4 bg-white text-slate-950 font-black rounded-2xl overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/10"
+            routerLink="/map"
+            class="group relative px-8 py-4 bg-white text-slate-950 font-black rounded-2xl overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/10"
         >
           <span class="relative z-10">ВІДКРИТИ КАРТУ</span>
           <div class="absolute inset-0 bg-gradient-to-r from-blue-100 to-white opacity-0 group-hover:opacity-100 transition-opacity"></div>
         </button>
 
         <button 
-          class="px-8 py-4 bg-slate-800/50 backdrop-blur-md text-white font-black rounded-2xl border border-slate-700 hover:bg-slate-800 transition-all active:scale-95"
+            routerLink="/register"
+            class="px-8 py-4 bg-slate-800/50 backdrop-blur-md text-white font-black rounded-2xl border border-slate-700 hover:bg-slate-800 transition-all active:scale-95"
         >
           СТАТИ ВОЛОНТЕРОМ
         </button>
