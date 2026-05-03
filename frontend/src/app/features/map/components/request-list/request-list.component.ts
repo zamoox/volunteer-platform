@@ -1,48 +1,87 @@
- // features/map/components/request-list/request-list.component.ts
 import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { VolunteerRequestService } from '../../../../core/services/volunter-request.service';
-import { BehaviorSubject, distinctUntilChanged, Observable, startWith, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, combineLatest, distinctUntilChanged, map, switchMap, tap } from 'rxjs';
 
 @Component({
   selector: 'app-request-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './request-list.component.html'
 })
 export class RequestListComponent {
-
   @Output() requestsFiltered = new EventEmitter<any[]>();
   @Output() requestSelected = new EventEmitter<any>();
   
   private requestService = inject(VolunteerRequestService);
+  
+  // Стріми стану
   public selectedCategory$ = new BehaviorSubject<string | null>(null);
+  public searchTerm$ = new BehaviorSubject<string>('');
+  public sortBy$ = new BehaviorSubject<'date' | 'title'>('date');
 
   categories = this.requestService.getCategories();
   
-  // Отримуємо потік запитів прямо з GraphQL
-  public requests$ = this.selectedCategory$.pipe(
-    distinctUntilChanged(),
-    switchMap(category => this.requestService.getRequests(category)),
-    tap(requests => this.requestsFiltered.emit(requests))
+  // Основний потік даних
+  public filteredRequests$ = combineLatest([
+    this.selectedCategory$.pipe(distinctUntilChanged()),
+    this.searchTerm$.pipe(distinctUntilChanged()),
+    this.sortBy$.pipe(distinctUntilChanged())
+  ]).pipe(
+    // Завантажуємо дані з сервера при зміні категорії
+    switchMap(([category, term, sort]) => 
+      this.requestService.getRequests(category).pipe(
+        map(requests => ({ requests, term, sort }))
+      )
+    ),
+    // Фільтруємо та сортуємо локально для миттєвого відгуку UI
+    map(({ requests, term, sort }) => {
+      let list = [...requests];
+
+      // Пошук
+      if (term) {
+        const lowerTerm = term.toLowerCase();
+        list = list.filter(r => 
+          r.title.toLowerCase().includes(lowerTerm) || 
+          r.description.toLowerCase().includes(lowerTerm)
+        );
+      }
+
+      // Сортування
+      list.sort((a, b) => {
+        if (sort === 'date') {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        } else {
+          return a.title.localeCompare(b.title);
+        }
+      });
+
+      return list;
+    }),
+    // Емітимо результат для мапи
+    tap(filtered => this.requestsFiltered.emit(filtered))
   );
 
   getCategoryLabel(id: string): string {
-    // Шукаємо категорію в масиві, який ми отримали з сервісу
     const category = this.categories.find(c => c.id === id);
-    // Якщо знайшли — повертаємо лейбл, якщо ні — "📦 Інше"
     return category ? category.label : '📦 Інше';
   }
 
-  setCategory(id: string | null): void {
-    // Якщо клікаємо на вже вибрану категорію — скидаємо фільтр (опціонально)
-    const newCategory = this.selectedCategory$.value === id ? null : id;
-    this.selectedCategory$.next(newCategory);
+  // Методи оновлення стану
+  setCategory(id: string | null) {
+    this.selectedCategory$.next(id);
   }
 
-  // Метод для центрування карти (реалізуємо через сервіс подій пізніше)
-  onSelectRequest(req: any) {
+  onSearch(term: string) {
+    this.searchTerm$.next(term);
+  }
+
+  onSort(type: 'date' | 'title') {
+    this.sortBy$.next(type);
+  }
+
+  selectRequest(req: any) {
     this.requestSelected.emit(req);
   }
-  
 }
