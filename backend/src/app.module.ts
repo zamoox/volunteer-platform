@@ -7,6 +7,8 @@ import { RequestsModule } from './requests/requests.module';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { RequestsResolver } from './requests/requests.resolver';
 import { VolunteerRequest } from './requests/request.entity';
+import { User } from './users/user.entity';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -18,6 +20,7 @@ import { VolunteerRequest } from './requests/request.entity';
       password: 'password', // Твій пароль
       database: 'volunteer_db',
       autoLoadEntities: true, // Автоматично знайде наші класи @Entity
+      entities: [VolunteerRequest, User],
       synchronize: true, // АВТОМАТИЧНО створить таблиці (тільки для розробки!)
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
@@ -29,7 +32,8 @@ import { VolunteerRequest } from './requests/request.entity';
       // ВВІМКНИ вбудований Sandbox
       plugins: [ApolloServerPluginLandingPageLocalDefault()], // Вмикаємо новий Sandbox
     }),
-    RequestsModule
+    RequestsModule,
+    AuthModule
   ],
   providers: []
 })
