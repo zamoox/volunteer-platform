@@ -11,6 +11,7 @@ export const GET_ALL_REQUESTS = gql`
       title
       description
       category
+      createdAt
       location {
         lat
         lng
