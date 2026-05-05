@@ -1,10 +1,12 @@
 // backend/src/users/users.service.ts
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
 import * as bcrypt from 'bcrypt';
 import { RegisterInput } from '../auth/dto/register.input';
+import { v4 as uuidv4 } from 'uuid';
+
 
 @Injectable()
 export class UsersService {
@@ -32,7 +34,9 @@ export class UsersService {
       role,
       firstName: name, // Або просто name, якщо ти так назвав колонку в Entity
       region,
-      city
+      city,
+      verificationToken: uuidv4(), // 👈 Зберігаємо токен
+      isEmailVerified: false // 👈 По замовчуванню не верифікований
     });
 
     return this.usersRepository.save(user);
@@ -45,4 +49,27 @@ export class UsersService {
   async findAll(): Promise<User[]> {
     return this.usersRepository.find(); 
   }
+
+  // 1. Знаходимо юзера за токеном
+  async findByToken(token: string): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { verificationToken: token } });
+    
+    if (!user) {
+      // Якщо токена немає в базі, кидаємо помилку
+      throw new NotFoundException('Недійсний або прострочений токен підтвердження');
+    }
+    
+    return user;
+  }
+
+  // 2. Оновлюємо статус і зачищаємо токен
+  async markAsVerified(userId: string | number): Promise<void> {
+    await this.usersRepository.update(userId, {
+      isEmailVerified: true,
+      verificationToken: null, // Токен одноразовий, тому видаляємо його після успіху
+    });
+  }
 }
+
+
+

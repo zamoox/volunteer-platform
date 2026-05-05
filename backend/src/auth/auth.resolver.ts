@@ -22,7 +22,17 @@ export class AuthResolver {
 
   @Mutation(() => LoginResponse) 
   async register(@Args('input') input: RegisterInput) {
-    await this.usersService.create(input);
-    return this.authService.login(input.email, input.password);
+    return this.authService.register(input);
+  }
+
+  @Mutation(() => Boolean)
+  async verifyEmail(@Args('token') token: string): Promise<boolean> {
+    try {
+      const user = await this.usersService.findByToken(token); // Знаходимо юзера
+      await this.usersService.markAsVerified(user.id); // Оновлюємо статус
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 }
