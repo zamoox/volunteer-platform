@@ -5,23 +5,35 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 import { RequestsModule } from './requests/requests.module';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
-import { RequestsResolver } from './requests/requests.resolver';
 import { VolunteerRequest } from './requests/request.entity';
 import { User } from './users/user.entity';
 import { AuthModule } from './auth/auth.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { env } from 'process';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres', // Твій юзер (за замовчуванням postgres)
-      password: 'password', // Твій пароль
-      database: 'volunteer_db',
-      autoLoadEntities: true, // Автоматично знайде наші класи @Entity
-      entities: [VolunteerRequest, User],
-      synchronize: true, // АВТОМАТИЧНО створить таблиці (тільки для розробки!)
+    RequestsModule,
+    AuthModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres', // або інша твоя БД
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_NAME'),
+        autoLoadEntities: true,
+        entities: [VolunteerRequest, User],
+        synchronize: false, // для розробки; на проді краще false + міграції
+      }),
+      inject: [ConfigService],
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
@@ -32,8 +44,23 @@ import { AuthModule } from './auth/auth.module';
       // ВВІМКНИ вбудований Sandbox
       plugins: [ApolloServerPluginLandingPageLocalDefault()], // Вмикаємо новий Sandbox
     }),
-    RequestsModule,
-    AuthModule
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        transport: {
+          host: configService.get<string>('MAIL_HOST'),
+          port: configService.get<number>('MAIL_PORT'),
+          auth: {
+            user: configService.get<string>('MAIL_USER'),
+            pass: configService.get<string>('MAIL_PASS'),
+          },
+        },
+        defaults: {
+          from: configService.get<string>('MAIL_FROM'),
+        },
+      }),
+      inject: [ConfigService],
+    }),
   ],
   providers: []
 })

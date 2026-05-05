@@ -40,4 +40,12 @@ export class User {
   @Field()
   @CreateDateColumn()
   createdAt!: Date;
+
+  @Field(() => Boolean)
+  @Column({ default: false })
+  isEmailVerified: boolean; // 👈 Статус верифікації (за замовчуванням false)
+
+  // Поле для токена (не додаємо @Field, бо фронтенду не треба знати цей токен просто так)
+  @Column({ nullable: true })
+  verificationToken: string; // 👈 Тут лежатиме унікальний код
 }
