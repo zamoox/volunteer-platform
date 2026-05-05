@@ -1,25 +1,24 @@
 <div class="min-h-screen flex items-center justify-center bg-slate-50 p-6 font-sans">
-  <!-- Основний контейнер з динамічною інверсією фону -->
+  <!-- Основний контейнер -->
   <div 
     class="w-full max-w-lg rounded-[2.5rem] shadow-2xl p-10 border transition-all duration-500 ease-in-out"
-    [class.bg-white]="registerForm.get('userType')?.value === 'individual'"
-    [class.border-slate-100]="registerForm.get('userType')?.value === 'individual'"
-    [class.bg-blue-600]="registerForm.get('userType')?.value === 'organization'"
-    [class.border-blue-500]="registerForm.get('userType')?.value === 'organization'"
-    [class.is-organization]="registerForm.get('userType')?.value === 'organization'"
+    [class.bg-white]="currentUserType === 'individual'"
+    [class.border-slate-100]="currentUserType === 'individual'"
+    [class.bg-blue-600]="currentUserType === 'organization'"
+    [class.border-blue-500]="currentUserType === 'organization'"
   >
     
     <!-- Заголовок -->
     <div class="text-center mb-8">
       <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4 transition-colors duration-500"
-           [class.bg-blue-50]="registerForm.get('userType')?.value === 'individual'"
-           [class.bg-white/20]="registerForm.get('userType')?.value === 'organization'">
-        <span class="text-2xl">{{ registerForm.get('userType')?.value === 'individual' ? '✨' : '🏢' }}</span>
+           [class.bg-blue-50]="currentUserType === 'individual'"
+           [class.bg-white/20]="currentUserType === 'organization'">
+        <span class="text-2xl">{{ currentUserType === 'individual' ? '✨' : '🏢' }}</span>
       </div>
       <h2 class="text-3xl font-black tracking-tight leading-none transition-colors duration-500"
-          [class.text-slate-900]="registerForm.get('userType')?.value === 'individual'"
-          [class.text-white]="registerForm.get('userType')?.value === 'organization'">
-        {{ registerForm.get('userType')?.value === 'individual' ? 'Реєстрація' : 'Реєстрація ГО' }}
+          [class.text-slate-900]="currentUserType === 'individual'"
+          [class.text-white]="currentUserType === 'organization'">
+        {{ currentUserType === 'individual' ? 'Реєстрація' : 'Реєстрація ГО' }}
       </h2>
     </div>
 
@@ -27,25 +26,25 @@
       
       <!-- Перемикач типу (Toggle) -->
       <div class="flex p-1 rounded-2xl border transition-all duration-500"
-           [class.bg-slate-50]="registerForm.get('userType')?.value === 'individual'"
-           [class.border-slate-100]="registerForm.get('userType')?.value === 'individual'"
-           [class.bg-blue-700/40]="registerForm.get('userType')?.value === 'organization'"
-           [class.border-white/20]="registerForm.get('userType')?.value === 'organization'">
+           [class.bg-slate-50]="currentUserType === 'individual'"
+           [class.border-slate-100]="currentUserType === 'individual'"
+           [class.bg-blue-700/40]="currentUserType === 'organization'"
+           [class.border-white/20]="currentUserType === 'organization'">
         
         <label class="flex-1 text-center py-3 rounded-xl cursor-pointer transition-all font-bold text-sm"
-               [class.bg-white]="registerForm.get('userType')?.value === 'individual'"
-               [class.text-blue-600]="registerForm.get('userType')?.value === 'individual'"
-               [class.text-blue-100]="registerForm.get('userType')?.value === 'organization'">
+               [class.bg-white]="currentUserType === 'individual'"
+               [class.text-blue-600]="currentUserType === 'individual'"
+               [class.text-blue-100]="currentUserType === 'organization'">
           <input type="radio" formControlName="userType" value="individual" class="hidden">
           Фізична особа
         </label>
         
         <label class="flex-1 text-center py-3 rounded-xl cursor-pointer transition-all font-bold text-sm"
-               [class.bg-blue-500]="registerForm.get('userType')?.value === 'organization'"
-               [class.text-white]="registerForm.get('userType')?.value === 'organization'"
-               [class.text-slate-400]="registerForm.get('userType')?.value === 'individual'">
+               [class.bg-blue-500]="currentUserType === 'organization'"
+               [class.text-white]="currentUserType === 'organization'"
+               [class.text-slate-400]="currentUserType === 'individual'">
           <input type="radio" formControlName="userType" value="organization" class="hidden">
-          ГО / Організація
+          Фонд / Організація
         </label>
       </div>
 
@@ -53,24 +52,30 @@
       <div class="space-y-1">
         <label 
           class="text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors duration-500"
-          [class.text-slate-400]="registerForm.get('userType')?.value === 'individual'"
-          [class.text-white]="registerForm.get('userType')?.value === 'organization'"
+          [class.text-slate-400]="currentUserType === 'individual'"
+          [class.text-white]="currentUserType === 'organization'"
         >
-          {{ registerForm.get('userType')?.value === 'individual' ? "Ім'я та Прізвище" : "Назва організації" }}
+          {{ currentUserType === 'individual' ? "Ім'я та Прізвище" : "Назва організації" }}
         </label>
-        <input formControlName="name" type="text" class="form-input" [class.error]="isInvalid('name')">
+        <input formControlName="name" type="text" class="form-input" [class.border-red-400]="isInvalid('name')">
+        <span *ngIf="isInvalid('name')" class="text-[10px] font-bold block ml-1 mt-1" [class.text-red-500]="currentUserType === 'individual'" [class.text-red-200]="currentUserType === 'organization'">
+          {{ getErrorMessage('name') }}
+        </span>
       </div>
 
       <!-- Email -->
       <div class="space-y-1">
         <label 
           class="text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors duration-500"
-          [class.text-slate-400]="registerForm.get('userType')?.value === 'individual'"
-          [class.text-white]="registerForm.get('userType')?.value === 'organization'"
+          [class.text-slate-400]="currentUserType === 'individual'"
+          [class.text-white]="currentUserType === 'organization'"
         >
           Email
         </label>
-        <input formControlName="email" type="email" class="form-input" [class.error]="isInvalid('email')">
+        <input formControlName="email" type="email" class="form-input" [class.border-red-400]="isInvalid('email')">
+        <span *ngIf="isInvalid('email')" class="text-[10px] font-bold block ml-1 mt-1" [class.text-red-500]="currentUserType === 'individual'" [class.text-red-200]="currentUserType === 'organization'">
+          {{ getErrorMessage('email') }}
+        </span>
       </div>
 
       <!-- Локація -->
@@ -78,25 +83,31 @@
         <div class="space-y-1">
           <label 
             class="text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors duration-500"
-            [class.text-slate-400]="registerForm.get('userType')?.value === 'individual'"
-            [class.text-white]="registerForm.get('userType')?.value === 'organization'"
+            [class.text-slate-400]="currentUserType === 'individual'"
+            [class.text-white]="currentUserType === 'organization'"
           >
             Область
           </label>
-          <select formControlName="region" class="form-input" [class.error]="isInvalid('region')">
+          <select formControlName="region" class="form-input" [class.border-red-400]="isInvalid('region')">
             <option value="" disabled selected>Оберіть...</option>
             <option *ngFor="let r of regions" [value]="r">{{r}}</option>
           </select>
+          <span *ngIf="isInvalid('region')" class="text-[10px] font-bold block ml-1 mt-1" [class.text-red-500]="currentUserType === 'individual'" [class.text-red-200]="currentUserType === 'organization'">
+            {{ getErrorMessage('region') }}
+          </span>
         </div>
         <div class="space-y-1">
           <label 
             class="text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors duration-500"
-            [class.text-slate-400]="registerForm.get('userType')?.value === 'individual'"
-            [class.text-white]="registerForm.get('userType')?.value === 'organization'"
+            [class.text-slate-400]="currentUserType === 'individual'"
+            [class.text-white]="currentUserType === 'organization'"
           >
             Місто
           </label>
-          <input formControlName="city" type="text" placeholder="Київ" class="form-input" [class.error]="isInvalid('city')">
+          <input formControlName="city" type="text" placeholder="Київ" class="form-input" [class.border-red-400]="isInvalid('city')">
+          <span *ngIf="isInvalid('city')" class="text-[10px] font-bold block ml-1 mt-1" [class.text-red-500]="currentUserType === 'individual'" [class.text-red-200]="currentUserType === 'organization'">
+            {{ getErrorMessage('city') }}
+          </span>
         </div>
       </div>
 
@@ -104,26 +115,44 @@
       <div class="space-y-1">
         <label 
           class="text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors duration-500"
-          [class.text-slate-400]="registerForm.get('userType')?.value === 'individual'"
-          [class.text-white]="registerForm.get('userType')?.value === 'organization'"
+          [class.text-slate-400]="currentUserType === 'individual'"
+          [class.text-white]="currentUserType === 'organization'"
         >
           Пароль
         </label>
-        <input formControlName="password" type="password" placeholder="••••••••" class="form-input" [class.error]="isInvalid('password')">
+        <input formControlName="password" type="password" placeholder="••••••••" class="form-input" [class.border-red-400]="isInvalid('password')">
+        <span *ngIf="isInvalid('password')" class="text-[10px] font-bold block ml-1 mt-1" [class.text-red-500]="currentUserType === 'individual'" [class.text-red-200]="currentUserType === 'organization'">
+          {{ getErrorMessage('password') }}
+        </span>
       </div>
 
       <!-- Кнопка -->
+      <!-- Додано registerForm.invalid, disabled:opacity-50 та cursor-not-allowed -->
       <button 
         type="submit" 
-        [disabled]="isLoading" 
-        class="w-full mt-6 py-5 rounded-2xl font-black text-sm transition-all duration-300 active:scale-[0.98] disabled:opacity-50 shadow-xl"
-        [class.bg-blue-600]="registerForm.get('userType')?.value === 'individual'"
-        [class.text-white]="registerForm.get('userType')?.value === 'individual'"
-        [class.bg-white]="registerForm.get('userType')?.value === 'organization'"
-        [class.text-blue-600]="registerForm.get('userType')?.value === 'organization'"
+        [disabled]="registerForm.invalid || isLoading" 
+        class="w-full mt-6 py-5 rounded-2xl font-black text-sm transition-all duration-300 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none active:scale-[0.98]"
+        [class.bg-blue-600]="currentUserType === 'individual'"
+        [class.text-white]="currentUserType === 'individual'"
+        [class.bg-white]="currentUserType === 'organization'"
+        [class.text-blue-600]="currentUserType === 'organization'"
       >
         {{ isLoading ? 'Реєстрація...' : 'Зареєструватися' }}
       </button>
     </form>
+    
+    <!-- Посилання на логін -->
+    <p class="mt-8 text-center text-[11px] font-black uppercase tracking-widest transition-colors duration-500"
+       [class.text-slate-400]="currentUserType === 'individual'"
+       [class.text-blue-200]="currentUserType === 'organization'">
+      Вже є акаунт? 
+      <a routerLink="/login" class="transition-colors ml-1 underline decoration-2 underline-offset-4"
+         [class.text-blue-600]="currentUserType === 'individual'"
+         [class.hover:text-slate-900]="currentUserType === 'individual'"
+         [class.text-white]="currentUserType === 'organization'"
+         [class.hover:text-blue-100]="currentUserType === 'organization'">
+        Увійти
+      </a>
+    </p>
   </div>
 </div>

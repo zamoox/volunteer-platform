@@ -11,7 +11,25 @@ const LOGIN_MUTATION = gql`
       user {
         id
         email
+        firstName
         role
+        city
+        region
+      }
+    }
+  }
+`;
+
+const REGISTER_MUTATION = gql`
+  mutation Register($input: RegisterInput!) {
+    register(input: $input) {
+      access_token
+      user {
+        id
+        email
+        role
+        firstName
+        city
       }
     }
   }
@@ -49,12 +67,29 @@ export class AuthService {
   }
 
   register(userData: any): Observable<any> {
-    // Для реєстрації теж повертаємо успіх і ті дані, що ввів юзер
-    return of({ token: 'fake-jwt-token-67890', user: userData }).pipe(
-      tap(response => {
-        this.handleAuthentication(response.token, response.user);
-      })
-    );
+      const mappedRole = userData.userType === 'individual' ? 'volunteer' : 'organization';
+
+      const registerPayload = {
+        email: userData.email, 
+        password: userData.password, 
+        role: mappedRole,
+        name: userData.name, // На фронті поле називається 'name', а на бекенді DTO теж чекає 'name'
+        region: userData.region,
+        city: userData.city
+      };
+
+      return this.apollo.mutate<any>({
+        mutation: REGISTER_MUTATION,
+        variables: { 
+          input: registerPayload
+        }
+      }).pipe(
+        // Очікуємо, що бекенд повертає об'єкт { access_token, user } так само, як і при логіні
+        map(result => result.data.register),
+        tap(data => {
+          this.handleAuthentication(data.access_token, data.user);
+        })
+      );
   }
 
   logout(): void {
