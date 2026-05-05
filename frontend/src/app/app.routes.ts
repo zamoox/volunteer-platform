@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { MapComponent } from './features/map/map.component';
 import { authGuard } from './core/guards/auth-guard';
 import { HomeComponent } from './features/home/home.component';
+import { VerifyComponent } from './features/auth/verify/verify.component';
 
 export const routes: Routes = [
   
@@ -31,6 +32,9 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/profile/profile.component').then(m => m.ProfileComponent),
     canActivate: [authGuard],
     title: 'Мій профіль | Volunteer.ua'
+  },
+  { path: 'verify', 
+    component: VerifyComponent
   },
   // Редірект для будь-яких невідомих шляхів на головну сторінку
   {

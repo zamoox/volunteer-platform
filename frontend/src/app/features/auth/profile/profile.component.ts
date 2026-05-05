@@ -12,7 +12,6 @@ import { Router } from '@angular/router';
 })
 export class ProfileComponent {
   public authService = inject(AuthService);
-  private router = inject(Router);
 
   activeTab: 'info' | 'settings' | 'reviews' | 'requests' = 'info';
 
@@ -32,7 +31,5 @@ export class ProfileComponent {
 
   onLogout() {
     this.authService.logout();
-    // Навігація вже є всередині authService.logout(), 
-    // але дублювання тут не завадить для наочності
   }
 }

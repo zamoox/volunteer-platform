@@ -91,9 +91,17 @@
         <div class="space-y-1">
           <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Статус верифікації</label>
           <div class="flex items-center gap-2 pt-1">
-            <!-- Умовний колір для статусу -->
-            <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-            <p class="text-sm font-black uppercase tracking-widest text-emerald-600">Підтверджено</p>
+            <!-- Якщо пошта підтверджена -->
+            <ng-container *ngIf="user.isEmailVerified; else notVerified">
+              <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+              <p class="text-sm font-black uppercase tracking-widest text-emerald-600">Підтверджено</p>
+            </ng-container>
+
+            <!-- Якщо пошта НЕ підтверджена -->
+            <ng-template #notVerified>
+              <div class="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+              <p class="text-sm font-black uppercase tracking-widest text-amber-600">Очікує підтвердження</p>
+            </ng-template>
           </div>
         </div>
 

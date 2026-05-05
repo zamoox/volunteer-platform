@@ -14,7 +14,8 @@ const LOGIN_MUTATION = gql`
         firstName
         role
         city
-        region
+        region,
+        isEmailVerified
       }
     }
   }
@@ -30,8 +31,15 @@ const REGISTER_MUTATION = gql`
         role
         firstName
         city
+        isEmailVerified
       }
     }
+  }
+`;
+
+const VERIFY_EMAIL_MUTATION = gql`
+  mutation VerifyEmail($token: String!) {
+    verifyEmail(token: $token)
   }
 `;
 
@@ -50,6 +58,25 @@ export class AuthService {
   private getUserFromStorage(): any {
     const savedUser = localStorage.getItem('user_data');
     return savedUser ? JSON.parse(savedUser) : null;
+  }
+
+  verifyEmail(token: string): Observable<boolean> {
+    return this.apollo.mutate<{ verifyEmail: boolean }>({
+      mutation: VERIFY_EMAIL_MUTATION,
+      variables: { token }
+    }).pipe(
+      map(result => !!result.data?.verifyEmail),
+      tap(success => {
+        if (success) {
+          // Якщо верифікація успішна, оновлюємо локальні дані користувача
+          const user = this.getUserFromStorage();
+          if (user) {
+            const updatedUser = { ...user, isEmailVerified: true };
+            this.handleAuthentication(this.getToken() || '', updatedUser);
+          }
+        }
+      })
+    );
   }
 
   login(email: string, password: string) {
