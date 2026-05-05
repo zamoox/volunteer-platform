@@ -1,7 +1,7 @@
 import { Resolver, Mutation, Args } from '@nestjs/graphql';
 import { AuthService } from './auth.service';
 import { LoginResponse } from './dto/login-response';
-import { CreateUserInput } from '../users/dto/create-user.input'; // Використовуємо DTO з модуля users
+import { RegisterInput } from './dto/register.input'; // Використовуємо DTO з модуля users
 import { UsersService } from '../users/users.service';
 import { User } from '../users/user.entity';
 
@@ -20,12 +20,9 @@ export class AuthResolver {
     return this.authService.login(email, password);
   }
 
-  @Mutation(() => User)
-  async register(@Args('input') input: CreateUserInput) {
-    return this.usersService.create(
-      input.email,
-      input.password,
-      'volunteer'
-    );
+  @Mutation(() => LoginResponse) 
+  async register(@Args('input') input: RegisterInput) {
+    await this.usersService.create(input);
+    return this.authService.login(input.email, input.password);
   }
 }

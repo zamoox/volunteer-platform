@@ -1,6 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 import { ObjectType, Field, ID, HideField } from '@nestjs/graphql';
-import { VolunteerRequest } from '../requests/request.entity';
 
 @ObjectType()
 @Entity('users')
@@ -13,7 +12,7 @@ export class User {
   @Column({ unique: true })
   email!: string;
 
-  @HideField() // Пароль не буде доступний через GraphQL запити
+  @HideField() // Пароль не світиться у GraphQL-відповідях
   @Column()
   password!: string;
 
@@ -26,9 +25,19 @@ export class User {
   lastName?: string;
 
   @Field(() => String)
-  @Column({ default: 'volunteer' }) // Ролі: volunteer, coordinator, admin
+  @Column({ default: 'volunteer' })
   role!: string;
 
+  // Нові поля для геолокації
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  region?: string;
+
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  city?: string;
+
+  @Field()
   @CreateDateColumn()
   createdAt!: Date;
 }
