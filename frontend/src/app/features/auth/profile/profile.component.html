@@ -88,20 +88,57 @@
           </div>
         </div>
 
+<!-- Шукаємо блок зі статусом верифікації та оновлюємо його -->
         <div class="space-y-1">
           <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Статус верифікації</label>
-          <div class="flex items-center gap-2 pt-1">
-            <!-- Якщо пошта підтверджена -->
-            <ng-container *ngIf="user.isEmailVerified; else notVerified">
-              <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-              <p class="text-sm font-black uppercase tracking-widest text-emerald-600">Підтверджено</p>
-            </ng-container>
+          <div class="flex items-center justify-between gap-2 pt-1">
+            
+            <div class="flex items-center gap-2">
+              <!-- Якщо пошта підтверджена -->
+              <ng-container *ngIf="user.isEmailVerified; else notVerified">
+                <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                <p class="text-sm font-black uppercase tracking-widest text-emerald-600">Підтверджено</p>
+              </ng-container>
 
-            <!-- Якщо пошта НЕ підтверджена -->
-            <ng-template #notVerified>
-              <div class="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
-              <p class="text-sm font-black uppercase tracking-widest text-amber-600">Очікує підтвердження</p>
-            </ng-template>
+              <!-- Якщо пошта НЕ підтверджена -->
+              <ng-template #notVerified>
+                <div class="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+                <p class="text-sm font-black uppercase tracking-widest text-amber-600">Очікує підтвердження</p>
+              </ng-template>
+            </div>
+
+            <!-- Кнопка відправки листа (показуємо тільки якщо не підтверджено) -->
+            <button 
+  *ngIf="!user.isEmailVerified"
+  (click)="onResendEmail(user.id)"
+  [disabled]="isSendingEmail || cooldownSeconds > 0"
+  class="relative min-w-[160px] h-9 px-4 flex items-center justify-center border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 disabled:cursor-not-allowed"
+  [ngClass]="cooldownSeconds > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'hover:bg-slate-900 hover:text-white bg-white text-slate-900'">
+  
+  <!-- Стан 1: Завантаження (Спінер) -->
+  <ng-container *ngIf="isSendingEmail">
+    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+  </ng-container>
+
+  <!-- Стан 2: Відправлено + Таймер (Галочка) -->
+  <ng-container *ngIf="cooldownSeconds > 0 && !isSendingEmail">
+    <div class="flex items-center gap-2 animate-in zoom-in duration-300">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+      </svg>
+      <span>Відправлено ({{ cooldownSeconds }}с)</span>
+    </div>
+  </ng-container>
+
+  <!-- Стан 3: Звичайна кнопка (Готово до відправки) -->
+  <span *ngIf="!isSendingEmail && cooldownSeconds === 0">
+    Надіслати лист знову
+  </span>
+</button>
+            
           </div>
         </div>
 

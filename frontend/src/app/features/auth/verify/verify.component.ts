@@ -22,6 +22,8 @@ export class VerifyComponent implements OnInit {
     // 1. Отримуємо токен з URL (?token=...)
     const token = this.route.snapshot.queryParamMap.get('token');
 
+    console.log(token);
+
     if (token) {
       // 2. Викликаємо метод верифікації з сервісу
       this.authService.verifyEmail(token).subscribe({

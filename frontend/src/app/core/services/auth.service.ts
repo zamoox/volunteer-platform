@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, map, Observable, of, tap } from 'rxjs'; // Додали 'of'
+import { BehaviorSubject, catchError, map, Observable, of, tap } from 'rxjs'; // Додали 'of'
 import { Router } from '@angular/router';
 import { Apollo, gql } from 'apollo-angular';
 
@@ -52,6 +52,12 @@ const GENERATE_2FA_MUTATION = gql`
 const TURN_ON_2FA_MUTATION = gql`
   mutation TurnOn2FA($userId: String!, $code: String!) {
     turnOn2FA(userId: $userId, code: $code)
+  }
+`;
+
+const RESEND_VERIFICATION_EMAIL = gql`
+  mutation ResendVerificationEmail($userId: String!) {
+    resendVerificationEmail(userId: $userId)
   }
 `;
 
@@ -176,4 +182,20 @@ export class AuthService {
       })
     );
   }
+
+  resendVerificationEmail(userId: string): Observable<boolean> {
+    return this.apollo.mutate<any>({
+      mutation: RESEND_VERIFICATION_EMAIL,
+      variables: { userId }
+    }).pipe(
+      // !! перетворює результат на boolean (true, якщо об'єкт є)
+      map(result => !!result.data?.resendVerificationEmail),
+      // Якщо бекенд повернув помилку або мережа лягла
+      catchError(err => {
+        console.error('Помилка GraphQL:', err);
+        return of(false); // Повертаємо false, щоб subscribe спрацював і зупинив лоадер
+      })
+    );
+  }
+ 
 }
