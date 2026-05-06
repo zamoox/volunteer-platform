@@ -31,7 +31,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
         entities: [VolunteerRequest, User],
-        synchronize: false, // для розробки; на проді краще false + міграції
+        synchronize: true, // для розробки; на проді краще false + міграції
       }),
       inject: [ConfigService],
     }),

@@ -6,7 +6,7 @@ import { ObjectType, Field, ID, HideField } from '@nestjs/graphql';
 export class User {
   @Field(() => ID)
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id!: number;
 
   @Field()
   @Column({ unique: true })
@@ -43,9 +43,14 @@ export class User {
 
   @Field(() => Boolean)
   @Column({ default: false })
-  isEmailVerified: boolean; // 👈 Статус верифікації (за замовчуванням false)
+  isEmailVerified: boolean; 
 
-  // Поле для токена (не додаємо @Field, бо фронтенду не треба знати цей токен просто так)
   @Column({ nullable: true })
-  verificationToken: string; // 👈 Тут лежатиме унікальний код
+  verificationToken: string; 
+
+  @Column({ nullable: true })
+  twoFactorAuthenticationSecret: string;
+
+  @Column({ default: false })
+  isTwoFactorAuthenticationEnabled: boolean;
 }
