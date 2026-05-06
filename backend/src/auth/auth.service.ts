@@ -6,15 +6,27 @@ import { User } from 'src/users/user.entity';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { RegisterInput } from './dto/register.input';
+import { TOTP } from '@otplib/totp';
+import { NodeCryptoPlugin } from '@otplib/plugin-crypto-node';
+import { ScureBase32Plugin } from '@otplib/plugin-base32-scure';
+import * as QRCode from 'qrcode';
 
 @Injectable()
 export class AuthService {
+  
+  private totp = new TOTP();
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     private mailerService: MailerService,
     private configService: ConfigService
-  ) {}
+  ) {
+    this.totp = new TOTP({
+      crypto: new NodeCryptoPlugin(),
+      base32: new ScureBase32Plugin(),
+    });
+  }
 
   async login(email: string, pass: string) {
     const user = await this.usersService.findOneByEmail(email);
@@ -68,4 +80,30 @@ export class AuthService {
       `,
     });
   }
+
+  async generateTwoFactorAuthenticationSecret(user: User) {
+    // Генеруємо секрет
+    const secret = this.totp.generateSecret();
+
+    // Створюємо URI для Google Authenticator
+    const otpauthUrl = this.totp.toURI({
+      label: user.email,
+      secret: secret,
+    });
+
+    // Зберігаємо секрет у БД
+    await this.usersService.setTwoFactorAuthenticationSecret(secret, user.id);
+
+    // Повертаємо QR-код у форматі Base64 для фронтенду
+    return QRCode.toDataURL(otpauthUrl);
+  }
+
+  // 2. Перевірка введеного коду (Асинхронна у новій версії!)
+  async verifyTwoFactorAuthenticationCode(code: string, user: User): Promise<boolean> {
+    const result = await this.totp.verify(code, {
+      secret: user.twoFactorAuthenticationSecret,
+    });
+    return result.valid;
+  }
+
 }

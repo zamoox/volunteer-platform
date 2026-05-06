@@ -35,4 +35,29 @@ export class AuthResolver {
       return false;
     }
   }
+
+  @Mutation(() => String)
+  async generate2FA(
+    @Args('userId', { type: () => String }) userId: string // 👈 Явно вказуємо тип для GraphQL та TS
+  ) {
+    const user = await this.usersService.findOneById(userId);
+    return this.authService.generateTwoFactorAuthenticationSecret(user);
+  }
+
+  @Mutation(() => Boolean)
+  async turnOn2FA(
+    @Args('userId', { type: () => String }) userId: string, // 👈 Тут також
+    @Args('code') code: string
+  ) {
+    const user = await this.usersService.findOneById(userId);
+    
+    const isValid = await this.authService.verifyTwoFactorAuthenticationCode(code, user);
+    
+    if (!isValid) {
+      throw new Error('Невірний код 2FA');
+    }
+
+    await this.usersService.turnOnTwoFactorAuthentication(userId);
+    return true;
+  }
 }

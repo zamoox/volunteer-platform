@@ -42,6 +42,19 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
+  async findOneById(userId: string): Promise<User> {
+    // Оскільки база очікує UUID, ми просто передаємо рядок без конвертації в число
+    const user = await this.usersRepository.findOne({ 
+      where: { id: userId as any } 
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Користувача з ID ${userId} не знайдено`);
+    }
+
+    return user;
+  }
+
   async findOneByEmail(email: string): Promise<User | undefined> {
     return this.usersRepository.findOne({ where: { email } });
   }
@@ -62,11 +75,21 @@ export class UsersService {
     return user;
   }
 
-  // 2. Оновлюємо статус і зачищаємо токен
   async markAsVerified(userId: string | number): Promise<void> {
     await this.usersRepository.update(userId, {
       isEmailVerified: true,
       verificationToken: null, // Токен одноразовий, тому видаляємо його після успіху
+    });
+  }
+  async setTwoFactorAuthenticationSecret(secret: string, userId: number | string): Promise<void> {
+    await this.usersRepository.update(userId, {
+      twoFactorAuthenticationSecret: secret,
+    });
+  }
+
+  async turnOnTwoFactorAuthentication(userId: number | string): Promise<void> {
+    await this.usersRepository.update(userId, {
+      isTwoFactorAuthenticationEnabled: true,
     });
   }
 }
