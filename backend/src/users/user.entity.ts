@@ -48,6 +48,9 @@ export class User {
   @Column({ nullable: true })
   verificationToken: string; 
 
+  @Column({ type: 'timestamp', nullable: true })
+  verificationTokenExpiresAt: Date;
+
   @Column({ nullable: true })
   twoFactorAuthenticationSecret: string;
 

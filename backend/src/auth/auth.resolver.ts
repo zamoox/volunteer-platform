@@ -28,13 +28,31 @@ export class AuthResolver {
   @Mutation(() => Boolean)
   async verifyEmail(@Args('token') token: string): Promise<boolean> {
     try {
-      const user = await this.usersService.findByToken(token); // Знаходимо юзера
-      await this.usersService.markAsVerified(user.id); // Оновлюємо статус
-      return true;
+      // Делегуємо перевірку в AuthService
+      return await this.authService.verifyEmail(token);
     } catch (error) {
+      // Якщо токен застарів або невірний, повернеться false
+      console.error('Помилка верифікації:', error.message);
       return false;
     }
   }
+
+  @Mutation(() => Boolean)
+    async resendVerificationEmail(@Args('userId') userId: string) {
+      try {
+        // 1. Оновлюємо токен на НОВИЙ
+        const userWithNewToken = await this.authService.generateVerificationToken(userId);
+        
+        // 2. Відправляємо лист з новим токеном
+        await Promise.race([
+          this.authService.sendVerificationEmail(userWithNewToken),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+        ]);
+        return true;
+      } catch (error) {
+        return false; 
+      }
+    }
 
   @Mutation(() => String)
   async generate2FA(
@@ -60,4 +78,5 @@ export class AuthResolver {
     await this.usersService.turnOnTwoFactorAuthentication(userId);
     return true;
   }
+
 }

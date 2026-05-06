@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
@@ -10,6 +10,7 @@ import { TOTP } from '@otplib/totp';
 import { NodeCryptoPlugin } from '@otplib/plugin-crypto-node';
 import { ScureBase32Plugin } from '@otplib/plugin-base32-scure';
 import * as QRCode from 'qrcode';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -47,7 +48,8 @@ export class AuthService {
 
     // 2. Відправляємо лист (через await, щоб переконатися, що SMTP не впаде)
     try {
-      await this.sendVerificationEmail(user);
+      const userWithToken = await this.generateVerificationToken(user.id);
+      await this.sendVerificationEmail(userWithToken);
       console.log(`Лист верифікації відправлено на: ${user.email}`);
     } catch (error) {
       console.error('Помилка відправки пошти:', error);
@@ -56,6 +58,18 @@ export class AuthService {
 
     // 3. Автоматично логінимо після реєстрації
     return this.login(input.email, input.password);
+  }
+
+  async generateVerificationToken(userId: string | number): Promise<User> {
+    // Створюємо безпечний випадковий рядок
+    const token = randomBytes(32).toString('hex');
+    
+    // Ставимо час життя токена (наприклад, 24 години)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    // Викликаємо UsersService ТІЛЬКИ для збереження в базу
+    return this.usersService.updateVerificationToken(userId, token, expiresAt);
   }
 
   async sendVerificationEmail(user: User) {
@@ -79,6 +93,26 @@ export class AuthService {
         </div>
       `,
     });
+  }
+
+  async verifyEmail(token: string): Promise<boolean> {
+    // 1. Шукаємо юзера
+    const user = await this.usersService.findByToken(token);
+    
+    if (!user) {
+      throw new BadRequestException('Недійсний токен верифікації');
+    }
+
+    // 2. Перевіряємо час життя токена
+    const currentTime = new Date();
+    if (user.verificationTokenExpiresAt && user.verificationTokenExpiresAt < currentTime) {
+      throw new BadRequestException('Час дії токена сплив. Будь ласка, запросіть новий лист.');
+    }
+
+    // 3. Якщо все ок — оновлюємо статус у базі
+    await this.usersService.markAsVerified(user.id);
+
+    return true;
   }
 
   async generateTwoFactorAuthenticationSecret(user: User) {

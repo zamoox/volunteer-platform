@@ -35,14 +35,13 @@ export class UsersService {
       firstName: name, // Або просто name, якщо ти так назвав колонку в Entity
       region,
       city,
-      verificationToken: uuidv4(), // 👈 Зберігаємо токен
       isEmailVerified: false // 👈 По замовчуванню не верифікований
     });
 
     return this.usersRepository.save(user);
   }
 
-  async findOneById(userId: string): Promise<User> {
+  async findOneById(userId: string | number): Promise<User> {
     // Оскільки база очікує UUID, ми просто передаємо рядок без конвертації в число
     const user = await this.usersRepository.findOne({ 
       where: { id: userId as any } 
@@ -75,10 +74,20 @@ export class UsersService {
     return user;
   }
 
+  async updateVerificationToken(userId: string | number, token: string, expiresAt: Date): Promise<User> {
+    await this.usersRepository.update(userId, {
+      verificationToken: token,
+      verificationTokenExpiresAt: expiresAt,
+    });
+    
+    return this.findOneById(userId);
+  }
+
   async markAsVerified(userId: string | number): Promise<void> {
     await this.usersRepository.update(userId, {
       isEmailVerified: true,
-      verificationToken: null, // Токен одноразовий, тому видаляємо його після успіху
+      verificationToken: null,
+      verificationTokenExpiresAt: null, // Токен одноразовий, тому видаляємо його після успіху
     });
   }
   async setTwoFactorAuthenticationSecret(secret: string, userId: number | string): Promise<void> {
