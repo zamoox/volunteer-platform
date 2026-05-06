@@ -138,7 +138,49 @@
           </div>
           <button class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">Змінити</button>
         </div>
+                      <!-- Налаштування 2FA -->
+        <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-black text-slate-900 text-sm">Двоетапна автентифікація (2FA)</p>
+              <p class="text-xs text-slate-400 font-medium">Захистіть свій акаунт додатковим кодом</p>
+            </div>
+            
+            <!-- Кнопка увімкнення (якщо ще не активовано) -->
+            <button 
+              *ngIf="!user.isTwoFactorAuthenticationEnabled && !isStepVerify"
+              (click)="onEnable2FA(user.id)"
+              class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all">
+              Налаштувати
+            </button>
+
+            <div *ngIf="user.isTwoFactorAuthenticationEnabled" class="text-emerald-600 text-xs font-black uppercase">
+              ✅ Активовано
+            </div>
+          </div>
+
+          <!-- Крок сканування QR-коду -->
+          <div *ngIf="isStepVerify" class="pt-4 border-t border-slate-200 flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+            <p class="text-xs text-slate-600 text-center">Відскануйте цей код у Google Authenticator:</p>
+            <img [src]="qrCodeUrl" class="w-48 h-48 rounded-xl shadow-md border-4 border-white">
+            
+            <div class="w-full max-w-xs space-y-2">
+              <input 
+                [(ngModel)]="twoFaCode"
+                placeholder="Введіть 6-значний код"
+                class="w-full p-3 bg-white border border-slate-200 rounded-xl text-center tracking-[0.5em] font-bold outline-none focus:ring-2 focus:ring-blue-500">
+              
+              <button 
+                (click)="confirm2FA(user.id)"
+                class="w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all">
+                Підтвердити та активувати
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
+
+
 
     </div>
   </div>

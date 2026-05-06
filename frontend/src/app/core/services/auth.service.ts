@@ -43,6 +43,18 @@ const VERIFY_EMAIL_MUTATION = gql`
   }
 `;
 
+const GENERATE_2FA_MUTATION = gql`
+  mutation Generate2FA($userId: String!) {
+    generate2FA(userId: $userId)
+  }
+`;
+
+const TURN_ON_2FA_MUTATION = gql`
+  mutation TurnOn2FA($userId: String!, $code: String!) {
+    turnOn2FA(userId: $userId, code: $code)
+  }
+`;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -138,5 +150,30 @@ export class AuthService {
     localStorage.setItem(this.TOKEN_KEY, token);
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
     this.currentUserSubject.next(user);
+  }
+
+  generate2FA(userId: string): Observable<string> {
+    return this.apollo.mutate<any>({
+      mutation: GENERATE_2FA_MUTATION,
+      variables: { userId }
+    }).pipe(map(result => result.data.generate2FA));
+  }
+
+  turnOn2FA(userId: string, code: string): Observable<boolean> {
+    return this.apollo.mutate<any>({
+      mutation: TURN_ON_2FA_MUTATION,
+      variables: { userId, code }
+    }).pipe(
+      map(result => result.data.turnOn2FA),
+      tap(success => {
+        if (success) {
+          // Оновлюємо локальні дані користувача, щоб статус 2FA змінився на true
+          const user = this.getUserFromStorage();
+          if (user) {
+            this.handleAuthentication(this.getToken() || '', { ...user, isTwoFactorAuthenticationEnabled: true });
+          }
+        }
+      })
+    );
   }
 }
