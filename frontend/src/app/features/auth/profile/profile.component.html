@@ -168,14 +168,85 @@
 
       <!-- Таб: Налаштування -->
       <div *ngIf="activeTab === 'settings'" class="space-y-6">
-        <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center justify-between">
-          <div>
-            <p class="font-black text-slate-900 text-sm">Змінити пароль</p>
-            <p class="text-xs text-slate-400 font-medium">Оновіть свій захист</p>
+        <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col gap-4 transition-all">  
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-black text-slate-900 text-sm">Змінити пароль</p>
+              <p class="text-xs text-slate-400 font-medium">Оновіть свій захист</p>
+            </div>
+            <!-- Кнопка відкриття форми -->
+            <button 
+              *ngIf="!isChangingPasswordMode"
+              (click)="togglePasswordForm()"
+              class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">
+              Змінити
+            </button>
           </div>
-          <button class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">Змінити</button>
-        </div>
-                      <!-- Налаштування 2FA -->
+
+          <!-- Форма зміни пароля (розгортається при кліку) -->
+          <form *ngIf="isChangingPasswordMode" [formGroup]="passwordForm" (ngSubmit)="onSubmitPasswordChange()" 
+                class="mt-2 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300 border-t border-slate-200 pt-4">
+            
+            <!-- Повідомлення про успіх -->
+            <div *ngIf="passwordSuccess" class="p-3 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold text-center border border-emerald-200">
+              ✅ Пароль успішно змінено!
+            </div>
+            
+            <!-- Повідомлення про помилку з сервера -->
+            <div *ngIf="passwordError" class="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold text-center border border-red-200">
+              ❌ {{ passwordError }}
+            </div>
+
+            <!-- Поля вводу -->
+            <div class="space-y-3" *ngIf="!passwordSuccess">
+              
+              <div>
+                <input formControlName="oldPassword" type="password" placeholder="Старий пароль" 
+                       class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-slate-900 transition-all">
+              </div>
+              
+              <div>
+                <input formControlName="newPassword" type="password" placeholder="Новий пароль" 
+                       class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-slate-900 transition-all">
+              </div>
+
+              <div>
+                <input formControlName="confirmPassword" type="password" placeholder="Підтвердіть новий пароль" 
+                       class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none transition-all"
+                       [ngClass]="{'border-red-500 focus:ring-2 focus:ring-red-500': passwordForm.get('confirmPassword')?.hasError('passwordMismatch') && passwordForm.get('confirmPassword')?.touched, 
+                                   'focus:ring-2 focus:ring-slate-900': !passwordForm.get('confirmPassword')?.hasError('passwordMismatch')}">
+                
+                <!-- Текст помилки валідації (показується, якщо паролі не співпадають) -->
+                <p *ngIf="passwordForm.get('confirmPassword')?.hasError('passwordMismatch') && passwordForm.get('confirmPassword')?.touched" 
+                   class="text-[10px] text-red-500 font-bold mt-1 ml-1">
+                   Паролі не збігаються
+                </p>
+              </div>
+
+              <!-- Кнопки керування -->
+              <div class="flex gap-2 pt-2">
+                <button type="button" (click)="togglePasswordForm()" 
+                        class="flex-1 py-3 bg-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-300 transition-all">
+                  Скасувати
+                </button>
+                
+                <button type="submit" [disabled]="passwordForm.invalid || isSubmittingPassword" 
+                        class="flex-1 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center">
+                  
+                  <!-- Лоадер -->
+                  <ng-container *ngIf="isSubmittingPassword">
+                    <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </ng-container>
+                  
+                  <span *ngIf="!isSubmittingPassword">Зберегти</span>
+                </button>
+              </div>
+            </div>
+          </form>        </div>
+      <!-- Налаштування 2FA -->
         <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
           <div class="flex items-center justify-between">
             <div>
@@ -183,7 +254,7 @@
               <p class="text-xs text-slate-400 font-medium">Захистіть свій акаунт додатковим кодом</p>
             </div>
             
-            <!-- Кнопка увімкнення (якщо ще не активовано) -->
+      <!-- Кнопка увімкнення (якщо ще не активовано) -->
             <button 
               *ngIf="!user.isTwoFactorAuthenticationEnabled && !isStepVerify"
               (click)="onEnable2FA(user.id)"

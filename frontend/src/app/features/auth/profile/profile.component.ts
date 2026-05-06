@@ -2,33 +2,121 @@ import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angula
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize, take } from 'rxjs';
+import { User } from '../../../core/models/user.model';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
 export class ProfileComponent implements OnInit, OnDestroy {
   public authService = inject(AuthService);
   private cdr = inject(ChangeDetectorRef);
+  private fb = inject(FormBuilder);
+
+  private user: User | null = null;
+  
   qrCodeUrl: string | null = null;
   twoFaCode: string = '';
   isStepVerify: boolean = false;
-  cooldownSeconds = 0; // 👈 Додали лічильник
+  cooldownSeconds = 0; 
   private timerInterval: any;
-
   private readonly COOLDOWN_KEY = 'email_resend_cooldown_end';
+
+  isChangingPasswordMode = false;
+  isSubmittingPassword = false;
+  passwordForm!: FormGroup;
+  passwordError: string | null = null;
+  passwordSuccess: boolean = false;
+
 
   activeTab: 'info' | 'settings' | 'reviews' | 'requests' = 'info';
   isSendingEmail: boolean = false;
   emailSent: boolean = false;
 
   ngOnInit() {
+    this.authService.currentUser$.subscribe(userData => {
+      this.user = userData;
+      this.cdr.detectChanges(); // Оновлюємо UI, коли прийшли дані
+    });
+
     this.checkExistingCooldown();
+    this.initPasswordForm();
+  }
+
+  initPasswordForm() {
+    this.passwordForm = this.fb.group({
+      oldPassword: ['', [Validators.required, Validators.minLength(6)]],
+      newPassword: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', [Validators.required]]
+    }, { validators: this.passwordMatchValidator });
+  }
+
+  // Кастомний валідатор: перевіряє, чи збігаються паролі
+  passwordMatchValidator(control: AbstractControl) {
+    const newPassword = control.get('newPassword')?.value;
+    const confirmPassword = control.get('confirmPassword')?.value;
+    
+    if (newPassword !== confirmPassword) {
+      control.get('confirmPassword')?.setErrors({ passwordMismatch: true });
+      return { passwordMismatch: true };
+    }
+    return null;
+  }
+
+  togglePasswordForm() {
+    this.isChangingPasswordMode = !this.isChangingPasswordMode;
+    if (!this.isChangingPasswordMode) {
+      // Очищаємо форму при закритті
+      this.passwordForm.reset();
+      this.passwordError = null;
+      this.passwordSuccess = false;
+    }
+  }
+
+  onSubmitPasswordChange() {
+    if (this.passwordForm.invalid) return;
+
+    if (!this.user || !this.user.id) {
+      this.passwordError = 'Помилка авторизації: дані користувача не знайдено.';
+      return;
+    }
+
+    this.isSubmittingPassword = true;
+    this.passwordError = null;
+    this.passwordSuccess = false;
+
+    const { oldPassword, newPassword } = this.passwordForm.value;
+
+    const userId = this.user.id;
+
+    this.authService.changePassword(userId, oldPassword, newPassword).pipe(
+      take(1),
+      finalize(() => {
+        this.isSubmittingPassword = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
+      next: (success) => {
+        if (success) {
+          this.passwordSuccess = true;
+          this.passwordForm.reset();
+          // Закриваємо форму через 3 секунди після успіху
+          setTimeout(() => {
+            this.togglePasswordForm();
+            this.cdr.detectChanges();
+          }, 3000);
+        }
+      },
+      error: (err) => {
+        // GraphQL повертає повідомлення про помилку в err.message
+        this.passwordError = err.message || 'Не вдалося змінити пароль. Перевірте дані.';
+      }
+    });
   }
 
   private checkExistingCooldown() {

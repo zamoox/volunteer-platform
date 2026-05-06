@@ -1,5 +1,4 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of, tap } from 'rxjs'; // Додали 'of'
 import { Router } from '@angular/router';
 import { Apollo, gql } from 'apollo-angular';
@@ -61,6 +60,12 @@ const RESEND_VERIFICATION_EMAIL = gql`
   }
 `;
 
+const CHANGE_PASSWORD_MUTATION = gql`
+  mutation ChangePassword($userId: String!, $oldPassword: String!, $newPassword: String!) {
+    changePassword(userId: $userId, oldPassword: $oldPassword, newPassword: $newPassword)
+  }
+`;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -73,7 +78,7 @@ export class AuthService {
   private readonly TOKEN_KEY = 'auth_token';
   private readonly USER_KEY = 'user_data';
 
-  private getUserFromStorage(): any {
+  public getUserFromStorage(): any {
     const savedUser = localStorage.getItem('user_data');
     return savedUser ? JSON.parse(savedUser) : null;
   }
@@ -194,6 +199,20 @@ export class AuthService {
       catchError(err => {
         console.error('Помилка GraphQL:', err);
         return of(false); // Повертаємо false, щоб subscribe спрацював і зупинив лоадер
+      })
+    );
+  }
+
+  changePassword(userId: string, oldPassword: string, newPassword: string): Observable<boolean> {
+    return this.apollo.mutate<any>({
+      mutation: CHANGE_PASSWORD_MUTATION,
+      variables: { userId, oldPassword, newPassword }
+    }).pipe(
+      map(result => result.data.changePassword),
+      catchError(err => {
+        console.error('Помилка зміни пароля:', err);
+        // Прокидаємо помилку далі, щоб компонент міг показати текст помилки
+        throw err; 
       })
     );
   }
