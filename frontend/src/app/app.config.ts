@@ -7,7 +7,8 @@ import { InMemoryCache } from '@apollo/client/core';
 
 import { routes } from './app.routes';
 import { provideRouter } from '@angular/router';
-import { authInterceptor } from './core/interceptors/auth-interceptor';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 
 export const appConfig: ApplicationConfig = {
 providers: [
@@ -21,7 +22,7 @@ providers: [
     }),
     provideRouter(routes),
     provideHttpClient(
-      withInterceptors([authInterceptor])
+      withInterceptors([authInterceptor, loadingInterceptor])
     )
   ],
   

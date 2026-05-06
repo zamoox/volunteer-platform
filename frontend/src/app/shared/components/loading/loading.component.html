@@ -1,0 +1,5 @@
+<div *ngIf="loadingService.isLoading$ | async" 
+      class="fixed top-0 left-0 w-full h-1 bg-slate-100 z-[9900] overflow-hidden">
+  <!-- bg-emerald-500 або bg-blue-600 - обери колір під стиль платформи -->
+  <div class="h-full bg-emerald-500 animate-loading-bar"></div>
+</div>

@@ -4,11 +4,19 @@ import { MapComponent } from './features/map/map.component';
 import { HeaderComponent, FooterComponent } from './shared/components';
 import { RouterModule } from '@angular/router';
 import { ToastComponent } from './shared/components/toast/toast.component';
+import { LoadingComponent } from './shared/components/loading/loading.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterModule, HeaderComponent, FooterComponent, ToastComponent],
+  imports: [
+    CommonModule, 
+    RouterModule, 
+    HeaderComponent, 
+    FooterComponent,
+    LoadingComponent,
+    ToastComponent,
+  ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
