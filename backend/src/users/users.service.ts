@@ -90,6 +90,13 @@ export class UsersService {
       verificationTokenExpiresAt: null, // Токен одноразовий, тому видаляємо його після успіху
     });
   }
+
+  async updatePassword(userId: string, newHashedPassword: string): Promise<void> {
+    await this.usersRepository.update(userId, {
+      password: newHashedPassword,
+    });
+  }
+  
   async setTwoFactorAuthenticationSecret(secret: string, userId: number | string): Promise<void> {
     await this.usersRepository.update(userId, {
       twoFactorAuthenticationSecret: secret,

@@ -38,21 +38,32 @@ export class AuthResolver {
   }
 
   @Mutation(() => Boolean)
-    async resendVerificationEmail(@Args('userId') userId: string) {
-      try {
-        // 1. Оновлюємо токен на НОВИЙ
-        const userWithNewToken = await this.authService.generateVerificationToken(userId);
-        
-        // 2. Відправляємо лист з новим токеном
-        await Promise.race([
-          this.authService.sendVerificationEmail(userWithNewToken),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-        ]);
-        return true;
-      } catch (error) {
-        return false; 
-      }
+  async resendVerificationEmail(@Args('userId') userId: string) {
+    try {
+      // 1. Оновлюємо токен на НОВИЙ
+      const userWithNewToken = await this.authService.generateVerificationToken(userId);
+      
+      // 2. Відправляємо лист з новим токеном
+      await Promise.race([
+        this.authService.sendVerificationEmail(userWithNewToken),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+      ]);
+      return true;
+    } catch (error) {
+      return false; 
     }
+  }
+  
+  @Mutation(() => Boolean)
+  async changePassword(
+    @Args('userId') userId: string,
+    @Args('oldPassword') oldPassword: string,
+    @Args('newPassword') newPassword: string,
+  ): Promise<boolean> {
+    // Зверни увагу: ми не використовуємо try/catch з return false, 
+    // щоб помилка "Невірний старий пароль" дійшла до фронтенду!
+    return this.authService.changePassword(userId, oldPassword, newPassword);
+  }
 
   @Mutation(() => String)
   async generate2FA(

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
@@ -105,12 +105,34 @@ export class AuthService {
 
     // 2. Перевіряємо час життя токена
     const currentTime = new Date();
-    if (user.verificationTokenExpiresAt && user.verificationTokenExpiresAt < currentTime) {
-      throw new BadRequestException('Час дії токена сплив. Будь ласка, запросіть новий лист.');
+      if (user.verificationTokenExpiresAt && user.verificationTokenExpiresAt < currentTime) {
+        throw new BadRequestException('Час дії токена сплив. Будь ласка, запросіть новий лист.');
+      }
+
+      // 3. Якщо все ок — оновлюємо статус у базі
+      await this.usersService.markAsVerified(user.id);
+
+      return true;
+  }
+
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<boolean> {
+    // 1. Шукаємо користувача
+    const user = await this.usersService.findOneById(userId);
+    if (!user) {
+      throw new NotFoundException('Користувача не знайдено');
     }
 
-    // 3. Якщо все ок — оновлюємо статус у базі
-    await this.usersService.markAsVerified(user.id);
+    // 2. Перевіряємо, чи правильний старий пароль
+    const isPasswordMatching = await bcrypt.compare(oldPassword, user.password);
+    if (!isPasswordMatching) {
+      throw new BadRequestException('Невірний старий пароль');
+    }
+
+    // 3. Хешуємо новий пароль (10 - це saltRounds, стандартне безпечне значення)
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // 4. Зберігаємо в базу
+    await this.usersService.updatePassword(userId, hashedNewPassword);
 
     return true;
   }
