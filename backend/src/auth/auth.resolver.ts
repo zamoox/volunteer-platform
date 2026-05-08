@@ -25,6 +25,14 @@ export class AuthResolver {
     return this.authService.register(input);
   }
 
+  @Mutation(() => LoginResponse) // 👈 Використовуємо той самий LoginResponse!
+  async loginWith2FA(
+    @Args('userId', { type: () => String }) userId: string,
+    @Args('code') code: string,
+  ) {
+    return this.authService.loginWith2FactorAuthentication(userId, code);
+  }
+
   @Mutation(() => Boolean)
   async verifyEmail(@Args('token') token: string): Promise<boolean> {
     try {
@@ -70,7 +78,7 @@ export class AuthResolver {
     @Args('userId', { type: () => String }) userId: string // 👈 Явно вказуємо тип для GraphQL та TS
   ) {
     const user = await this.usersService.findOneById(userId);
-    return this.authService.generateTwoFactorAuthenticationSecret(user);
+    return this.authService.generateTwoFactorSecret(user);
   }
 
   @Mutation(() => Boolean)
@@ -80,13 +88,13 @@ export class AuthResolver {
   ) {
     const user = await this.usersService.findOneById(userId);
     
-    const isValid = await this.authService.verifyTwoFactorAuthenticationCode(code, user);
+    const isValid = await this.authService.verifyTwoFactorCode(code, user);
     
     if (!isValid) {
       throw new Error('Невірний код 2FA');
     }
 
-    await this.usersService.turnOnTwoFactorAuthentication(userId);
+    await this.usersService.turnOnTwoFactor(userId);
     return true;
   }
 

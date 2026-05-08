@@ -9,6 +9,6 @@ export class UsersResolver {
 
   @Query(() => [User], { name: 'users' })
   async findAll() {
-    return this.usersService.findAll(); // Замінив заглушку на реальний виклик, якщо він є в сервісі
+    return this.usersService.findAll(); 
   }
 }

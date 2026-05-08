@@ -58,6 +58,23 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { email } });
   }
 
+  async findOneWithSecret(id: string | number): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: { id: id as any },
+      select: [
+        'id', 
+        'email', 
+        'firstName', 
+        'role', 
+        'city', 
+        'region', 
+        'isEmailVerified', 
+        'isTwoFactorEnabled', 
+        'twoFactorSecret'
+      ]
+    });
+  }
+
   async findAll(): Promise<User[]> {
     return this.usersRepository.find(); 
   }
@@ -97,15 +114,15 @@ export class UsersService {
     });
   }
   
-  async setTwoFactorAuthenticationSecret(secret: string, userId: number | string): Promise<void> {
+  async setTwoFactorSecret(secret: string, userId: number | string): Promise<void> {
     await this.usersRepository.update(userId, {
-      twoFactorAuthenticationSecret: secret,
+      twoFactorSecret: secret,
     });
   }
 
-  async turnOnTwoFactorAuthentication(userId: number | string): Promise<void> {
+  async turnOnTwoFactor(userId: number | string): Promise<void> {
     await this.usersRepository.update(userId, {
-      isTwoFactorAuthenticationEnabled: true,
+      isTwoFactorEnabled: true,
     });
   }
 }

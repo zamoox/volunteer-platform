@@ -52,8 +52,14 @@ export class User {
   verificationTokenExpiresAt: Date;
 
   @Column({ nullable: true })
-  twoFactorAuthenticationSecret: string;
+  twoFactorSecret?: string;
 
+  @Field(() => Boolean, {nullable: true})
   @Column({ default: false })
-  isTwoFactorAuthenticationEnabled: boolean;
+  isTwoFactorEnabled: boolean;
+
+  @Field(() => [String], { nullable: true })
+  @Column({ type: 'simple-array', nullable: true })
+  twoFactorRecoveryCodes?: string[];
 }
+

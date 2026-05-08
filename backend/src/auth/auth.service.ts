@@ -30,16 +30,64 @@ export class AuthService {
   }
 
   async login(email: string, pass: string) {
+    console.log('--- LOGIN ATTEMPT ---');
+    console.log('1. Email:', email);
+
     const user = await this.usersService.findOneByEmail(email);
+    console.log('2. User found:', !!user);
     
-    if (user && await bcrypt.compare(pass, user.password)) {
-      const payload = { email: user.email, sub: user.id, role: user.role };
+    if (!user) {
+      throw new UnauthorizedException('Невірний email або пароль');
+    }
+
+    const isPasswordMatching = await bcrypt.compare(pass, user.password);
+    console.log('3. Password match:', isPasswordMatching);
+
+    if (!isPasswordMatching) {
+      throw new UnauthorizedException('Невірний email або пароль');
+    }
+
+    console.log('4. 2FA Status:', user.isTwoFactorEnabled);
+
+    if (user.isTwoFactorEnabled) {
+      console.log('5. Returning 2FA response');
       return {
-        access_token: this.jwtService.sign(payload),
-        user,
+        require2FA: true,
+        userId: user.id,
+        message: 'Необхідно ввести код другого фактора'
       };
     }
-    throw new UnauthorizedException('Невірний email або пароль');
+
+    console.log('5. Returning normal token');
+    const payload = { email: user.email, sub: user.id, role: user.role };
+    return {
+      access_token: this.jwtService.sign(payload),
+      user,
+    };
+  }
+
+async loginWith2FactorAuthentication(userId: string, code: string) {
+    const user = await this.usersService.findOneWithSecret(userId);
+    const secret = user?.twoFactorSecret;
+
+    if (!user || !secret) {
+      throw new UnauthorizedException('Секрет не знайдено в базі');
+    }
+
+    // ОСНОВНА ПЕРЕВІРКА
+    const result = await this.totp.verify(code, {
+      secret: secret,
+    });
+
+    if (!result || !result.valid) {
+      throw new UnauthorizedException('Невірний код 2FA');
+    }
+
+    const payload = { email: user.email, sub: user.id, role: user.role };
+    return {
+      access_token: this.jwtService.sign(payload),
+      user,
+    };
   }
 
   async register(input: RegisterInput) {
@@ -137,28 +185,40 @@ export class AuthService {
     return true;
   }
 
-  async generateTwoFactorAuthenticationSecret(user: User) {
-    // Генеруємо секрет
+  async generateTwoFactorSecret(user: User) {
+    // 1. Генеруємо секрет
     const secret = this.totp.generateSecret();
 
-    // Створюємо URI для Google Authenticator
+    // 2. Створюємо URI (ОБОВ'ЯЗКОВО додаємо issuer)
     const otpauthUrl = this.totp.toURI({
       label: user.email,
+      issuer: 'VolunteerPlatform', // 👈 Тепер помилка зникне
       secret: secret,
     });
 
-    // Зберігаємо секрет у БД
-    await this.usersService.setTwoFactorAuthenticationSecret(secret, user.id);
+    // 3. Зберігаємо секрет у БД
+    await this.usersService.setTwoFactorSecret(secret, user.id);
 
-    // Повертаємо QR-код у форматі Base64 для фронтенду
-    return QRCode.toDataURL(otpauthUrl);
+    // 4. Повертаємо QR-код (Base64)
+    // QRCode.toDataURL — це проміс, тому додаємо await
+    try {
+      return await QRCode.toDataURL(otpauthUrl);
+    } catch (err) {
+      throw new Error('Помилка при генерації QR-коду');
+    }
   }
 
-  // 2. Перевірка введеного коду (Асинхронна у новій версії!)
-  async verifyTwoFactorAuthenticationCode(code: string, user: User): Promise<boolean> {
+  // 2. Перевірка введеного коду
+  async verifyTwoFactorCode(code: string, user: User): Promise<boolean> {
+    // Якщо секрету немає в базі, верифікація неможлива
+    if (!user.twoFactorSecret) {
+      return false;
+    }
+
     const result = await this.totp.verify(code, {
-      secret: user.twoFactorAuthenticationSecret,
+      secret: user.twoFactorSecret,
     });
+
     return result.valid;
   }
 
