@@ -11,6 +11,7 @@ import { AuthModule } from './auth/auth.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { env } from 'process';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthController } from './auth/auth.controller';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       // ВИМКНИ старий Playground, щоб не тригерити помилку пакетів
       playground: false, 
       csrfPrevention: false,
+      context: ({ req }) => ({ req }),
       // ВВІМКНИ вбудований Sandbox
       plugins: [ApolloServerPluginLandingPageLocalDefault()], // Вмикаємо новий Sandbox
     }),

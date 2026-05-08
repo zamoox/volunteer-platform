@@ -66,7 +66,7 @@ export class AuthService {
     };
   }
 
-async loginWith2FactorAuthentication(userId: string, code: string) {
+  async loginWith2FactorAuthentication(userId: string, code: string) {
     const user = await this.usersService.findOneWithSecret(userId);
     const secret = user?.twoFactorSecret;
 
@@ -220,6 +220,32 @@ async loginWith2FactorAuthentication(userId: string, code: string) {
     });
 
     return result.valid;
+  }
+
+  async validateGoogleUser(googleUser: any) {
+    let user = await this.usersService.findOneByEmail(googleUser.email);
+
+    if (!user) {
+      // Якщо юзера немає — створюємо (пароль можна зарандомити)
+      user = await this.usersService.create({
+        email: googleUser.email,
+        name: googleUser.firstName,
+        password: Math.random().toString(36).slice(-12), // Рандомний пароль для OAuth
+        role: 'VOLUNTEER', // Роль за замовчуванням
+        region: 'Unknown',
+        city: 'Unknown'
+      });
+      
+      // Одразу мітимо пошту як верифіковану
+      await this.usersService.markAsVerified(user.id);
+    }
+
+    // Генеруємо наш JWT (ігноруючи 2FA для Google)
+    const payload = { email: user.email, sub: user.id, role: user.role };
+    return {
+      access_token: this.jwtService.sign(payload),
+      user
+    };
   }
 
 }

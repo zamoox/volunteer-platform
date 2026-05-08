@@ -1,9 +1,10 @@
-import { Resolver, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Query, Context } from '@nestjs/graphql';
 import { AuthService } from './auth.service';
 import { LoginResponse } from './dto/login-response';
 import { RegisterInput } from './dto/register.input'; // Використовуємо DTO з модуля users
 import { UsersService } from '../users/users.service';
 import { User } from '../users/user.entity';
+import { UseGuards } from '@nestjs/common';
 
 @Resolver()
 export class AuthResolver {
@@ -97,5 +98,4 @@ export class AuthResolver {
     await this.usersService.turnOnTwoFactor(userId);
     return true;
   }
-
 }
