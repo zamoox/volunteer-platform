@@ -72,6 +72,26 @@
           Приєднатися
         </a>
       </p>
+
+      <div class="relative my-8">
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-100"></div></div>
+        <div class="relative flex justify-center text-[10px] uppercase tracking-widest">
+          <span class="bg-white px-4 text-slate-400 font-bold">Або</span>
+        </div>
+      </div>
+
+      <button 
+        type="button"
+        [disabled]="loadingService.isLoading$ | async"
+        (click)="loginWithGoogle()"
+        class="w-full py-4 border-2 border-slate-100 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all font-bold text-slate-700 text-xs uppercase tracking-wider"
+      >
+        <span *ngIf="loadingService.isLoading$ | async" 
+          class="w-4 h-4 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin">
+        </span>
+        <img src="google-icon.svg" class="w-5 h-5" alt="Google">
+        Продовжити з Google
+      </button>
     </ng-container>
 
    <ng-container *ngIf="is2FAStep">

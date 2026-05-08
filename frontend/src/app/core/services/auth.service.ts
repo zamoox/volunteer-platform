@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, catchError, map, Observable, of, tap } from 'rxjs'; // Додали 'of'
 import { Router } from '@angular/router';
 import { Apollo, gql } from 'apollo-angular';
+import { User } from '../models/user.model';
 
 const LOGIN_MUTATION = gql`
   mutation Login($email: String!, $password: String!) {
@@ -88,6 +89,20 @@ const CHANGE_PASSWORD_MUTATION = gql`
   }
 `;
 
+const GET_PROFILE = gql`
+  query {
+    me {
+      id
+      email
+      firstName
+      lastName
+      role
+      isTwoFactorEnabled
+      isEmailVerified
+    }
+  }
+`;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -101,7 +116,7 @@ export class AuthService {
   private readonly USER_KEY = 'user_data';
 
   public getUserFromStorage(): any {
-    const savedUser = localStorage.getItem('user_data');
+    const savedUser = localStorage.getItem(this.USER_KEY);
     return savedUser ? JSON.parse(savedUser) : null;
   }
 
@@ -132,17 +147,10 @@ export class AuthService {
         map(result => result.data.login),
         tap(data => {
           // Якщо бекенд просить 2FA — ми НЕ зберігаємо токен, а просто пропускаємо дані далі
-          if (data.require2FA) {
-            console.log('Потрібна 2FA для юзера:', data.userId);
-            // Компонент логіну підхопить це і покаже інпут для коду
-            return; 
-          }
-
+          if (data.require2FA) return; 
           // Якщо це звичайний логін — зберігаємо токен і пускаємо в систему
           if (data.access_token && data.user) {
-            localStorage.setItem(this.TOKEN_KEY, data.access_token);
-            localStorage.setItem(this.USER_KEY, JSON.stringify(data.user));
-            this.currentUserSubject.next(data.user);
+                this.handleAuthentication(data.access_token, data.user);
           }
         })
       );
@@ -204,12 +212,6 @@ export class AuthService {
     return localStorage.getItem(this.TOKEN_KEY);
   }
 
-  private handleAuthentication(token: string, user: any): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    this.currentUserSubject.next(user);
-  }
-
   generate2FA(userId: string): Observable<string> {
     return this.apollo.mutate<any>({
       mutation: GENERATE_2FA_MUTATION,
@@ -262,6 +264,41 @@ export class AuthService {
         throw err; 
       })
     );
+  }
+
+  getCurrentUser() {
+    // Твій GraphQL запит для отримання профілю
+    return this.apollo.query<{ me: User }>({ query: GET_PROFILE, fetchPolicy: 'network-only' }).pipe(
+      map(result => {
+        if (!result.data || !result.data.me) {
+          throw new Error('Профіль не знайдено');
+        }
+        return result.data.me
+      }),
+      catchError(err => {
+        console.error('Помилка завантаження профіля:', err);
+        throw err; 
+      })
+    );
+  }
+
+
+  handleAuthentication(token: string, user: User | null) {
+    localStorage.setItem(this.TOKEN_KEY, token);
+    
+    if (user) {
+      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+      this.currentUserSubject.next(user);
+    } else {
+      // ЯКЩО ЮЗЕРА НЕМАЄ (як після Google), ЗАВАНТАЖУЄМО ЙОГО
+      this.getCurrentUser().subscribe({
+        next: (loadedUser) => {
+          localStorage.setItem(this.USER_KEY, JSON.stringify(loadedUser));
+          this.currentUserSubject.next(loadedUser);
+        },
+        error: (err) => console.error('Не вдалося завантажити профіль після Google:', err)
+      });
+    }
   }
  
 }

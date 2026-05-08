@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators, FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { LoadingService } from '../../../core/services/loading.service';
 
@@ -12,10 +12,12 @@ import { LoadingService } from '../../../core/services/loading.service';
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private authService = inject(AuthService);
-  private router = inject(Router);
   public loadingService = inject(LoadingService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
   showPassword = false;
   loginError = false;
   is2FAStep = false;
@@ -28,6 +30,14 @@ export class LoginComponent {
   });
 
   isLoading = false;
+
+  ngOnInit(): void {
+    const token = this.route.snapshot.queryParamMap.get('token');
+
+    if (token) {
+      this.processGoogleLogin(token);
+    }
+  }
 
   onLogin() {
     if (this.loginForm.valid) {
@@ -60,6 +70,22 @@ export class LoginComponent {
     }
   }
 
+  private processGoogleLogin(token: string) {
+    // 1. Зберігаємо токен
+    this.authService.handleAuthentication(token, null);
+    
+    // 2. Очищуємо URL від токена (з міркувань безпеки) і редиректимо
+    this.router.navigate(['/profile'], { replaceUrl: true });
+  }
+
+  loginWithGoogle() {
+    this.loadingService.show();
+    
+    setTimeout(() => {
+      window.location.href = 'http://localhost:3000/auth/google';
+    }, 0);
+  }
+
   verify2FA() {
     if (this.twoFaCode.length !== 6) return;
     this.loginError = false;
@@ -79,4 +105,6 @@ export class LoginComponent {
   togglePassword() {
     this.showPassword = !this.showPassword;
   } 
+
+
 }
