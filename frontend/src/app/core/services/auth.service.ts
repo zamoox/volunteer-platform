@@ -7,6 +7,9 @@ const LOGIN_MUTATION = gql`
   mutation Login($email: String!, $password: String!) {
     login(email: $email, password: $password) {
       access_token
+      require2FA       # 👈 Додаємо
+      userId           # 👈 Додаємо
+      message
       user {
         id
         email
@@ -15,6 +18,25 @@ const LOGIN_MUTATION = gql`
         city
         region,
         isEmailVerified
+        isTwoFactorEnabled
+      }
+    }
+  }
+`;
+
+const LOGIN_WITH_2FA_MUTATION = gql`
+  mutation LoginWith2FA($userId: String!, $code: String!) {
+    loginWith2FA(userId: $userId, code: $code) {
+      access_token
+      user {
+        id
+        email
+        firstName
+        role
+        city
+        region
+        isEmailVerified
+        isTwoFactorEnabled
       }
     }
   }
@@ -109,11 +131,36 @@ export class AuthService {
       }).pipe(
         map(result => result.data.login),
         tap(data => {
-          localStorage.setItem(this.TOKEN_KEY, data.access_token);
-          localStorage.setItem(this.USER_KEY, JSON.stringify(data.user));
-          this.currentUserSubject.next(data.user);
+          // Якщо бекенд просить 2FA — ми НЕ зберігаємо токен, а просто пропускаємо дані далі
+          if (data.require2FA) {
+            console.log('Потрібна 2FA для юзера:', data.userId);
+            // Компонент логіну підхопить це і покаже інпут для коду
+            return; 
+          }
+
+          // Якщо це звичайний логін — зберігаємо токен і пускаємо в систему
+          if (data.access_token && data.user) {
+            localStorage.setItem(this.TOKEN_KEY, data.access_token);
+            localStorage.setItem(this.USER_KEY, JSON.stringify(data.user));
+            this.currentUserSubject.next(data.user);
+          }
         })
       );
+  }
+
+  loginWith2FA(userId: string, code: string): Observable<any> {
+    return this.apollo.mutate<any>({
+      mutation: LOGIN_WITH_2FA_MUTATION,
+      variables: { userId, code }
+    }).pipe(
+      map(result => result.data.loginWith2FA),
+      tap(data => {
+        // Якщо бекенд повернув токен, зберігаємо його і авторизуємо юзера
+        if (data.access_token && data.user) {
+          this.handleAuthentication(data.access_token, data.user);
+        }
+      })
+    );
   }
 
   register(userData: any): Observable<any> {

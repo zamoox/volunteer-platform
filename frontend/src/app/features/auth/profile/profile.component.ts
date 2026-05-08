@@ -172,22 +172,53 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   onEnable2FA(userId: string) {
-    this.authService.generate2FA(userId).subscribe(qrCode => {
-      this.qrCodeUrl = qrCode; // Це отриманий Base64 рядок
-      this.isStepVerify = true;
+    // Очищаємо попередні дані, якщо вони були
+    this.twoFaCode = '';
+    
+    this.authService.generate2FA(userId).pipe(
+      take(1)
+    ).subscribe({
+      next: (qrCode) => {
+        this.qrCodeUrl = qrCode;
+        this.isStepVerify = true;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Помилка генерації QR:', err);
+        // Можна додати toast повідомлення тут
+      }
     });
   }
 
   confirm2FA(userId: string) {
-    if (this.twoFaCode.length === 6) {
-      this.authService.turnOn2FA(userId, this.twoFaCode).subscribe(success => {
+    // Валідація на довжину коду (тільки цифри)
+    if (this.twoFaCode.length !== 6 || !/^\d+$/.test(this.twoFaCode)) {
+      alert('Будь ласка, введіть коректний 6-значний код');
+      return;
+    }
+
+    this.authService.turnOn2FA(userId, this.twoFaCode).pipe(
+      take(1),
+      finalize(() => {
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
+      next: (success) => {
         if (success) {
-          alert('2FA успішно активовано!');
+          // Оновлення успішне. AuthService.turnOn2FA вже оновив currentUser$
           this.qrCodeUrl = null;
           this.isStepVerify = false;
+          this.twoFaCode = '';
+          // Тут можна замінити alert на красивий Toast
+          alert('2FA успішно активовано!');
         }
-      });
-    }
+      },
+      error: (err) => {
+        // Якщо код невірний, бекенд викине помилку
+        alert(err.message || 'Невірний код. Спробуйте ще раз.');
+        this.twoFaCode = ''; // Очищаємо поле для повторної спроби
+      }
+    });
   }
 
   onResendEmail(userId: string) {

@@ -1,79 +1,135 @@
 <div class="pt-[80px] min-h-screen flex items-center justify-center bg-white p-4 font-sans">
   <div class="w-full max-w-md p-2" [class.shake]="loginError">
     
-    <!-- Header -->
-    <div class="text-center mb-10">
-      <div class="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-[2rem] mb-6 shadow-2xl shadow-blue-200">
-        <span class="text-white font-black text-3xl">V</span>
-      </div>
-      <h2 class="text-4xl font-black tracking-tighter text-slate-900 leading-none">З поверненням!</h2>
-      <p class="text-slate-400 mt-4 font-medium">Раді бачити тебе знову в строю</p>
-    </div>
-
-    <!-- Error Alert -->
-    <div *ngIf="loginError" class="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-2">
-      <span class="text-red-500">⚠️</span>
-      <p class="text-xs font-bold text-red-600 uppercase tracking-tight">Невірний логін або пароль</p>
-    </div>
-
-    <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="space-y-5">
-      
-      <!-- Email -->
-      <div class="space-y-2">
-        <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Пошта</label>
-        <div class="relative">
-          <input 
-            formControlName="email" 
-            type="email" 
-            placeholder="example@volunteer.ua" 
-            class="form-input"
-            [class.border-red-400]="loginForm.get('email')?.touched && loginForm.get('email')?.invalid"
-          >
-          <span *ngIf="loginForm.get('email')?.valid" class="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500">✓</span>
+    <ng-container *ngIf="!is2FAStep">
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-[2rem] mb-6 shadow-2xl shadow-blue-200">
+          <span class="text-white font-black text-3xl">V</span>
         </div>
+        <h2 class="text-4xl font-black tracking-tighter text-slate-900 leading-none">З поверненням!</h2>
+        <p class="text-slate-400 mt-4 font-medium">Раді бачити тебе знову в строю</p>
       </div>
 
-      <!-- Password -->
-      <div class="space-y-2">
-        <div class="flex justify-between items-center px-1">
-          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Пароль</label>
-          <a class="text-[10px] font-bold text-blue-500 hover:text-blue-700 cursor-pointer uppercase tracking-widest">Відновити</a>
+      <div *ngIf="loginError" class="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-2">
+        <span class="text-red-500">⚠️</span>
+        <p class="text-xs font-bold text-red-600 uppercase tracking-tight">Невірний логін або пароль</p>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="space-y-5">
+        
+        <div class="space-y-2">
+          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Пошта</label>
+          <div class="relative">
+            <input 
+              formControlName="email" 
+              type="email" 
+              placeholder="example@volunteer.ua" 
+              class="form-input"
+              [class.border-red-400]="loginForm.get('email')?.touched && loginForm.get('email')?.invalid"
+            >
+            <span *ngIf="loginForm.get('email')?.valid" class="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500">✓</span>
+          </div>
         </div>
-        <div class="relative">
-          <input 
-            formControlName="password" 
-            [type]="showPassword ? 'text' : 'password'" 
-            placeholder="••••••••" 
-            class="form-input"
-            [class.border-red-400]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid"
-          >
+
+        <div class="space-y-2">
+          <div class="flex justify-between items-center px-1">
+            <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Пароль</label>
+            <a class="text-[10px] font-bold text-blue-500 hover:text-blue-700 cursor-pointer uppercase tracking-widest">Відновити</a>
+          </div>
+          <div class="relative">
+            <input 
+              formControlName="password" 
+              [type]="showPassword ? 'text' : 'password'" 
+              placeholder="••••••••" 
+              class="form-input"
+              [class.border-red-400]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid"
+            >
+            <button 
+              type="button"
+              (click)="togglePassword()"
+              class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors"
+            >
+              {{ showPassword ? '🙈' : '👁️' }}
+            </button>
+          </div>
+        </div>
+
+        <button 
+          type="submit" 
+          [disabled]="loginForm.invalid || isLoading" 
+          class="w-full py-5 bg-slate-950 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-slate-200 hover:bg-blue-600 hover:shadow-blue-200 transition-all duration-300 active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
+        >
+          <div class="flex items-center justify-center gap-3">
+            <span *ngIf="isLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            <span>{{ isLoading ? 'Перевірка...' : 'Увійти в кабінет' }}</span>
+          </div>
+        </button>
+      </form>
+
+      <p class="mt-12 text-center text-[11px] font-black uppercase tracking-widest text-slate-400">
+        Немає акаунта? 
+        <a routerLink="/register" class="text-blue-600 hover:text-slate-900 transition-colors ml-1 underline decoration-2 underline-offset-4">
+          Приєднатися
+        </a>
+      </p>
+    </ng-container>
+
+   <ng-container *ngIf="is2FAStep">
+      <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div class="text-center mb-6">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-emerald-500 rounded-3xl mb-4 shadow-xl shadow-emerald-100">
+            <span class="text-white text-2xl">🔐</span>
+          </div>
+          <h2 class="text-3xl font-black tracking-tighter text-slate-900 leading-none">Безпека</h2>
+          <p class="text-[13px] text-slate-400 mt-2 font-medium leading-relaxed">Введіть 6-значний код з вашого додатку<br>Google Authenticator</p>
+        </div>
+
+        <div class="relative mb-6">
+          <div class="absolute inset-0 flex items-center" aria-hidden="true">
+            <div class="w-full border-t border-slate-100"></div>
+          </div>
+          <div class="relative flex justify-center text-[10px] uppercase tracking-[0.3em]">
+            <span class="bg-white px-3 text-slate-300 font-bold">Перевірка</span>
+          </div>
+        </div>
+
+        <div *ngIf="loginError" class="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 animate-in slide-in-from-top-2">
+          <span class="text-red-500 text-sm">⚠️</span>
+          <p class="text-[10px] font-black text-red-600 uppercase tracking-tight">Невірний код, спробуйте ще раз</p>
+        </div>
+
+        <div class="space-y-4">
+          <div class="space-y-1.5">
+            <label class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Код доступу</label>
+            <input 
+              [(ngModel)]="twoFaCode" 
+              maxlength="6"
+              placeholder="000000" 
+              (keyup.enter)="verify2FA()"
+              class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center text-2xl tracking-[0.4em] font-black outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-200"
+            >
+          </div>
+
           <button 
-            type="button"
-            (click)="togglePassword()"
-            class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors"
+            (click)="verify2FA()"
+            [disabled]="twoFaCode.length !== 6 || (loadingService.isLoading$ | async)"
+            class="w-full py-4 bg-slate-950 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 hover:bg-emerald-600 hover:shadow-emerald-200 transition-all duration-300 active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
           >
-            {{ showPassword ? '🙈' : '👁️' }}
+            <div class="flex items-center justify-center gap-3">
+              <span *ngIf="isLoading" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              <span>{{ (loadingService.isLoading$ | async) ? 'Перевірка...' : 'Підтвердити вхід' }}</span>
+            </div>
+          </button>
+
+          <button 
+            (click)="is2FAStep = false; twoFaCode = ''; loginError = false"
+            class="w-full py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors"
+          >
+            Скасувати та повернутися
           </button>
         </div>
       </div>
+    </ng-container>
 
-      <button 
-        type="submit" 
-        [disabled]="loginForm.invalid || isLoading" 
-        class="w-full py-5 bg-slate-950 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-slate-200 hover:bg-blue-600 hover:shadow-blue-200 transition-all duration-300 active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
-      >
-        <div class="flex items-center justify-center gap-3">
-          <span *ngIf="isLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-          <span>{{ isLoading ? 'Перевірка...' : 'Увійти в кабінет' }}</span>
-        </div>
-      </button>
-    </form>
-
-    <p class="mt-12 text-center text-[11px] font-black uppercase tracking-widest text-slate-400">
-      Немає акаунта? 
-      <a routerLink="/register" class="text-blue-600 hover:text-slate-900 transition-colors ml-1 underline decoration-2 underline-offset-4">
-        Приєднатися
-      </a>
-    </p>
   </div>
 </div>
