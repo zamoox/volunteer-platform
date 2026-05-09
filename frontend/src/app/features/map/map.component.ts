@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 // Сервіси
 import { VolunteerRequestService } from '../../core/services/volunter-request.service';
-import { GeoService } from '../../core/services/geo.service';
+import { GeoService } from '../geo/services/geo.service';
 import { UiEventsService } from '../../core/services/ui-events.service';
 
 // Компоненти

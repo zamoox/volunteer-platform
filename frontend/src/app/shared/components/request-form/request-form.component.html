@@ -104,7 +104,7 @@
         <!-- Вулиця + autocomplete (ВИПРАВЛЕНО: один relative-wrapper, один спінер) -->
         <div class="space-y-2 relative">
           <label class="text-xs font-black uppercase tracking-widest text-blue-600 ml-1 italic">
-            📍 Вулиця та будинок
+            📍 Адреса
           </label>
 
           <div class="relative">
@@ -113,7 +113,8 @@
               type="text"
               placeholder="Наприклад: Хрещатик 22"
               autocomplete="off"
-              (blur)="closeSuggestions()"
+              (focus)="onAddressFocus()"
+              (blur)="onAddressBlur()"
               class="w-full px-5 py-4 bg-blue-50/30 border rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none pr-12"
               [class.border-red-400]="isFieldInvalid('address')"
               [class.border-blue-100]="!isFieldInvalid('address')"
@@ -129,12 +130,12 @@
           </p>
 
           <!-- Dropdown список підказок -->
-          <ul *ngIf="suggestions.length > 0"
+          <ul *ngIf="addressInputFocused && suggestions.length > 0"
             class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-100 shadow-2xl rounded-2xl overflow-hidden z-[5000]">
             <li *ngFor="let s of suggestions"
               (mousedown)="selectSuggestion(s)"
               class="px-5 py-3 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-none transition-colors">
-              <span class="font-medium">{{ formatPhotonFeature(s) }}</span>
+              <span class="font-medium">{{ formatNominatimDisplay(s) }}</span>
             </li>
           </ul>
         </div>

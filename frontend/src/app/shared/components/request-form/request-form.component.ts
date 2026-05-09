@@ -4,7 +4,7 @@ import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angula
 import { Subject, Observable, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil, catchError, map } from 'rxjs/operators';
 import { VolunteerRequestService } from '../../../core/services/volunter-request.service';
-import { GeoService, PhotonFeature, NominatimResult } from '../../../core/services/geo.service';
+import { GeoService, NominatimSearchResult } from '../../../features/geo/services/geo.service';
 
 export type RequestCategory = 'MEDICINE' | 'FOOD' | 'TRANSPORT' | 'SHELTER' | 'OTHER';
 
@@ -22,12 +22,13 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private destroy$ = new Subject<void>();
 
-  suggestions: PhotonFeature[] = [];
+  suggestions: NominatimSearchResult[] = [];
   citySuggestions: string[] = [];
   isCitySearching = false;
   isSearching = false;
   isSubmitting = false;
   cityInputFocused = false;
+  addressInputFocused = false;
 
   readonly popularCities = ['Київ', 'Харків', 'Одеса', 'Дніпро', 'Запоріжжя', 'Львів', 'Вінниця', 'Полтава', 'Чернігів', 'Черкаси'];
 
@@ -55,50 +56,50 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
   });
 
   ngOnInit(): void {
-    // 1. Пошук ВУЛИЦЬ (Photon)
+    // 1. Пошук АДРЕСИ (Nominatim)
     this.requestForm.get('address')!.valueChanges.pipe(
       debounceTime(400),
       distinctUntilChanged(),
-      switchMap((street): Observable<PhotonFeature[]> => {
+      switchMap((street): Observable<readonly NominatimSearchResult[]> => {
         const city = this.requestForm.get('city')?.value ?? '';
         if (!street || street.length < 3) {
           this.suggestions = [];
           return of([]);
         }
         this.isSearching = true;
-        return this.geoService.searchStreet(street, city); // Виклик сервісу
+        return this.geoService.searchStreet(street, city);
       }),
       takeUntil(this.destroy$)
     ).subscribe(results => {
-      this.suggestions = results;
+      this.suggestions = [...results];
       this.isSearching = false;
       this.cdr.markForCheck();
     });
 
-    // 2. Пошук МІСТ (Nominatim через GeoService)
+    // 2. Пошук МІСТ (Nominatim)
     this.requestForm.get('city')!.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
       switchMap((query): Observable<string[]> => {
-        if (!query || query.length < 2) {
-          this.citySuggestions = this.popularCities;
-          return of([]);
-        }
-        const localMatches = this.popularCities.filter(c => c.toLowerCase().startsWith(query.toLowerCase()));
-        if (localMatches.length >= 3) {
-          this.citySuggestions = localMatches;
+        const clean = (query ?? '').trim();
+        if (clean.length < 2) {
+          // When user hasn't typed yet, keep popular cities (shown on focus)
+          if (this.cityInputFocused) this.citySuggestions = this.popularCities;
+          else this.citySuggestions = [];
           return of([]);
         }
         this.isCitySearching = true;
-        return this.geoService.searchCity(query).pipe(
-          map((results: any[]) => results.map(r => 
-            r.address?.city ?? r.address?.town ?? r.address?.village ?? r.display_name.split(',')[0]
-          ).filter(Boolean) as string[])
+        return this.geoService.searchCity(clean).pipe(
+          map((results: readonly NominatimSearchResult[]) => results.map(r => {
+            const display = (r.display_name ?? '').trim();
+            return r.address?.city ?? r.address?.town ?? r.address?.village ?? (display ? display.split(',')[0] : '');
+          }).filter(Boolean) as string[])
         );
       }),
       takeUntil(this.destroy$)
     ).subscribe(names => {
       if (names.length) this.citySuggestions = [...new Set(names)];
+      else this.citySuggestions = [];
       this.isCitySearching = false;
       this.cdr.markForCheck();
     });
@@ -115,22 +116,22 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
     this.destroy$.complete();
   }
 
-  selectSuggestion(f: PhotonFeature): void {
-    const formatted = this.formatPhotonFeature(f);
+  selectSuggestion(r: NominatimSearchResult): void {
+    const formatted = this.formatNominatimDisplay(r);
     this.requestForm.patchValue({ address: formatted }, { emitEvent: false });
-    this.lng = f.geometry.coordinates[0];
-    this.lat = f.geometry.coordinates[1];
+    const lat = Number(r.lat);
+    const lng = Number(r.lon);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      this.lat = lat;
+      this.lng = lng;
+    }
     this.suggestions = [];
     this.cdr.markForCheck();
   }
 
-  formatPhotonFeature(f: PhotonFeature): string {
-    const p = f.properties;
-    const parts = [];
-    if (p.street) parts.push(p.street);
-    if (p.housenumber) parts.push(p.housenumber);
-    if (p.city || p.district) parts.push(p.city || p.district);
-    return parts.length ? parts.join(', ') : (p.name || '');
+  formatNominatimDisplay(r: NominatimSearchResult): string {
+    // Nominatim already returns a localized display_name; keep it short-ish for dropdown
+    return r.display_name || '';
   }
 
   // --- Інші методи (selectCity, onCityFocus, onSubmit і т.д.) залишаються без змін ---
@@ -143,7 +144,8 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
 
   onCityFocus(): void {
     this.cityInputFocused = true;
-    if (!this.requestForm.get('city')?.value) this.citySuggestions = this.popularCities;
+    // Show popular cities immediately on focus
+    this.citySuggestions = this.popularCities;
     this.cdr.markForCheck();
   }
 
@@ -153,6 +155,19 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
 
   closeSuggestions(): void {
     setTimeout(() => { this.suggestions = []; this.cdr.markForCheck(); }, 200);
+  }
+
+  onAddressFocus(): void {
+    this.addressInputFocused = true;
+    this.cdr.markForCheck();
+  }
+
+  onAddressBlur(): void {
+    setTimeout(() => {
+      this.addressInputFocused = false;
+      this.suggestions = [];
+      this.cdr.markForCheck();
+    }, 200);
   }
 
   isFieldInvalid(field: string): boolean {
