@@ -129,6 +129,16 @@ export class MapComponent implements OnInit, AfterViewInit {
   onRequestSelectedFromMap(request: any): void {
     this.selectedRequest = request;
     this.showForm = false;
+
+    if (request.location?.lat && request.location?.lng) {
+      // Викликаємо flyTo у дочірнього компонента mapView
+      // 16 — це оптимальний рівень зуму для перегляду конкретної локації
+      this.mapView?.flyTo(request.location.lat, request.location.lng, 16);
+      
+      // Також відкриваємо поп-ап для візуального підтвердження вибору
+      this.mapView?.openRequestPopup(request);
+    }
+
     this.cdr.detectChanges();
   }
 
