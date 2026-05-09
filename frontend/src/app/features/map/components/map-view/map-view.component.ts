@@ -1,7 +1,8 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, NgZone, OnChanges, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, EnvironmentInjector, EventEmitter, Input, NgZone, OnChanges, Output, SimpleChanges, ViewChild, createComponent, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
 import 'leaflet.markercluster';
+import { RequestPopupComponent } from '../request-popup/request-popup.component';
 
 export type MapCreateRequestPayload = { lat: number; lng: number; address: string };
 
@@ -15,6 +16,7 @@ export type MapCreateRequestPayload = { lat: number; lng: number; address: strin
 })
 export class MapViewComponent implements AfterViewInit, OnChanges {
   private zone = inject(NgZone);
+  private injector = inject(EnvironmentInjector);
 
   @ViewChild('mapEl', { static: true }) private mapEl!: ElementRef<HTMLDivElement>;
 
@@ -67,9 +69,31 @@ export class MapViewComponent implements AfterViewInit, OnChanges {
 
   openRequestPopup(request: any): void {
     if (!this.map) return;
-    L.popup()
+
+    // 1. Створюємо компонент динамічно
+    const componentRef = createComponent(RequestPopupComponent, {
+      environmentInjector: this.injector
+    });
+
+    // 2. Передаємо дані в Input'и
+    componentRef.instance.request = request;
+    componentRef.instance.category = this.categories?.find(c => c.id === request.category);
+
+    // 3. Запускаємо Change Detection, щоб відрендерити HTML
+    componentRef.changeDetectorRef.detectChanges();
+
+    // 4. Отримуємо HTML-елемент компонента
+    const popupHtml = componentRef.location.nativeElement;
+
+    // 5. Відкриваємо попап Leaflet, передаючи йому DOM-елемент
+    L.popup({
+      autoClose: true,
+      closeOnClick: true,
+      offset: [0, -20],
+      className: 'custom-leaflet-popup'
+    })
       .setLatLng([request.location.lat, request.location.lng])
-      .setContent(`<b>${request.title}</b><br>${request.location.address}`)
+      .setContent(popupHtml)
       .openOn(this.map);
   }
 

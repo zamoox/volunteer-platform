@@ -27,6 +27,9 @@ const CREATE_REQUEST = gql`
       id
       title
       category
+      description
+      status
+      createdAt
       location {
         lat
         lng
@@ -58,13 +61,34 @@ export class VolunteerRequestService {
 
   createRequest(title: string, description: string, lat: number, lng: number, address: string, category: string) {
     return this.apollo.mutate({
-      mutation: CREATE_REQUEST,
-      variables: {
-        input: { title, description, category, location: { lat, lng, address } }
-      },
-      refetchQueries: ['GetAllRequests']
-    });
-  }
+    mutation: CREATE_REQUEST,
+    variables: {
+      input: { title, description, category, location: { lat, lng, address } }
+    },
+    // Вручну оновлюємо кеш для миттєвого відображення
+    update: (cache, { data }: any) => {
+      const newRequest = data?.createRequest;
+      if (!newRequest) return;
+
+      // Читаємо поточний стан кешу для запиту GET_ALL_REQUESTS
+      const existingRequests: any = cache.readQuery({
+        query: GET_ALL_REQUESTS,
+        variables: { category: null } // Переконайся, що змінні збігаються з тими, що в watchQuery
+      });
+
+      if (existingRequests) {
+        // Записуємо оновлений список назад у кеш
+        cache.writeQuery({
+          query: GET_ALL_REQUESTS,
+          variables: { category: null },
+          data: {
+            getAllRequests: [...existingRequests.getAllRequests, newRequest]
+          }
+        });
+      }
+    }
+  });
+}
 
   updateStatus(id: string, status: string) {
     return this.apollo.mutate({
