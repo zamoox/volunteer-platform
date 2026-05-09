@@ -167,11 +167,27 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
     }
     this.isSubmitting = true;
     const val = this.requestForm.value;
-    this.requestService.createRequest(val.title!, val.description!, this.lat, this.lng, val.address!, val.category!)
-      .subscribe({
-        next: () => { this.isSubmitting = false; this.submitted.emit(); },
-        error: () => { this.isSubmitting = false; alert('Помилка збереження'); }
-      });
+
+    this.requestService.createRequest(
+      val.title!, 
+      val.description!, 
+      this.lat, 
+      this.lng, 
+      `${val.city}, ${val.address}`, // Об'єднуємо місто та адресу для бази
+      val.category!
+    )
+    .pipe(takeUntil(this.destroy$)) // Додаємо безпеку
+    .subscribe({
+      next: () => { 
+        this.isSubmitting = false; 
+        this.submitted.emit(); // Подія для MapComponent, щоб прибрати пін і оновити список
+        this.onClose(); // Закриваємо модалку
+      },
+      error: (err) => { 
+        this.isSubmitting = false; 
+        console.error(err);
+      }
+    });
   }
 
   onClose(): void { this.closed.emit(); }
