@@ -1,31 +1,37 @@
 <div class="flex h-[calc(100vh-64px)] mt-16 overflow-hidden bg-slate-50">
   
-  <!-- Бічна панель зі списком -->
-  <aside class="hidden md:flex w-[400px] flex-col border-r border-slate-200 bg-white z-20 shadow-xl">
+  <!-- Бічна панель -->
+  <aside class="hidden md:flex w-[400px] flex-col border-r border-slate-200 bg-white z-10 shadow-xl">
     <div class="p-6 border-b border-slate-50 bg-white">
       <h2 class="text-xl font-black text-slate-900 tracking-tight leading-none">Допомога поруч</h2>
       <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">Актуальні запити</p>
     </div>
 
-    <!-- Сюди переносимо компонент списку -->
     <div class="flex-1 overflow-y-auto custom-scrollbar">
       <app-request-list 
-      (requestSelected)="onSelectFromList($event)"
-      (requestsFiltered)="updateMarkersOnMap($event)">
+        (requestSelected)="onSelectFromList($event)"
+        (requestsFiltered)="onRequestsFiltered($event)">
       </app-request-list>
     </div>
   </aside>
 
-  <!-- Основна область з картою -->
+  <!-- Карта -->
   <main class="flex-1 relative">
-    <div id="map" class="w-full h-full z-0"></div>
+    <app-map-view
+      class="w-full h-full z-0 block"
+      [requests]="requestsForMap"
+      [categories]="categories"
+      (requestSelected)="onRequestSelectedFromMap($event)"
+      (createRequestRequested)="onMapClickRequested($event.lat, $event.lng)"
+      (createRequestConfirmed)="onMapCreateConfirmed($event)">
+    </app-map-view>
 
-    <!-- Твої модальні компоненти (Form та Details) -->
+    <!-- Модальні компоненти (z-index має бути > 1000 всередині них) -->
     <app-request-form 
       *ngIf="showForm"
       [lat]="selectedLat" [lng]="selectedLng" [address]="selectedAddress"
       (closed)="showForm = false"
-      (submitted)="onFormSubmitted()">
+      (submitted)="onFormSubmitted($event)">
     </app-request-form>
 
     <app-request-details 

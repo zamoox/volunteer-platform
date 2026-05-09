@@ -1,54 +1,40 @@
-import {
-  Component, Input, Output, EventEmitter,
-  inject, OnChanges, SimpleChanges, OnInit,
-  ChangeDetectorRef, OnDestroy
-} from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, OnChanges, SimpleChanges, OnInit, ChangeDetectorRef, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, takeUntil, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
-import { VolunteerRequestService, PhotonFeature, NominatimResult } from '../../../core/services/volunter-request.service';
+import { Subject, Observable, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, takeUntil, catchError, map } from 'rxjs/operators';
+import { VolunteerRequestService } from '../../../core/services/volunter-request.service';
+import { GeoService, NominatimSearchResult } from '../../../features/geo/services/geo.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 export type RequestCategory = 'MEDICINE' | 'FOOD' | 'TRANSPORT' | 'SHELTER' | 'OTHER';
-
-interface CategoryOption {
-  value: RequestCategory;
-  label: string;
-  icon: string;
-}
 
 @Component({
   selector: 'app-request-form',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './request-form.component.html',
   styleUrl: './request-form.component.css'
 })
 export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
   private requestService = inject(VolunteerRequestService);
+  private geoService = inject(GeoService);
+  private toastService = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
-  private http = inject(HttpClient);
   private destroy$ = new Subject<void>();
 
-  // Photon повертає PhotonFeature[], не NominatimResult[]
-  suggestions: PhotonFeature[] = [];
+  suggestions: NominatimSearchResult[] = [];
   citySuggestions: string[] = [];
   isCitySearching = false;
   isSearching = false;
   isSubmitting = false;
   cityInputFocused = false;
+  addressInputFocused = false;
 
-  readonly popularCities = [
-    'Київ', 'Харків', 'Одеса', 'Дніпро', 'Запоріжжя',
-    'Львів', 'Кривий Ріг', 'Миколаїв', 'Вінниця', 'Херсон',
-    'Полтава', 'Чернігів', 'Черкаси', 'Суми', 'Житомир',
-    'Рівне', 'Івано-Франківськ', 'Кропивницький', 'Тернопіль',
-    'Луцьк', 'Ужгород', 'Хмельницький', 'Чернівці',
-  ];
+  readonly popularCities = ['Київ', 'Харків', 'Одеса', 'Дніпро', 'Запоріжжя', 'Львів', 'Вінниця', 'Полтава', 'Чернігів', 'Черкаси'];
 
-  readonly categories: CategoryOption[] = [
+  readonly categories = [
     { value: 'MEDICINE', label: 'Медицина',  icon: '💊' },
     { value: 'FOOD',     label: 'Продукти',  icon: '🥫' },
     { value: 'TRANSPORT',label: 'Транспорт', icon: '🚗' },
@@ -62,6 +48,7 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
 
   @Output() closed = new EventEmitter<void>();
   @Output() submitted = new EventEmitter<void>();
+  
 
   requestForm = new FormGroup({
     title:       new FormControl('', [Validators.required, Validators.minLength(5)]),
@@ -72,66 +59,51 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
   });
 
   ngOnInit(): void {
-    // ── Autocomplete вулиць через Photon ──────────────────────────────────
+    // 1. Пошук АДРЕСИ (Nominatim)
     this.requestForm.get('address')!.valueChanges.pipe(
       debounceTime(400),
       distinctUntilChanged(),
-      switchMap((street): import('rxjs').Observable<PhotonFeature[]> => {
+      switchMap((street): Observable<readonly NominatimSearchResult[]> => {
         const city = this.requestForm.get('city')?.value ?? '';
         if (!street || street.length < 3) {
           this.suggestions = [];
-          return of<PhotonFeature[]>([]);
+          return of([]);
         }
         this.isSearching = true;
-        return this.requestService.searchAddress(street, city).pipe(
-          catchError(() => of<PhotonFeature[]>([]))
-        );
+        return this.geoService.searchStreet(street, city);
       }),
       takeUntil(this.destroy$)
-    ).subscribe((results: PhotonFeature[]) => {
-      this.suggestions = results;
+    ).subscribe(results => {
+      this.suggestions = [...results];
       this.isSearching = false;
       this.cdr.markForCheck();
     });
 
-    // ── Autocomplete міст через Nominatim (featuretype=city) ──────────────
+    // 2. Пошук МІСТ (Nominatim)
     this.requestForm.get('city')!.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
-      switchMap((query): import('rxjs').Observable<NominatimResult[]> => {
-        if (!query || query.length < 2) {
-          this.citySuggestions = this.popularCities;
-          return of<NominatimResult[]>([]);
-        }
-        const localMatches = this.popularCities.filter(c =>
-          c.toLowerCase().startsWith(query.toLowerCase())
-        );
-        if (localMatches.length >= 3) {
-          this.citySuggestions = localMatches;
-          return of<NominatimResult[]>([]);
+      switchMap((query): Observable<string[]> => {
+        const clean = (query ?? '').trim();
+        if (clean.length < 2) {
+          // When user hasn't typed yet, keep popular cities (shown on focus)
+          if (this.cityInputFocused) this.citySuggestions = this.popularCities;
+          else this.citySuggestions = [];
+          return of([]);
         }
         this.isCitySearching = true;
-        const params = new HttpParams()
-          .set('format', 'json')
-          .set('q', query)
-          .set('countrycodes', 'ua')
-          .set('featuretype', 'city')
-          .set('limit', '6')
-          .set('accept-language', 'uk');
-        return this.http
-          .get<NominatimResult[]>('https://nominatim.openstreetmap.org/search', { params })
-          .pipe(catchError(() => of<NominatimResult[]>([])));
+        return this.geoService.searchCity(clean).pipe(
+          map((results: readonly NominatimSearchResult[]) => results.map(r => {
+            const display = (r.display_name ?? '').trim();
+            return r.address?.city ?? r.address?.town ?? r.address?.village ?? (display ? display.split(',')[0] : '');
+          }).filter(Boolean) as string[])
+        );
       }),
       takeUntil(this.destroy$)
-    ).subscribe((results: NominatimResult[]) => {
-      if (results.length) {
-        const names = results.map(r =>
-          r.address?.city ?? r.address?.town ?? r.address?.village ?? r.display_name.split(',')[0]
-        ).filter(Boolean) as string[];
-        this.citySuggestions = [...new Set(names)];
-      }
+    ).subscribe(names => {
+      if (names.length) this.citySuggestions = [...new Set(names)];
+      else this.citySuggestions = [];
       this.isCitySearching = false;
-      this.suggestions = [];
       this.cdr.markForCheck();
     });
   }
@@ -147,90 +119,97 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
     this.destroy$.complete();
   }
 
-  // ── Photon: вибір підказки вулиці ──────────────────────────────────────
-  selectSuggestion(f: PhotonFeature): void {
-    const formatted = this.formatPhotonFeature(f);
+  selectSuggestion(r: NominatimSearchResult): void {
+    const formatted = this.formatNominatimDisplay(r);
     this.requestForm.patchValue({ address: formatted }, { emitEvent: false });
-    // Photon повертає координати як [lon, lat]
-    this.lng = f.geometry.coordinates[0];
-    this.lat = f.geometry.coordinates[1];
+    const lat = Number(r.lat);
+    const lng = Number(r.lon);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      this.lat = lat;
+      this.lng = lng;
+    }
     this.suggestions = [];
     this.cdr.markForCheck();
   }
 
-  closeSuggestions(): void {
-    setTimeout(() => { this.suggestions = []; }, 200);
+  formatNominatimDisplay(r: NominatimSearchResult): string {
+    // Nominatim already returns a localized display_name; keep it short-ish for dropdown
+    return r.display_name || '';
   }
 
-  // ── City dropdown ───────────────────────────────────────────────────────
-  onCityFocus(): void {
-    this.cityInputFocused = true;
-    if (!this.requestForm.get('city')?.value) {
-      this.citySuggestions = this.popularCities;
-    }
-    this.cdr.markForCheck();
-  }
-
-  onCityBlur(): void {
-    setTimeout(() => {
-      this.cityInputFocused = false;
-      this.citySuggestions = [];
-      this.cdr.markForCheck();
-    }, 200);
-  }
-
+  // --- Інші методи (selectCity, onCityFocus, onSubmit і т.д.) залишаються без змін ---
   selectCity(city: string): void {
     this.requestForm.patchValue({ city, address: '' }, { emitEvent: false });
     this.citySuggestions = [];
     this.cityInputFocused = false;
-    this.suggestions = [];
     this.cdr.markForCheck();
   }
 
-  // ── Submit ──────────────────────────────────────────────────────────────
-  onSubmit(): void {
-    if (this.requestForm.invalid) {
-      this.requestForm.markAllAsTouched();
-      return;
-    }
-    const { title, description, address, category } = this.requestForm.value;
-    
-    this.isSubmitting = true;
-
-    this.requestService
-      .createRequest(title!, description!, this.lat, this.lng, address!, category!)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => { this.isSubmitting = false; this.submitted.emit(); },
-        error: (err) => {
-          console.error(err);
-          this.isSubmitting = false;
-          alert('Не вдалося зберегти запит.');
-        }
-      });
+  onCityFocus(): void {
+    this.cityInputFocused = true;
+    // Show popular cities immediately on focus
+    this.citySuggestions = this.popularCities;
+    this.cdr.markForCheck();
   }
 
-  onClose(): void { this.closed.emit(); }
+  onCityBlur(): void {
+    setTimeout(() => { this.cityInputFocused = false; this.cdr.markForCheck(); }, 200);
+  }
 
-  // ── Helpers ─────────────────────────────────────────────────────────────
+  closeSuggestions(): void {
+    setTimeout(() => { this.suggestions = []; this.cdr.markForCheck(); }, 200);
+  }
 
-  /**
-   * Формує читабельний рядок адреси з Photon Feature.
-   * Photon повертає структуровані поля: street, housenumber, city, district.
-   */
-  formatPhotonFeature(f: PhotonFeature): string {
-    const p = f.properties;
-    const parts: string[] = [];
+  onAddressFocus(): void {
+    this.addressInputFocused = true;
+    this.cdr.markForCheck();
+  }
 
-    if (p.street)      parts.push(p.street);
-    if (p.housenumber) parts.push(p.housenumber);
-    if (p.city ?? p.district) parts.push((p.city ?? p.district)!);
-
-    return parts.length ? parts.join(', ') : (p.name ?? '');
+  onAddressBlur(): void {
+    setTimeout(() => {
+      this.addressInputFocused = false;
+      this.suggestions = [];
+      this.cdr.markForCheck();
+    }, 200);
   }
 
   isFieldInvalid(field: string): boolean {
     const ctrl = this.requestForm.get(field);
     return !!(ctrl?.touched && ctrl?.invalid);
   }
+
+  onSubmit(): void {
+    if (this.requestForm.invalid) {
+      this.requestForm.markAllAsTouched();
+      return;
+    }
+    this.isSubmitting = true;
+    const val = this.requestForm.value;
+
+    this.requestService.createRequest(
+      val.title!, 
+      val.description!, 
+      this.lat, 
+      this.lng, 
+      `${val.city}, ${val.address}`, // Об'єднуємо місто та адресу для бази
+      val.category!
+    )
+    .pipe(takeUntil(this.destroy$)) // Додаємо безпеку
+    .subscribe({
+      next: (response: any) => { 
+        this.isSubmitting = false; 
+        const newRequest = response.data?.createRequest;
+        console.log(newRequest);
+        this.submitted.emit(newRequest); // Подія для MapComponent, щоб прибрати пін і оновити список
+        this.toastService.success('Успішно', 'Ваш запит доданий на карту!');
+        this.onClose(); 
+      },
+      error: (err) => { 
+        this.isSubmitting = false; 
+        console.error(err);
+      }
+    });
+  }
+
+  onClose(): void { this.closed.emit(); }
 }

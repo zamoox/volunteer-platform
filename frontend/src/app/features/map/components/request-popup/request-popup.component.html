@@ -1,0 +1,34 @@
+<div class="request-popup">
+  <!-- Верхня частина -->
+  <div class="request-popup__content">
+    <div class="request-popup__header">
+      <div class="request-popup__accent" [style.background-color]="accentColor"></div>
+      <div class="request-popup__meta">
+        <div class="request-popup__topline">
+          <span class="request-popup__category">{{ category?.label || 'Інше' }}</span>
+          <div class="request-popup__status" 
+               [ngClass]="request.status === 'open' ? 'request-popup__status--open' : 'request-popup__status--progress'">
+          </div>
+        </div>
+        <h3 class="request-popup__title">{{ request.title }}</h3>
+        <p class="request-popup__address">
+           <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+           </svg>
+           {{ request.location.address || 'Локація обрана на мапі' }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Футер (тепер він буде на сірому фоні до самих країв) -->
+  <div class="request-popup__footer">
+    <div class="request-popup__date">
+      <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      {{ request.createdAt | date:'d MMMM, HH:mm':'':'uk-UA' }}
+    </div>
+    <div class="request-popup__action">ДЕТАЛІ →</div>
+  </div>
+</div>

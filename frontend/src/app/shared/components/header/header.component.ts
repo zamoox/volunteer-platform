@@ -33,9 +33,19 @@ export class HeaderComponent {
   }
 
   async onCreateRequest() {
-    if (this.router.url !== '/') {
-      await this.router.navigate(['/']);
+    if (this.authService.isLoggedIn()) {
+      if (this.router.url.includes('/map')) {
+        // Ми на карті: викликаємо без даних, 
+        // а MapComponent у handleHeaderCreateRequest сам візьме map.getCenter()
+        this.uiEventsService.emitOpenCreateRequest(); 
+      } else {
+        // Редірект на карту
+        this.router.navigate(['/map'], { queryParams: { action: 'create' } });
+      }
+    } else {
+      this.router.navigate(['/login'], {
+        queryParams: { returnUrl: '/map?action=create' }
+      });
     }
-    this.uiEventsService.emitOpenCreateRequest();
   }
 }
