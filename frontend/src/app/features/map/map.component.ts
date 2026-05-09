@@ -134,7 +134,7 @@ export class MapComponent implements OnInit, AfterViewInit {
       // Викликаємо flyTo у дочірнього компонента mapView
       // 16 — це оптимальний рівень зуму для перегляду конкретної локації
       this.mapView?.flyTo(request.location.lat, request.location.lng, 16);
-      
+      console.log(request)
       // Також відкриваємо поп-ап для візуального підтвердження вибору
       this.mapView?.openRequestPopup(request);
     }
@@ -142,11 +142,19 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  onFormSubmitted() {
+  onFormSubmitted(newRequest?: any) {
     this.showForm = false;
     this.mapView?.clearTemporaryMarker();
     // Оскільки дані в ListComponent оновлюються через Apollo refetchQueries, 
     // воно автоматично оновить маркери через (requestsFiltered)
+    if (newRequest && newRequest.location) {
+      console.log(newRequest)
+      // Даємо невелику затримку, щоб переконатися, що маркер встиг відрендеритись у MapView
+      setTimeout(() => {
+        this.mapView?.flyTo(newRequest.location.lat, newRequest.location.lng, 16);
+        this.mapView?.openRequestPopup(newRequest);
+      }, 600);
+    }
   }
 
   onSelectFromList(request: any) {

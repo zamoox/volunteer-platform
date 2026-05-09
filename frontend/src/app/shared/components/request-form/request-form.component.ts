@@ -5,6 +5,7 @@ import { Subject, Observable, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil, catchError, map } from 'rxjs/operators';
 import { VolunteerRequestService } from '../../../core/services/volunter-request.service';
 import { GeoService, NominatimSearchResult } from '../../../features/geo/services/geo.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 export type RequestCategory = 'MEDICINE' | 'FOOD' | 'TRANSPORT' | 'SHELTER' | 'OTHER';
 
@@ -18,7 +19,8 @@ export type RequestCategory = 'MEDICINE' | 'FOOD' | 'TRANSPORT' | 'SHELTER' | 'O
 })
 export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
   private requestService = inject(VolunteerRequestService);
-  private geoService = inject(GeoService); // Додано
+  private geoService = inject(GeoService);
+  private toastService = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
   private destroy$ = new Subject<void>();
 
@@ -46,6 +48,7 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
 
   @Output() closed = new EventEmitter<void>();
   @Output() submitted = new EventEmitter<void>();
+  
 
   requestForm = new FormGroup({
     title:       new FormControl('', [Validators.required, Validators.minLength(5)]),
@@ -193,10 +196,13 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
     )
     .pipe(takeUntil(this.destroy$)) // Додаємо безпеку
     .subscribe({
-      next: () => { 
+      next: (response: any) => { 
         this.isSubmitting = false; 
-        this.submitted.emit(); // Подія для MapComponent, щоб прибрати пін і оновити список
-        this.onClose(); // Закриваємо модалку
+        const newRequest = response.data?.createRequest;
+        console.log(newRequest);
+        this.submitted.emit(newRequest); // Подія для MapComponent, щоб прибрати пін і оновити список
+        this.toastService.success('Успішно', 'Ваш запит доданий на карту!');
+        this.onClose(); 
       },
       error: (err) => { 
         this.isSubmitting = false; 

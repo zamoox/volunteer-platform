@@ -31,7 +31,7 @@
       *ngIf="showForm"
       [lat]="selectedLat" [lng]="selectedLng" [address]="selectedAddress"
       (closed)="showForm = false"
-      (submitted)="onFormSubmitted()">
+      (submitted)="onFormSubmitted($event)">
     </app-request-form>
 
     <app-request-details 
