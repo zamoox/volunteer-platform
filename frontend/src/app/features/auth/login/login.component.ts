@@ -2,8 +2,8 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators, FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
-import { LoadingService } from '../../../core/services/loading.service';
+import { AuthService } from '@core/services/auth.service';
+import { LoadingService } from '@core/services/loading.service';
 
 @Component({
   selector: 'app-login',

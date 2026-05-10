@@ -1,7 +1,7 @@
 import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { VolunteerRequestService } from '../../../../core/services/volunter-request.service';
+import { VolunteerRequestService } from '@features/requests';
 import { BehaviorSubject, combineLatest, distinctUntilChanged, map, switchMap, tap } from 'rxjs';
 
 @Component({

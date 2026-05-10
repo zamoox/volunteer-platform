@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
 import { Subject, Observable, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil, catchError, map } from 'rxjs/operators';
-import { VolunteerRequestService } from '../../../core/services/volunter-request.service';
-import { GeoService, NominatimSearchResult } from '../../../features/geo/services/geo.service';
-import { ToastService } from '../../../core/services/toast.service';
+import { VolunteerRequestService } from '@features/requests';
+import { GeoService, NominatimSearchResult } from '@features/geo/services/geo.service';
+import { ToastService } from '@core/services/toast.service';
 
 export type RequestCategory = 'MEDICINE' | 'FOOD' | 'TRANSPORT' | 'SHELTER' | 'OTHER';
 

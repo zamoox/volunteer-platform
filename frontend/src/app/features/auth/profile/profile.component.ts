@@ -1,12 +1,11 @@
 import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../../../core/services/auth.service';
-import { Router } from '@angular/router';
 import { AbstractControl, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize, Observable, take } from 'rxjs';
-import { User } from '../../../core/models/user.model';
-import { VolunteerRequestService } from '../../../core/services/volunter-request.service';
-import { VolunteerRequest } from '../../../shared/models/volunteer-request.model';
+
+import { AuthService } from '@core/services';
+import { User } from '@core/models/user.model';
+import { VolunteerRequestService, VolunteerRequest } from '@features/requests';
 
 @Component({
   selector: 'app-profile',

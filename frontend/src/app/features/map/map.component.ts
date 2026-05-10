@@ -3,16 +3,16 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 
 // Сервіси
-import { VolunteerRequestService } from '../../core/services/volunter-request.service';
-import { GeoService } from '../geo/services/geo.service';
-import { UiEventsService } from '../../core/services/ui-events.service';
+import { VolunteerRequestService } from '@features/requests';
+import { GeoService } from '@features/geo/services/geo.service';
+import { UiEventsService } from '@core/services/ui-events.service';
 
 // Компоненти
-import { RequestFormComponent, RequestDetailsComponent } from '../../shared/components';
-import { RequestListComponent } from './components/request-list/request-list.component';
-import { MapViewComponent } from './components/map-view/map-view.component';
+import { RequestFormComponent, RequestDetailsComponent } from '@features/requests';
+import { RequestListComponent } from '@features/map/components/request-list/request-list.component';
+import { MapViewComponent } from '@features/map/components/map-view/map-view.component';
 import { Observable } from 'rxjs';
-import { CreateRequestData } from '../../core/models/ui-events.model';
+import { CreateRequestData } from '@core/models';
 
 @Component({
   selector: 'app-map',

@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
-import { VolunteerRequestService } from '../../../core/services/volunter-request.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { VolunteerRequest } from '../../models/volunteer-request.model';
+import { ToastService } from '@core/services/toast.service';
+import { VolunteerRequest, VolunteerRequestService  } from '@features/requests';
 
 
 @Component({

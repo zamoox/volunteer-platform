@@ -3,7 +3,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { OrganizationService } from '../../../../core/services/organization.service';
+import { OrganizationService } from '../../services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({

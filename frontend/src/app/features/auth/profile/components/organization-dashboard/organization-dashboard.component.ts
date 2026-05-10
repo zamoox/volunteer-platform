@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { VolunteerRequestService } from '../../../../../core/services/volunter-request.service';
+import { VolunteerRequestService } from '../../../../requests/services/volunter-request.service';
 import { CommonModule, DatePipe } from '@angular/common';
 
 @Component({

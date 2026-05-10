@@ -1,11 +1,15 @@
 import { HeaderComponent } from "./header/header.component";
 import { FooterComponent } from "./footer/footer.component";
-import { RequestDetailsComponent } from "./request-detail/request-details.component";
-import { RequestFormComponent } from "./request-form/request-form.component"; 
+import { LoadingComponent } from "./loading/loading.component";
+import { HeroCanvasComponent } from "./hero-canvas/hero-canvas.component";
+import { SpinnerComponent } from "./spinner/spinner.component";
+import { ToastComponent } from "./toast/toast.component";
 
 export {
     HeaderComponent,
     FooterComponent,
-    RequestDetailsComponent,
-    RequestFormComponent
+    LoadingComponent,
+    HeroCanvasComponent,
+    SpinnerComponent,
+    ToastComponent
 }
