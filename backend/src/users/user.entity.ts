@@ -1,18 +1,26 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  OneToOne,
+} from 'typeorm';
 import { ObjectType, Field, ID, HideField } from '@nestjs/graphql';
+import { UserRole } from '../enums/user-role.enum';
+// import { Organization } from '../organizations/organization.entity';
 
 @ObjectType()
 @Entity('users')
 export class User {
   @Field(() => ID)
   @PrimaryGeneratedColumn('uuid')
-  id!: number;
+  id!: string;
 
   @Field()
   @Column({ unique: true })
   email!: string;
 
-  @HideField() // Пароль не світиться у GraphQL-відповідях
+  @HideField()
   @Column()
   password!: string;
 
@@ -25,10 +33,13 @@ export class User {
   lastName?: string;
 
   @Field(() => String)
-  @Column({ default: 'volunteer' })
-  role!: string;
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.VOLUNTEER,
+  })
+  role!: UserRole;
 
-  // Нові поля для геолокації
   @Field({ nullable: true })
   @Column({ nullable: true })
   region?: string;
@@ -43,23 +54,28 @@ export class User {
 
   @Field(() => Boolean)
   @Column({ default: false })
-  isEmailVerified: boolean; 
+  isEmailVerified: boolean;
 
   @Column({ nullable: true })
-  verificationToken: string; 
+  verificationToken: string;
 
   @Column({ type: 'timestamp', nullable: true })
   verificationTokenExpiresAt: Date;
 
+  @HideField()
   @Column({ nullable: true })
   twoFactorSecret?: string;
 
-  @Field(() => Boolean, {nullable: true})
+  @Field(() => Boolean, { nullable: true })
   @Column({ default: false })
   isTwoFactorEnabled: boolean;
 
-  @Field(() => [String], { nullable: true })
+  @HideField()
   @Column({ type: 'simple-array', nullable: true })
   twoFactorRecoveryCodes?: string[];
-}
 
+  // Зв'язок: якщо роль ORGANIZATION — тут буде профіль організації
+  // @Field(() => Organization, { nullable: true })
+  // @OneToOne(() => Organization, (org) => org.user, { nullable: true, eager: true })
+  // organization?: Organization;
+}

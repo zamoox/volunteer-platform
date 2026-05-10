@@ -32,6 +32,6 @@ import { GqlAuthGuard } from './guards/gql.guard';
     AuthResolver,
     GoogleStrategy,
     JwtStrategy,
-  ]
+  ],
 })
 export class AuthModule {}

@@ -3,6 +3,7 @@ import { BehaviorSubject, catchError, map, Observable, of, tap } from 'rxjs'; //
 import { Router } from '@angular/router';
 import { Apollo, gql } from 'apollo-angular';
 import { User } from '../models/user.model';
+import { UserRole } from '../enums/user-role.enum';
 
 const LOGIN_MUTATION = gql`
   mutation Login($email: String!, $password: String!) {
@@ -115,7 +116,16 @@ export class AuthService {
   private readonly TOKEN_KEY = 'auth_token';
   private readonly USER_KEY = 'user_data';
 
+  constructor(){
+     this.currentUserSubject.next(this.initUserFromStorage());
+  }
+
   public getUserFromStorage(): any {
+    const savedUser = localStorage.getItem(this.USER_KEY);
+    return savedUser ? JSON.parse(savedUser) : null;
+  }
+
+  private initUserFromStorage(): User | null {
     const savedUser = localStorage.getItem(this.USER_KEY);
     return savedUser ? JSON.parse(savedUser) : null;
   }
@@ -172,29 +182,36 @@ export class AuthService {
   }
 
   register(userData: any): Observable<any> {
-      const mappedRole = userData.userType === 'individual' ? 'volunteer' : 'organization';
+    const mappedRole = userData.userType === 'individual' 
+      ? UserRole.VOLUNTEER 
+      : UserRole.ORGANIZATION;
 
-      const registerPayload = {
-        email: userData.email, 
-        password: userData.password, 
-        role: mappedRole,
-        name: userData.name, // На фронті поле називається 'name', а на бекенді DTO теж чекає 'name'
-        region: userData.region,
-        city: userData.city
-      };
+    const registerPayload = {
+      email:    userData.email,
+      password: userData.password,
+      role:     mappedRole,
+      name:     userData.name,
+      region:   userData.region,
+      city:     userData.city
+    };
 
-      return this.apollo.mutate<any>({
-        mutation: REGISTER_MUTATION,
-        variables: { 
-          input: registerPayload
+    return this.apollo.mutate<any>({
+      mutation: REGISTER_MUTATION,
+      variables: { input: registerPayload }
+    }).pipe(
+      map(result => { 
+        console.log('=== RAW RESULT ===', result.data.register);
+        return result.data.register}),
+      tap(data => {
+        // Тільки зберігаємо — без navigate!
+        console.log('=== TAP DATA ===', data);
+        if (data.access_token && data.user) {
+          localStorage.setItem(this.TOKEN_KEY, data.access_token);
+          localStorage.setItem(this.USER_KEY, JSON.stringify(data.user));
+          this.currentUserSubject.next(data.user);
         }
-      }).pipe(
-        // Очікуємо, що бекенд повертає об'єкт { access_token, user } так само, як і при логіні
-        map(result => result.data.register),
-        tap(data => {
-          this.handleAuthentication(data.access_token, data.user);
-        })
-      );
+      })
+    );
   }
 
   logout(): void {

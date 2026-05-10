@@ -1,0 +1,1 @@
+export { GqlAuthGuard as JwtAuthGuard } from '../../auth/guards/gql.guard';

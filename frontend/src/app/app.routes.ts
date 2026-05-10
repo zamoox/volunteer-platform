@@ -3,6 +3,11 @@ import { MapComponent } from './features/map/map.component';
 import { authGuard } from './core/guards/auth-guard';
 import { HomeComponent } from './features/home/home.component';
 import { VerifyComponent } from './features/auth/verify/verify.component';
+import { VolunteerProfileComponent } from './features/auth/profile/components/volunteer-profile/volunteer-profile.component';
+import { OrganizationDashboardComponent } from './features/auth/profile/components/organization-dashboard/organization-dashboard.component';
+import { AdminPanelComponent } from './features/auth/profile/components/admin-panel/admin-panel.component';
+import { roleGuard } from './core/guards/role.guard';
+
 
 export const routes: Routes = [
   
@@ -31,7 +36,19 @@ export const routes: Routes = [
     path: 'profile',
     loadComponent: () => import('./features/auth/profile/profile.component').then(m => m.ProfileComponent),
     canActivate: [authGuard],
-    title: 'Мій профіль | Volunteer.ua'
+    title: 'Мій профіль | Volunteer.ua',
+    children: [
+      { path: 'volunteer', component: VolunteerProfileComponent },
+      { path: 'organization', component: OrganizationDashboardComponent },
+      { path: 'admin', component: AdminPanelComponent },
+    ]
+  },
+    {
+    path: 'organization/setup',
+    loadComponent: () => import('./features/organizations/components/organization-setup/organization-setup.component')
+      .then(m => m.OrganizationSetupComponent),
+    canActivate: [authGuard, roleGuard(['organization'])],
+    title: 'Налаштування організації | Volunteer.ua'
   },
   { path: 'verify', 
     component: VerifyComponent

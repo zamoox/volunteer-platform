@@ -11,6 +11,7 @@ import { NodeCryptoPlugin } from '@otplib/plugin-crypto-node';
 import { ScureBase32Plugin } from '@otplib/plugin-base32-scure';
 import * as QRCode from 'qrcode';
 import { randomBytes } from 'crypto';
+import { UserRole } from 'src/enums/user-role.enum';
 
 @Injectable()
 export class AuthService {
@@ -231,7 +232,7 @@ export class AuthService {
         email: googleUser.email,
         name: googleUser.firstName,
         password: Math.random().toString(36).slice(-12), // Рандомний пароль для OAuth
-        role: 'VOLUNTEER', // Роль за замовчуванням
+        role: UserRole.VOLUNTEER, // Роль за замовчуванням
         region: 'Unknown',
         city: 'Unknown'
       });
