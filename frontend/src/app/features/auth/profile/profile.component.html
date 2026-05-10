@@ -1,295 +1,198 @@
-<div class="min-h-[85vh] flex items-start justify-center p-6 bg-slate-50 font-sans pt-24">
+<div class="min-h-screen bg-slate-50 font-sans pt-28 pb-12 px-4 md:px-8 flex flex-col items-center">
   <div *ngIf="authService.currentUser$ | async as user" 
-       class="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 overflow-hidden border border-slate-100">
+       class="w-full max-w-[1400px] mx-auto bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 overflow-hidden border border-slate-100 min-h-[75vh]">
     
-    <!-- Header (залишаємо як було, але компактніше) -->
-    <div class="bg-slate-950 p-8 text-white flex items-center justify-between">
-      <div class="flex items-center gap-6">
-        <div class="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center text-3xl font-black shadow-lg">
-          {{ user.firstName?.[0] || user.email?.[0] | uppercase }}
+    <div class="bg-slate-950 p-10 text-white flex flex-col md:flex-row items-center justify-between gap-6 border-b border-white/5">
+      <div class="flex items-center gap-8">
+        <div class="w-24 h-24 bg-blue-600 rounded-3xl flex items-center justify-center text-4xl font-black shadow-xl rotate-3">
+          <span class="-rotate-3">{{ user.firstName?.[0] || user.email?.[0] | uppercase }}</span>
         </div>
         <div>
-          <h2 class="text-2xl font-black tracking-tight">{{ user.firstName || 'Волонтер' }}</h2>
-          <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">{{ user.role }}</p>
+          <h2 class="text-3xl font-black tracking-tight mb-2">{{ user.firstName || 'Користувач' }}</h2>
+          <div class="flex gap-2">
+             <span class="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-black uppercase tracking-widest text-blue-400">
+               {{ user.role }}
+             </span>
+             <span *ngIf="user.isEmailVerified" class="px-3 py-1 bg-emerald-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest text-emerald-400">
+               Верифіковано
+             </span>
+          </div>
         </div>
       </div>
-      <button (click)="onLogout()" class="p-3 bg-white/5 hover:bg-red-500/20 text-white hover:text-red-400 rounded-xl transition-all">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-        </svg>
-      </button>
+      
+      <div class="flex gap-3">
+        <button (click)="onLogout()" class="p-4 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl transition-all group shadow-lg shadow-red-500/10">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <!-- Навігація табами -->
-    <div class="flex border-b border-slate-100 px-8 bg-white sticky top-0">
-      <button 
-        (click)="setTab('info')"
-        [class.active-tab]="activeTab === 'info'"
-        class="tab-btn">
-        Особиста інфа
-      </button>
-      <button 
-        (click)="setTab('requests')"
-        [class.active-tab]="activeTab === 'requests'"
-        class="tab-btn">
-        Мої запити
-      </button>
-      <button 
-        (click)="setTab('reviews')"
-        [class.active-tab]="activeTab === 'reviews'"
-        class="tab-btn">
-        Відгуки
-      </button>
-      <button 
-        (click)="setTab('settings')"
-        [class.active-tab]="activeTab === 'settings'"
-        class="tab-btn">
-        Налаштування
-      </button>
+    <div class="flex border-b border-slate-100 px-10 bg-white sticky top-0 z-20 overflow-x-auto no-scrollbar">
+      <button (click)="activeTab = 'info'" [class.active-tab]="activeTab === 'info'" class="tab-btn">Особиста інформація</button>
+      <button (click)="activeTab = 'requests'" [class.active-tab]="activeTab === 'requests'" class="tab-btn">Мої запити</button>
+      <button (click)="activeTab = 'reviews'" [class.active-tab]="activeTab === 'reviews'" class="tab-btn">Відгуки</button>
+      <button (click)="activeTab = 'settings'" [class.active-tab]="activeTab === 'settings'" class="tab-btn">Налаштування</button>
     </div>
 
-    <!-- Контент табів -->
-    <div class="p-10 animate-in fade-in duration-500">
-      
-      <!-- Таб: Інфо -->
-    <div *ngIf="activeTab === 'info'" class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
-      <!-- Секція: Основні дані -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+    <div class="p-10">
+      <div [ngSwitch]="activeTab">
         
-        <div class="space-y-1">
-          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Ім'я та Прізвище</label>
-          <p class="text-lg font-bold text-slate-900">{{ (user.firstName || '—') + ' ' + (user.lastName || '') }}</p>
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Електронна пошта</label>
-          <p class="text-lg font-bold text-slate-900">{{ user.email }}</p>
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Локація (Місто)</label>
-          <p class="text-lg font-bold text-slate-900">{{ user.city || 'Не вказано' }}</p>
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Тип аккаунта</label>
-          <p class="text-lg font-bold text-slate-900">
-            {{ user.role === 'organization' ? 'ГО / Організація' : 'Фізична особа' }}
-          </p>
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Роль у системі</label>
-          <div class="pt-1">
-            <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-blue-100">
-              {{ user.role }}
-            </span>
-          </div>
-        </div>
-
-<!-- Шукаємо блок зі статусом верифікації та оновлюємо його -->
-        <div class="space-y-1">
-          <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Статус верифікації</label>
-          <div class="flex items-center justify-between gap-2 pt-1">
-            
-            <div class="flex items-center gap-2">
-              <!-- Якщо пошта підтверджена -->
-              <ng-container *ngIf="user.isEmailVerified; else notVerified">
-                <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-                <p class="text-sm font-black uppercase tracking-widest text-emerald-600">Підтверджено</p>
-              </ng-container>
-
-              <!-- Якщо пошта НЕ підтверджена -->
-              <ng-template #notVerified>
-                <div class="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
-                <p class="text-sm font-black uppercase tracking-widest text-amber-600">Очікує підтвердження</p>
-              </ng-template>
-            </div>
-
-            <!-- Кнопка відправки листа (показуємо тільки якщо не підтверджено) -->
-            <button 
-  *ngIf="!user.isEmailVerified"
-  (click)="onResendEmail(user.id)"
-  [disabled]="isSendingEmail || cooldownSeconds > 0"
-  class="relative min-w-[160px] h-9 px-4 flex items-center justify-center border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 disabled:cursor-not-allowed"
-  [ngClass]="cooldownSeconds > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'hover:bg-slate-900 hover:text-white bg-white text-slate-900'">
-  
-  <!-- Стан 1: Завантаження (Спінер) -->
-  <ng-container *ngIf="isSendingEmail">
-    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-    </svg>
-  </ng-container>
-
-  <!-- Стан 2: Відправлено + Таймер (Галочка) -->
-  <ng-container *ngIf="cooldownSeconds > 0 && !isSendingEmail">
-    <div class="flex items-center gap-2 animate-in zoom-in duration-300">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-      </svg>
-      <span>Відправлено ({{ cooldownSeconds }}с)</span>
-    </div>
-  </ng-container>
-
-  <!-- Стан 3: Звичайна кнопка (Готово до відправки) -->
-  <span *ngIf="!isSendingEmail && cooldownSeconds === 0">
-    Надіслати лист знову
-  </span>
-</button>
-            
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Банер для волонтерів (опціонально для диплома) -->
-      <div class="p-6 bg-slate-950 rounded-[2rem] text-white flex items-center justify-between shadow-xl shadow-slate-200">
-        <div>
-          <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Рейтинг довіри</p>
-          <p class="text-xl font-black">Сумлінний волонтер</p>
-        </div>
-        <div class="flex gap-1">
-          <span class="text-yellow-400 text-xl">★</span>
-          <span class="text-yellow-400 text-xl">★</span>
-          <span class="text-yellow-400 text-xl">★</span>
-          <span class="text-yellow-400 text-xl">★</span>
-          <span class="text-slate-700 text-xl">★</span>
-        </div>
-      </div>
-    </div>
-
-      <!-- Таб: Мої запити -->
-      <div *ngIf="activeTab === 'requests'" class="text-center py-20">
-        <div class="text-4xl mb-4">📦</div>
-        <p class="text-slate-400 font-bold uppercase tracking-widest text-xs">У вас поки немає активних запитів</p>
-      </div>
-
-      <!-- Таб: Налаштування -->
-      <div *ngIf="activeTab === 'settings'" class="space-y-6">
-        <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col gap-4 transition-all">  
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="font-black text-slate-900 text-sm">Змінити пароль</p>
-              <p class="text-xs text-slate-400 font-medium">Оновіть свій захист</p>
-            </div>
-            <!-- Кнопка відкриття форми -->
-            <button 
-              *ngIf="!isChangingPasswordMode"
-              (click)="togglePasswordForm()"
-              class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">
-              Змінити
-            </button>
-          </div>
-
-          <!-- Форма зміни пароля (розгортається при кліку) -->
-          <form *ngIf="isChangingPasswordMode" [formGroup]="passwordForm" (ngSubmit)="onSubmitPasswordChange()" 
-                class="mt-2 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300 border-t border-slate-200 pt-4">
-            
-            <!-- Повідомлення про успіх -->
-            <div *ngIf="passwordSuccess" class="p-3 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold text-center border border-emerald-200">
-              ✅ Пароль успішно змінено!
-            </div>
-            
-            <!-- Повідомлення про помилку з сервера -->
-            <div *ngIf="passwordError" class="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold text-center border border-red-200">
-              ❌ {{ passwordError }}
-            </div>
-
-            <!-- Поля вводу -->
-            <div class="space-y-3" *ngIf="!passwordSuccess">
-              
-              <div>
-                <input formControlName="oldPassword" type="password" placeholder="Старий пароль" 
-                       class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-slate-900 transition-all">
+        <div *ngSwitchCase="'info'" class="grid grid-cols-1 lg:grid-cols-3 gap-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          
+          <div class="lg:col-span-2 space-y-12">
+            <section>
+              <h3 class="text-xs font-black uppercase tracking-[0.3em] text-slate-400 mb-8 italic">Основний профіль</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="space-y-2">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Ім'я та Прізвище</label>
+                  <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ (user.firstName || '—') + ' ' + (user.lastName || '') }}</p>
+                </div>
+                <div class="space-y-2">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Email адреса</label>
+                  <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ user.email }}</p>
+                </div>
+                <div class="space-y-2">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Місто</label>
+                  <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ user.city || 'Не вказано' }}</p>
+                </div>
+                <div class="space-y-2">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Тип аккаунта</label>
+                  <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">
+                    {{ user.role === 'organization' ? 'Організація' : 'Фізична особа' }}
+                  </p>
+                </div>
               </div>
-              
-              <div>
-                <input formControlName="newPassword" type="password" placeholder="Новий пароль" 
-                       class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-slate-900 transition-all">
-              </div>
+            </section>
 
-              <div>
-                <input formControlName="confirmPassword" type="password" placeholder="Підтвердіть новий пароль" 
-                       class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none transition-all"
-                       [ngClass]="{'border-red-500 focus:ring-2 focus:ring-red-500': passwordForm.get('confirmPassword')?.hasError('passwordMismatch') && passwordForm.get('confirmPassword')?.touched, 
-                                   'focus:ring-2 focus:ring-slate-900': !passwordForm.get('confirmPassword')?.hasError('passwordMismatch')}">
-                
-                <!-- Текст помилки валідації (показується, якщо паролі не співпадають) -->
-                <p *ngIf="passwordForm.get('confirmPassword')?.hasError('passwordMismatch') && passwordForm.get('confirmPassword')?.touched" 
-                   class="text-[10px] text-red-500 font-bold mt-1 ml-1">
-                   Паролі не збігаються
+            <div class="p-8 bg-slate-950 rounded-[2.5rem] text-white flex items-center justify-between shadow-2xl shadow-slate-200">
+              <div class="flex items-center gap-6">
+                <div class="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-400">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div>
+                  <p class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Рейтинг волонтера</p>
+                  <p class="text-xl font-black">Сумлінний помічник</p>
+                </div>
+              </div>
+              <div class="flex gap-1.5">
+                <span class="text-yellow-400 text-2xl" *ngFor="let i of [1,2,3,4]">★</span>
+                <span class="text-slate-800 text-2xl">★</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-6">
+            <div class="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+              <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">Верифікація</h4>
+              
+              <div class="flex items-center gap-3 mb-8">
+                <div class="w-3 h-3 rounded-full animate-pulse shadow-[0_0_12px]" 
+                     [ngClass]="user.isEmailVerified ? 'bg-emerald-500 shadow-emerald-500' : 'bg-amber-500 shadow-amber-500'"></div>
+                <p class="text-sm font-black uppercase tracking-widest" [ngClass]="user.isEmailVerified ? 'text-emerald-600' : 'text-amber-600'">
+                  {{ user.isEmailVerified ? 'Підтверджено' : 'Очікує дії' }}
                 </p>
               </div>
 
-              <!-- Кнопки керування -->
-              <div class="flex gap-2 pt-2">
-                <button type="button" (click)="togglePasswordForm()" 
-                        class="flex-1 py-3 bg-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-300 transition-all">
-                  Скасувати
-                </button>
-                
-                <button type="submit" [disabled]="passwordForm.invalid || isSubmittingPassword" 
-                        class="flex-1 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center">
-                  
-                  <!-- Лоадер -->
-                  <ng-container *ngIf="isSubmittingPassword">
-                    <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  </ng-container>
-                  
-                  <span *ngIf="!isSubmittingPassword">Зберегти</span>
-                </button>
-              </div>
-            </div>
-          </form>        </div>
-      <!-- Налаштування 2FA -->
-        <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="font-black text-slate-900 text-sm">Двоетапна автентифікація (2FA)</p>
-              <p class="text-xs text-slate-400 font-medium">Захистіть свій акаунт додатковим кодом</p>
-            </div>
-            
-      <!-- Кнопка увімкнення (якщо ще не активовано) -->
-            <button 
-              *ngIf="!user.isTwoFactorAuthenticationEnabled && !isStepVerify"
-              (click)="onEnable2FA(user.id)"
-              class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all">
-              Налаштувати
-            </button>
-
-            <div *ngIf="user.isTwoFactorAuthenticationEnabled" class="text-emerald-600 text-xs font-black uppercase">
-              ✅ Активовано
-            </div>
-          </div>
-
-          <!-- Крок сканування QR-коду -->
-          <div *ngIf="isStepVerify" class="pt-4 border-t border-slate-200 flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
-            <p class="text-xs text-slate-600 text-center">Відскануйте цей код у Google Authenticator:</p>
-            <img [src]="qrCodeUrl" class="w-48 h-48 rounded-xl shadow-md border-4 border-white">
-            
-            <div class="w-full max-w-xs space-y-2">
-              <input 
-                [(ngModel)]="twoFaCode"
-                placeholder="Введіть 6-значний код"
-                class="w-full p-3 bg-white border border-slate-200 rounded-xl text-center tracking-[0.5em] font-bold outline-none focus:ring-2 focus:ring-blue-500">
-              
               <button 
-                (click)="confirm2FA(user.id)"
-                class="w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all">
-                Підтвердити та активувати
+                *ngIf="!user.isEmailVerified"
+                (click)="onResendEmail(user.id)"
+                [disabled]="isSendingEmail || cooldownSeconds > 0"
+                class="w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border border-slate-200"
+                [ngClass]="cooldownSeconds > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-white text-slate-900 hover:bg-slate-900 hover:text-white'">
+                
+                <span *ngIf="isSendingEmail" class="flex justify-center"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></span>
+                <span *ngIf="cooldownSeconds > 0 && !isSendingEmail">Надіслано ({{ cooldownSeconds }}с)</span>
+                <span *ngIf="!isSendingEmail && cooldownSeconds === 0">Надіслати лист знову</span>
               </button>
             </div>
           </div>
         </div>
+
+        <div *ngSwitchCase="'requests'" class="text-center py-32 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
+           <div class="text-6xl mb-6 opacity-40">📦</div>
+           <h3 class="text-xl font-black text-slate-400 uppercase tracking-widest">Список порожній</h3>
+           <p class="text-sm text-slate-400 mt-2">Ви ще не створювали та не приймали запитів</p>
+        </div>
+
+<div *ngSwitchCase="'settings'" class="w-full space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+  
+  <div class="w-full p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-md">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6" [class.mb-8]="isChangingPasswordMode">
+      <div class="flex items-center gap-5">
+        <div class="w-12 h-12 bg-slate-950 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-slate-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        </div>
+        <div>
+          <h4 class="font-black text-slate-900 text-xl tracking-tight">Пароль</h4>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Керування доступом до акаунта</p>
+        </div>
       </div>
+      <button *ngIf="!isChangingPasswordMode" (click)="togglePasswordForm()" 
+              class="px-6 py-3 bg-slate-50 hover:bg-slate-950 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+        Змінити
+      </button>
+    </div>
 
+    <form *ngIf="isChangingPasswordMode" [formGroup]="passwordForm" (ngSubmit)="onSubmitPasswordChange()" class="space-y-6 animate-in fade-in duration-300">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input formControlName="oldPassword" type="password" placeholder="Поточний пароль" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:border-slate-900 outline-none transition-all placeholder:text-slate-300">
+        <input formControlName="newPassword" type="password" placeholder="Новий пароль" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:border-slate-900 outline-none transition-all placeholder:text-slate-300">
+        <input formControlName="confirmPassword" type="password" placeholder="Підтвердження" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:border-slate-900 outline-none transition-all placeholder:text-slate-300">
+      </div>
+      <div class="flex gap-3">
+        <button type="button" (click)="togglePasswordForm()" class="flex-1 py-4 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest">Скасувати</button>
+        <button type="submit" [disabled]="passwordForm.invalid" class="flex-1 py-4 bg-slate-950 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-30">Оновити</button>
+      </div>
+    </form>
+  </div>
 
+  <div class="w-full p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-md">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6" [class.mb-8]="isStepVerify">
+      <div class="flex items-center gap-5">
+        <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+        </div>
+        <div>
+          <h4 class="font-black text-slate-900 text-xl tracking-tight">Двофакторна авторизація</h4>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Додатковий захист через застосунок</p>
+        </div>
+      </div>
+      
+      <button *ngIf="!user.isTwoFactorAuthenticationEnabled && !isStepVerify" (click)="onEnable2FA(user.id)" 
+              class="px-6 py-3 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+        Активувати
+      </button>
 
+      <div *ngIf="user.isTwoFactorAuthenticationEnabled" class="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase border border-emerald-100">
+        ✅ Активно
+      </div>
+    </div>
+
+    <div *ngIf="isStepVerify" class="flex flex-col md:flex-row items-center gap-10 animate-in zoom-in duration-300 border-t border-slate-50 pt-8">
+      <div class="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm shrink-0">
+        <img [src]="qrCodeUrl" class="w-32 h-32 rounded-lg">
+      </div>
+      <div class="w-full max-w-sm space-y-4">
+        <div class="space-y-1">
+          <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Введіть 6-значний код</label>
+          <input [(ngModel)]="twoFaCode" maxlength="6" placeholder="000 000" 
+                 class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-center text-2xl font-black tracking-[0.3em] outline-none focus:border-blue-600 focus:bg-white transition-all">
+        </div>
+        <div class="flex gap-3">
+          <button (click)="isStepVerify = false" class="flex-1 py-4 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest">Скасувати</button>
+          <button (click)="confirm2FA(user.id)" [disabled]="twoFaCode.length !== 6"
+                  class="flex-[2] py-4 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-30 transition-all">
+            Підтвердити
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+      </div>
     </div>
   </div>
 </div>

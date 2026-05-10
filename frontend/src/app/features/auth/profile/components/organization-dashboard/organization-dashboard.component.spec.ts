@@ -1,0 +1,22 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { OrganizationDashboardComponent } from './organization-dashboard.component';
+
+describe('OrganizationDashboardComponent', () => {
+  let component: OrganizationDashboardComponent;
+  let fixture: ComponentFixture<OrganizationDashboardComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [OrganizationDashboardComponent],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(OrganizationDashboardComponent);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});

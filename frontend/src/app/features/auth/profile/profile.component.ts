@@ -138,22 +138,18 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Винесена логіка таймера, щоб не дублювати код
   private startTimerInterval() {
-    // Очищаємо попередній інтервал, якщо він раптом був
     if (this.timerInterval) clearInterval(this.timerInterval);
-
+    
     this.timerInterval = setInterval(() => {
-      this.cooldownSeconds--;
-      
-      if (this.cooldownSeconds <= 0) {
+      if (this.cooldownSeconds > 0) {
+        this.cooldownSeconds--;
+        this.cdr.detectChanges();
+      } else {
         clearInterval(this.timerInterval);
-        this.emailSent = false;
-        this.cooldownSeconds = 0;
-        localStorage.removeItem(this.COOLDOWN_KEY); // Очищаємо localStorage, коли час вийшов
+        localStorage.removeItem(this.COOLDOWN_KEY);
+        this.cdr.detectChanges();
       }
-      
-      this.cdr.detectChanges();
     }, 1000);
   }
 
@@ -168,7 +164,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   setTab(tab: 'info' | 'settings' | 'reviews' | 'requests') {
-    this.activeTab = tab;
+    this.activeTab = tab as 'info' | 'settings' | 'reviews' | 'requests';
   }
 
   onEnable2FA(userId: string) {

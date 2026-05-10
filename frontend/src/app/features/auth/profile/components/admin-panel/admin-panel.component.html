@@ -1,0 +1,40 @@
+<div class="space-y-8">
+  <div class="flex gap-4 overflow-x-auto pb-4">
+    <div class="min-w-[200px] p-6 bg-white border border-slate-100 rounded-3xl">
+      <p class="text-[10px] font-black uppercase text-slate-400">Всього юзерів</p>
+      <p class="text-2xl font-black">1,240</p>
+    </div>
+    <div class="min-w-[200px] p-6 bg-white border border-slate-100 rounded-3xl text-amber-600">
+      <p class="text-[10px] font-black uppercase text-slate-400">Очікують верифікації</p>
+      <p class="text-2xl font-black text-amber-600">12 фондів</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-[2rem] border border-slate-100 overflow-hidden">
+    <table class="w-full text-left border-collapse">
+      <thead class="bg-slate-50 border-b border-slate-100">
+        <tr>
+          <th class="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Користувач</th>
+          <th class="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Роль</th>
+          <th class="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Статус</th>
+          <th class="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Дія</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        <tr *ngFor="let user of allUsers" class="hover:bg-slate-50/50 transition-colors">
+          <!-- <td class="p-5 text-sm font-bold text-slate-900">{{user.email}}</td> -->
+          <td class="p-5">
+            <!-- <span class="px-2 py-1 bg-slate-100 rounded text-[10px] font-black uppercase">{{user.role}}</span> -->
+          </td>
+          <td class="p-5">
+             <!-- <div class="w-2 h-2 rounded-full" [ngClass]="user.isEmailVerified ? 'bg-emerald-500' : 'bg-amber-500'"></div> -->
+              <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+          </td>
+          <td class="p-5">
+            <button class="p-2 hover:bg-red-50 text-red-500 rounded-lg">🚫</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
