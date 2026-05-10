@@ -1,12 +1,15 @@
 import { InputType, Field, Float } from '@nestjs/graphql';
+import { IsString, IsNotEmpty, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { RequestStatus } from '../request.entity';
 
 @InputType()
-class LocationInput {
+export class LocationInput {
   @Field(() => Float)
-  lat: number;
+  lat!: number;
 
   @Field(() => Float)
-  lng: number;
+  lng!: number;
 
   @Field({ nullable: true })
   address?: string;
@@ -15,14 +18,25 @@ class LocationInput {
 @InputType()
 export class CreateVolunteerRequestInput {
   @Field()
-  title: string;
+  @IsString()
+  @IsNotEmpty()
+  title!: string;
 
   @Field()
-  description: string;
+  @IsString()
+  @IsNotEmpty()
+  description!: string;
+
+  @Field(() => String, { nullable: true })
+  status?: RequestStatus;
 
   @Field()
-  category: string;
+  @IsString()
+  @IsNotEmpty()
+  category!: string;
 
   @Field(() => LocationInput)
-  location: LocationInput;
+  @ValidateNested()
+  @Type(() => LocationInput)
+  location!: LocationInput;
 }

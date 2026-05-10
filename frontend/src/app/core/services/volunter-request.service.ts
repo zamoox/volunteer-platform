@@ -12,6 +12,16 @@ export const GET_ALL_REQUESTS = gql`
       category
       status
       createdAt
+      organization {
+        id
+        name
+        description
+      }
+      volunteer {
+        id
+        firstName
+        lastName
+      }
       location {
         lat
         lng
@@ -35,6 +45,10 @@ const CREATE_REQUEST = gql`
         lng
         address
       }
+      organization {
+        id
+        name
+      }
     }
   }
 `;
@@ -50,13 +64,19 @@ const UPDATE_REQUEST_STATUS = gql`
 
 @Injectable({ providedIn: 'root' })
 export class VolunteerRequestService {
+
   constructor(private apollo: Apollo) {}
 
   getRequests(category: string | null = null) {
+    const vars = { category: category ?? null };
+
     return this.apollo.watchQuery<any>({
       query: GET_ALL_REQUESTS,
-      variables: { category }
-    }).valueChanges.pipe(map(result => result.data?.getAllRequests ?? []));
+      variables: vars, // ← ключова зміна
+      fetchPolicy: 'network-only', // ← додай щоб не брав з кешу
+    }).valueChanges.pipe(
+      map(result => result.data?.getAllRequests ?? [])
+    );
   }
 
   createRequest(title: string, description: string, lat: number, lng: number, address: string, category: string) {

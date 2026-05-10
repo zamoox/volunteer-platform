@@ -3,11 +3,24 @@ export interface VolunteerRequest {
   title: string;
   description: string;
   category: string;
-  status: 'open' | 'in_progress' | 'closed'; // Додаємо типи для статусів
-  createdAt: string | Date; // GraphQL зазвичай повертає рядок ISO, який ми можемо перетворити на Date
+  status: 'open' | 'in_progress' | 'completed' | 'cancelled';
+  createdAt: string;
+
   location: {
     lat: number;
     lng: number;
     address: string;
+  };
+
+  organization?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+
+  volunteer?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
   };
 }
