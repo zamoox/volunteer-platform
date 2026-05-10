@@ -48,4 +48,30 @@ export class HeaderComponent {
       });
     }
   }
+
+  getRoleBadgeClasses(role: string): string {
+    const baseClasses = 'inline-block px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md mb-1 transition-colors';
+    
+    switch (role?.toLowerCase()) {
+      case 'admin':
+        // Червоно-чорний або золотий стиль для адміна
+        return `${baseClasses} bg-slate-900 text-amber-400 group-hover:bg-amber-400 group-hover:text-slate-900`;
+      case 'organization':
+        // Фіолетовий стиль для організацій
+        return `${baseClasses} bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white`;
+      case 'volunteer':
+      default:
+        // Твій стандартний синій для волонтерів
+        return `${baseClasses} bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white`;
+    }
+  }
+
+  getRoleLabel(role: string): string {
+    const roles: Record<string, string> = {
+      admin: 'Адміністратор',
+      organization: 'Організація',
+      volunteer: 'Волонтер'
+    };
+    return roles[role?.toLowerCase()] || 'Користувач';
+  }
 }

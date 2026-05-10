@@ -3,8 +3,10 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 import { Router } from '@angular/router';
 import { AbstractControl, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { finalize, take } from 'rxjs';
+import { finalize, Observable, take } from 'rxjs';
 import { User } from '../../../core/models/user.model';
+import { VolunteerRequestService } from '../../../core/services/volunter-request.service';
+import { VolunteerRequest } from '../../../shared/models/volunteer-request.model';
 
 @Component({
   selector: 'app-profile',
@@ -19,6 +21,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
 
   private user: User | null = null;
+
+  public requestService = inject(VolunteerRequestService);
+  requests$!: Observable<VolunteerRequest[]>;
   
   qrCodeUrl: string | null = null;
   twoFaCode: string = '';
@@ -41,6 +46,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.authService.currentUser$.subscribe(userData => {
       this.user = userData;
+
+      if (userData?.role === 'organization') {
+        this.requests$ = this.requestService.getRequests();
+      }
+
       this.cdr.detectChanges(); // Оновлюємо UI, коли прийшли дані
     });
 

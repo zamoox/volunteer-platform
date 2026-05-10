@@ -110,11 +110,57 @@
           </div>
         </div>
 
-        <div *ngSwitchCase="'requests'" class="text-center py-32 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
-           <div class="text-6xl mb-6 opacity-40">📦</div>
-           <h3 class="text-xl font-black text-slate-400 uppercase tracking-widest">Список порожній</h3>
-           <p class="text-sm text-slate-400 mt-2">Ви ще не створювали та не приймали запитів</p>
+<div *ngSwitchCase="'requests'" class="space-y-6">
+
+  <ng-container *ngIf="(requests$ | async) as requests">
+
+    <div *ngIf="requests.length === 0" class="text-center py-32 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
+      <div class="text-6xl mb-6 opacity-40">📦</div>
+      <h3 class="text-xl font-black text-slate-400 uppercase tracking-widest">
+        Немає запитів
+      </h3>
+      <p class="text-sm text-slate-400 mt-2">
+        Організація ще не створювала запити
+      </p>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+
+      <div *ngFor="let req of requests"
+           class="p-6 bg-white border border-slate-100 rounded-3xl shadow-sm hover:shadow-md transition">
+
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-black text-slate-900">{{ req.title }}</h4>
+
+          <span class="text-[10px] px-2 py-1 rounded-lg font-black uppercase"
+                [ngClass]="{
+                  'bg-emerald-100 text-emerald-600': req.status === 'open',
+                  'bg-amber-100 text-amber-600': req.status === 'in_progress',
+                  'bg-slate-100 text-slate-500': req.status === 'cancelled'
+                }">
+            {{ req.status }}
+          </span>
         </div>
+
+        <p class="text-sm text-slate-500 line-clamp-3">
+          {{ req.description }}
+        </p>
+
+        <div class="mt-4 text-xs text-slate-400">
+          📍 {{ req.location.address }}
+        </div>
+
+        <div class="mt-3 text-[10px] text-slate-400 uppercase tracking-widest">
+          {{ req.category }}
+        </div>
+
+      </div>
+
+    </div>
+
+  </ng-container>
+
+</div>
 
 <div *ngSwitchCase="'settings'" class="w-full space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
   

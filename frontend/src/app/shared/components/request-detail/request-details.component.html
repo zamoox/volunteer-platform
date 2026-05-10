@@ -20,10 +20,15 @@
           </span>
           {{ request.status === 'open' ? '• Відкрито' : 'У процесі' }}
         </span>
-        <span class="text-xs text-slate-400 font-medium italic">ID: {{ request.id?.slice(0,8) }}</span>
-        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-          {{ request.createdAt | date:'dd.MM HH:mm' }}
-        </span>
+        <span class="text-xs text-slate-400 font-medium italic">ID: {{ request.id.slice(0,8) }}</span>
+
+        <div class="flex items-center gap-2 text-slate-400">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span class="text-xs font-medium">{{ request.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+    </div>
+      
       </div>
     </div>
     <button 
@@ -46,12 +51,34 @@
       </p>
     </div>
 
-    <div class="flex items-center gap-2 text-slate-400">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span class="text-xs font-medium">{{ request.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+    <div *ngIf="request.organization" class="space-y-3">
+  <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+    Організація
+  </label>
+
+    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+      
+      <div class="flex items-center gap-4">
+        
+        <div class="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-lg font-black shadow-sm">
+          {{ request.organization.name[0] || 'O' }}
+        </div>
+
+        <div class="min-w-0 flex-1">
+          <h3 class="text-sm font-black text-slate-900 truncate">
+            {{ request.organization.name }}
+          </h3>
+
+          <p *ngIf="request.organization.description"
+            class="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+            {{ request.organization.description }}
+          </p>
+        </div>
+
+      </div>
+
     </div>
+  </div>
 
     <div>
       <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Опис потреби</label>
@@ -63,14 +90,14 @@
     <div class="space-y-3">
       <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Локація</label>
       
-      <div *ngIf="request.location?.address" class="flex items-start gap-3 mt-1">
+      <div *ngIf="request.location.address" class="flex items-start gap-3 mt-1">
         <span class="text-xl">📍</span>
         <p class="text-sm text-slate-700 font-medium leading-snug">{{ request.location.address }}</p>
       </div>
 
       <div class="flex items-center gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
         <span class="text-xs font-mono text-blue-600">
-          {{ request.location?.lat | number:'1.4-4' }}, {{ request.location?.lng | number:'1.4-4' }}
+          {{ request.location.lat | number:'1.4-4' }}, {{ request.location.lng | number:'1.4-4' }}
         </span>
       </div>
     </div>

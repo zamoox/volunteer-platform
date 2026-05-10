@@ -1,20 +1,18 @@
 <header class="fixed top-0 left-0 right-0 z-[2000] bg-white/80 backdrop-blur-md border-b border-slate-100">
   <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
     
-    <!-- Оновлене Лого з анімацією -->
     <a routerLink="/" class="flex items-center gap-2 cursor-pointer group">
       <div class="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center transition-transform duration-500 group-hover:rotate-12 shadow-lg shadow-slate-200">
         <span class="text-white font-black text-xl leading-none">V</span>
       </div>
       <div class="flex flex-col">
         <span class="font-black text-xl tracking-tighter text-slate-900 group-hover:text-blue-600 transition-colors leading-none">
-          VOLUNTEER<span class="text-blue-600"></span>
+          VOLUNTEER
         </span>
         <span class="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">Платформа єдності</span>
       </div>
     </a>
 
-    <!-- Навігація -->
     <nav class="hidden md:flex items-center gap-8 text-[11px] font-black uppercase tracking-widest text-slate-500">
       <a routerLink="/map" routerLinkActive="text-blue-600" class="hover:text-slate-900 transition-colors">Карта запитів</a>
       <a href="#" class="hover:text-slate-900 transition-colors">Як допомогти</a>
@@ -22,43 +20,53 @@
     </nav>
 
     <div class="flex items-center gap-4">
-      <!-- Блок авторизації -->
+      
       <ng-container *ngIf="!(authService.currentUser$ | async); else userMenu">
-        <button 
-          routerLink="/login"
-          class="px-5 py-2.5 text-xs font-black uppercase tracking-widest text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
-        >
-          Увійти
-        </button>
+        <div class="flex items-center gap-4">
+          <button routerLink="/login" class="px-5 py-2.5 text-xs font-black uppercase tracking-widest text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+            Увійти
+          </button>
+          
+          <button type="button" (click)="onCreateRequest()"
+            class="px-6 py-3 text-[11px] font-black uppercase tracking-widest bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all">
+            Створити запит
+          </button>
+        </div>
       </ng-container>
 
       <ng-template #userMenu>
-        <div class="flex items-center gap-4 pl-4 border-l border-slate-100" *ngIf="authService.currentUser$ | async as user">
+        <div class="flex items-center gap-6 pl-4 border-l border-slate-100" *ngIf="authService.currentUser$ | async as user">
           
-          <!-- Інформація про користувача з лінком на профіль -->
+          <button *ngIf="user.role.toLowerCase() === 'organization'"
+            type="button"
+            class="px-6 py-3 text-[11px] font-black uppercase tracking-widest bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all active:scale-95"
+            (click)="onCreateRequest()">
+            Створити запит
+          </button>
+
           <a routerLink="/profile" class="flex items-center gap-3 group cursor-pointer">
             <div class="text-right hidden sm:block">
-              <!-- Роль як бейдж -->
-              <span class="inline-block px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase tracking-wider rounded-md mb-1 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                {{ user.role === 'organization' ? 'Організація' : 'Волонтер' }}
+              <span [class]="getRoleBadgeClasses(user.role)">
+                {{ getRoleLabel(user.role) }}
               </span>
               <p class="text-[11px] font-black tracking-tight text-slate-900 leading-none">
                 {{ user.firstName || user.email.split('@')[0] }}
               </p>
             </div>
 
-            <!-- Аватарка-заглушка -->
-            <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-transparent group-hover:border-blue-500 transition-all shadow-md group-hover:shadow-blue-100 overflow-hidden text-sm">
+            <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-transparent transition-all shadow-md overflow-hidden text-sm"
+                 [ngClass]="{
+                   'group-hover:border-blue-500 group-hover:shadow-blue-100': user.role === 'volunteer',
+                   'group-hover:border-purple-500 group-hover:shadow-purple-100': user.role === 'organization',
+                   'group-hover:border-amber-400 group-hover:shadow-amber-100': user.role === 'admin'
+                 }">
               <span class="text-white font-bold">{{ (user.firstName?.[0] || user.email?.[0])?.toUpperCase() }}</span>
             </div>
           </a>
 
-          <!-- Кнопка виходу (мінімалістична іконка з тултипом або просто стильна кнопка) -->
-          <button 
-            (click)="onLogout()" 
+          <button (click)="onLogout()" 
             class="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all group relative"
-            title="Вийти"
-          >
+            title="Вийти">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
             </svg>
@@ -66,14 +74,6 @@
         </div>
       </ng-template>
 
-      <!-- Кнопка створення запиту -->
-      <button  
-        type="button"
-        class="px-6 py-3 text-[11px] font-black uppercase tracking-widest bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all active:scale-95"
-        (click)="onCreateRequest()"
-      >
-        Створити запит
-      </button>
     </div>
   </div>
 </header>

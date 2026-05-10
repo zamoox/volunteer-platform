@@ -2,6 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { VolunteerRequestService } from '../../../core/services/volunter-request.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { VolunteerRequest } from '../../models/volunteer-request.model';
+
 
 @Component({
   selector: 'app-request-details',
@@ -11,7 +13,7 @@ import { ToastService } from '../../../core/services/toast.service';
   styleUrl: './request-details.component.css',
 })
 export class RequestDetailsComponent {
-  @Input() request: any;
+  @Input() request!: VolunteerRequest;
   @Input() position: 'left' | 'right' = 'left'; // Змінив за замовчуванням на left, щоб кнопки мапи справа не заважали
 
   @Output() closed = new EventEmitter<void>();

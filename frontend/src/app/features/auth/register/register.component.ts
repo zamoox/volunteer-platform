@@ -57,42 +57,43 @@ export class RegisterComponent {
     return "Помилка валідації";
   }
 
-onRegister() {
-    if (this.registerForm.valid) {
-      this.isLoading = true;
-      this.authService.register(this.registerForm.value).subscribe({
-        next: () => {
-          // 👈 Додано тост про успіх
-          this.toastService.success(
-            'Успіх!', 
-            'Реєстрація пройшла успішно. Ласкаво просимо!'
-          );
-          this.router.navigate(['/']);
-        },
-        error: (err) => {
-          this.isLoading = false;
-          // 👈 Додано обробку помилок через ToastService
-          if (err.message?.includes('вже існує')) {
-             this.toastService.error(
-               'Помилка реєстрації', 
-               'Користувач з таким Email вже існує. Спробуйте увійти.'
-             );
-          } else {
-             this.toastService.error(
-               'Щось пішло не так', 
-               'Перевірте введені дані та спробуйте ще раз.'
-             );
-          }
-          console.error(err);
-        }
-      });
-    } else {
+  onRegister() {
+    if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
-      // Опціонально: можна додати тост і для невалідної форми
-      this.toastService.warning(
-        'Увага', 
-        'Будь ласка, заповніть всі обов\'язкові поля коректно.'
-      );
+      this.toastService.warning('Увага', "Заповніть всі обов'язкові поля");
+      return;
     }
-  }
+
+    this.isLoading = true;
+
+    this.authService.register(this.registerForm.value).subscribe({
+      next: (data) => {
+
+        console.log('=== REGISTER NEXT ===', data);
+        console.log('role:', data?.user?.role);
+        this.toastService.success('Успіх!', 'Реєстрація пройшла успішно!');
+        
+        const role = (data?.user?.role ?? '');
+        
+        const routes: Record<string, string> = {
+          volunteer:    '/map',
+          organization: '/organization/setup',
+          admin:        '/admin',
+        };
+
+        console.log(routes[role]);
+
+        this.router.navigate([routes[role] ?? '/']);
+      },
+      error: (err) => {
+        this.isLoading = false;
+        const msg = err.graphQLErrors?.[0]?.message ?? err.message ?? '';
+        if (msg.includes('вже існує') || msg.includes('already exists')) {
+          this.toastService.error('Помилка', 'Користувач з таким Email вже існує');
+        } else {
+          this.toastService.error('Помилка', 'Перевірте дані та спробуйте ще раз');
+        }
+      }
+    });
+  } 
 }

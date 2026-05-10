@@ -5,6 +5,7 @@ import { HeaderComponent, FooterComponent } from './shared/components';
 import { RouterModule } from '@angular/router';
 import { ToastComponent } from './shared/components/toast/toast.component';
 import { LoadingComponent } from './shared/components/loading/loading.component';
+import { AuthService } from './core/services/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -22,7 +23,9 @@ import { LoadingComponent } from './shared/components/loading/loading.component'
 })
 export class AppComponent implements OnInit {
   
-  constructor() {}
+  constructor(private auth: AuthService) {
+    this.auth.currentUser$.subscribe();
+  }
 
   ngOnInit() {}
 
