@@ -3,20 +3,20 @@
   <div class="relative w-full max-w-2xl bg-white shadow-2xl rounded-3xl border border-slate-100 flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
 
     <!-- ===== HEADER ===== -->
-    <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-start">
-      <div>
-        <h2 class="text-3xl font-black tracking-tight text-slate-900 leading-none">Створити запит</h2>
-        <p class="mt-2 text-slate-500 text-sm font-medium">Опишіть, яка допомога вам потрібна на цій локації</p>
-      </div>
-      <button (click)="onClose()" type="button"
-        class="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-colors text-lg leading-none">
-        ✕
-      </button>
+   <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-start">
+    <div>
+      <h2 class="text-3xl font-black tracking-tight text-slate-900 leading-none">
+        {{ requestToEdit ? 'Редагувати запит' : 'Створити запит' }}
+      </h2>
+      <p class="mt-2 text-slate-500 text-sm font-medium">
+        {{ requestToEdit ? 'Оновіть деталі вашої потреби' : 'Опишіть, яка допомога вам потрібна на цій локації' }}
+      </p>
     </div>
+  </div>
 
     <!-- ===== FORM BODY ===== -->
     <form [formGroup]="requestForm" (ngSubmit)="onSubmit()"
-      class="p-8 space-y-6 overflow-y-auto max-h-[70vh] custom-scrollbar">
+      class="p-8 space-y-6 overflow-y-auto max-h-[70vh] custom-scrollbar"> 
 
       <!-- Назва запиту -->
       <div class="space-y-2">

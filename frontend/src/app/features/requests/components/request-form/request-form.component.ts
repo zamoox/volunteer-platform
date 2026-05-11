@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
 import { Subject, Observable, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil, catchError, map } from 'rxjs/operators';
-import { VolunteerRequestService } from '@features/requests';
+import { VolunteerRequest, VolunteerRequestService } from '@features/requests';
 import { GeoService, NominatimSearchResult } from '@features/geo/services/geo.service';
 import { ToastService } from '@core/services/toast.service';
 
@@ -18,6 +18,9 @@ export type RequestCategory = 'MEDICINE' | 'FOOD' | 'TRANSPORT' | 'SHELTER' | 'O
   styleUrl: './request-form.component.css'
 })
 export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
+
+  @Input() requestToEdit: VolunteerRequest | null = null; // Запит для редагування
+
   private requestService = inject(VolunteerRequestService);
   private geoService = inject(GeoService);
   private toastService = inject(ToastService);
@@ -108,11 +111,33 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['address']?.currentValue) {
-      this.requestForm.patchValue({ address: changes['address'].currentValue }, { emitEvent: false });
-    }
+ngOnChanges(changes: SimpleChanges): void {
+  // 1. Якщо прийшов об'єкт для редагування (найважливіше)
+  if (changes['requestToEdit']?.currentValue) {
+    const req = changes['requestToEdit'].currentValue as VolunteerRequest;
+    
+    // Заповнюємо координати в змінні класу (щоб вони відображалися в UI)
+    this.lat = req.location.lat;
+    this.lng = req.location.lng;
+
+    // Заповнюємо поля форми
+    this.requestForm.patchValue({
+      title: req.title,
+      category: req.category as RequestCategory,
+      description: req.description,
+      address: req.location.address,
+      // Якщо в адресі є місто, можеш спробувати його витягти
+      city: req.location.address.split(',')[0] || 'Київ' 
+    }, { emitEvent: false }); // emitEvent: false, щоб не тригерити пошук Nominatim відразу
   }
+
+  // 2. Якщо адреса прийшла окремо (наприклад, з карти)
+  if (changes['address']?.currentValue && !this.requestToEdit) {
+    this.requestForm.patchValue({ 
+      address: changes['address'].currentValue 
+    }, { emitEvent: false });
+  }
+}
 
   ngOnDestroy(): void {
     this.destroy$.next();
@@ -186,30 +211,52 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
     this.isSubmitting = true;
     const val = this.requestForm.value;
 
-    this.requestService.createRequest(
-      val.title!, 
-      val.description!, 
-      this.lat, 
-      this.lng, 
-      `${val.city}, ${val.address}`, // Об'єднуємо місто та адресу для бази
-      val.category!
-    )
-    .pipe(takeUntil(this.destroy$)) // Додаємо безпеку
-    .subscribe({
-      next: (response: any) => { 
-        this.isSubmitting = false; 
-        const newRequest = response.data?.createRequest;
-        console.log(newRequest);
-        this.submitted.emit(newRequest); // Подія для MapComponent, щоб прибрати пін і оновити список
-        this.toastService.success('Успішно', 'Ваш запит доданий на карту!');
-        this.onClose(); 
-      },
-      error: (err) => { 
-        this.isSubmitting = false; 
-        console.error(err);
-      }
-    });
+    if (this.isEditMode && this.requestToEdit) {
+      // РЕЖИМ РЕДАГУВАННЯ
+      this.requestService.updateRequest(this.requestToEdit.id, {
+        title: val.title!,
+        description: val.description!,
+        category: val.category!,
+        location: {
+          lat: this.lat,   // Передаємо актуальні лат
+          lng: this.lng,   // і лонг
+          address: `${val.city}, ${val.address}` // Оновлена адреса
+        }
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.isSubmitting = false;
+          this.toastService.success('Оновлено', 'Запит успішно змінено');
+          this.submitted.emit();
+          this.onClose();
+        },
+        error: () => this.isSubmitting = false
+      });
+
+    } else {
+      // РЕЖИМ СТВОРЕННЯ (твій існуючий код)
+      this.requestService.createRequest(
+        val.title!, val.description!, this.lat, this.lng, 
+        `${val.city}, ${val.address}`, val.category!
+      )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response: any) => {
+          this.isSubmitting = false;
+          this.submitted.emit(response.data?.createRequest);
+          this.toastService.success('Успішно', 'Ваш запит доданий!');
+          this.onClose();
+        },
+        error: () => this.isSubmitting = false
+      });
+    }
   }
 
   onClose(): void { this.closed.emit(); }
+
+  get isEditMode(): boolean {
+    return !!this.requestToEdit;
+}
+
 }

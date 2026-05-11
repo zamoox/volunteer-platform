@@ -5,14 +5,14 @@ import { finalize, Observable, take } from 'rxjs';
 
 import { AuthService } from '@core/services';
 import { User } from '@core/models/user.model';
-import { VolunteerRequestService, VolunteerRequest } from '@features/requests';
+import { VolunteerRequestService, VolunteerRequest, RequestFormComponent } from '@features/requests';
 import { AbilityServiceSignal } from '@casl/angular';
 import { subject } from '@casl/ability';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RequestFormComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
@@ -24,19 +24,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   private user: User | null = null;
 
-  public requestService = inject(VolunteerRequestService);
-  requests$!: Observable<VolunteerRequest[]>;
+  public isEditModalOpen = false;
+  public selectedRequest: VolunteerRequest | null = null;
 
-  canDelete(request: VolunteerRequest): boolean {
-    if (!request) return false;
-    return this.ability.can('delete', subject('VolunteerRequest', { ...request }));
-  }
-
-  canUpdate(request: VolunteerRequest): boolean {
-    if (!request) return false;
-    return this.ability.can('update', subject('VolunteerRequest', { ...request }));
-  }
-  
   qrCodeUrl: string | null = null;
   twoFaCode: string = '';
   isStepVerify: boolean = false;
@@ -55,6 +45,39 @@ export class ProfileComponent implements OnInit, OnDestroy {
   isSendingEmail: boolean = false;
   emailSent: boolean = false;
 
+  
+  public requestService = inject(VolunteerRequestService);
+  requests$!: Observable<VolunteerRequest[]>;
+
+  canDelete(request: VolunteerRequest): boolean {
+    if (!request) return false;
+    return this.ability.can('delete', subject('VolunteerRequest', { ...request }));
+  }
+
+  canUpdate(request: VolunteerRequest): boolean {
+    if (!request) return false;
+    return this.ability.can('update', subject('VolunteerRequest', { ...request }));
+  }
+
+  onEditRequest(req: VolunteerRequest) {
+    this.selectedRequest = req;
+    this.isEditModalOpen = true;
+  }
+
+  closeEditModal() {
+    this.isEditModalOpen = false;
+    this.selectedRequest = null;
+  }
+
+  onEditSubmitted() {
+    // Оновлюємо список запитів після успішного редагування
+    this.requests$ = this.requestService.getMyRequests();
+    this.closeEditModal();
+    this.cdr.detectChanges();
+  }
+  
+
+
   ngOnInit() {
     this.authService.currentUser$.subscribe(userData => {
       this.user = userData;
@@ -68,11 +91,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
     this.checkExistingCooldown();
     this.initPasswordForm();
-  }
-
-  onEditRequest(req: VolunteerRequest) {
-    console.log('Редагувати:', req.id);
-    // Тут можна відкрити модалку або редірект на форму
   }
 
   onDeleteRequest(id: string) {

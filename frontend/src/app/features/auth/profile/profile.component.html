@@ -128,16 +128,6 @@
 
     @else {
       <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        <div class="p-4 bg-black text-emerald-400 font-mono text-[10px] rounded-2xl mb-4">
-  @for (req of (requests$ | async)?.slice(0,1); track req.id) {
-    <div>DEBUG LOG:</div>
-    <div>1. Мій ID: {{ (authService.currentUser$ | async)?.id }}</div>
-    <div>2. Власник ID (userId): {{ req.organization?.userId }}</div>
-    <div>3. Тип об'єкта (__typename): {{ req.__typename }}</div>
-    <div>4. Чи співпадають ID: {{ (authService.currentUser$ | async)?.id === req.organization?.userId }}</div>
-    <div>5. Що каже CASL: {{ canUpdate(req) }}</div>
-  }
-</div>
         @for (req of requests; track req.id) {
           <div class="group p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
             
@@ -275,3 +265,13 @@
     </div>
   </div>
 </div>
+
+@if (isEditModalOpen && selectedRequest) {
+  <app-request-form 
+    [requestToEdit]="selectedRequest"
+    [lat]="selectedRequest.location.lat"
+    [lng]="selectedRequest.location.lng"
+    (closed)="closeEditModal()"
+    (submitted)="onEditSubmitted()">
+  </app-request-form>
+}
