@@ -3,89 +3,9 @@ import { Injectable, inject } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { map } from 'rxjs/operators';
 import { Observable } from 'rxjs';
-
-// ─── Queries ─────────────────────────────────────────────────
-
-const MY_ORGANIZATION = gql`
-  query MyOrganizationProfile {
-    myOrganizationProfile {
-      id
-      name
-      edrpou
-      description
-      website
-      phone
-      isVerified
-      userId
-      createdAt
-    }
-  }
-`;
-
-const CREATE_ORGANIZATION_PROFILE = gql`
-  mutation CreateOrganizationProfile($input: CreateOrganizationInput!) {
-    createOrganizationProfile(input: $input) {
-      id
-      name
-      edrpou
-      description
-      website
-      phone
-      isVerified
-      userId
-      createdAt
-    }
-  }
-`;
-
-const UPDATE_ORGANIZATION_PROFILE = gql`
-  mutation UpdateOrganizationProfile($input: UpdateOrganizationInput!) {
-    updateOrganizationProfile(input: $input) {
-      id
-      name
-      edrpou
-      description
-      website
-      phone
-      isVerified
-    }
-  }
-`;
-
-// ─── Types ───────────────────────────────────────────────────
-
-export interface Organization {
-  id: string;
-  name: string;
-  edrpou?: string;
-  description?: string;
-  website?: string;
-  phone?: string;
-  logoUrl?: string;
-  isVerified: boolean;
-  userId: string;
-  createdAt?: string;
-  requests?: any[];
-}
-
-export interface CreateOrganizationInput {
-  name: string;
-  edrpou?: string;
-  description?: string;
-  website?: string;
-  phone?: string;
-}
-
-export interface UpdateOrganizationInput {
-  name?: string;
-  edrpou?: string;
-  description?: string;
-  website?: string;
-  phone?: string;
-  logoUrl?: string;
-}
-
-// ─── Service ─────────────────────────────────────────────────
+import { Organization, CreateOrganizationInput, UpdateOrganizationInput } from '@features/organizations/types/organization.types';
+import { MY_ORGANIZATION } from '@features/organizations/graphql/organizations.queries';
+import { CREATE_ORGANIZATION_PROFILE, UPDATE_ORGANIZATION_PROFILE } from '@features/organizations/graphql/organizations.mutations';
 
 @Injectable({ providedIn: 'root' })
 export class OrganizationService {
@@ -122,7 +42,6 @@ getMyOrganization(): Observable<Organization | null> {
 //     );
 // }
 
-  /** Створити профіль організації (тільки для role=organization) */
   createProfile(input: CreateOrganizationInput): Observable<Organization> {
     return this.apollo
       .mutate<any>({
@@ -133,7 +52,7 @@ getMyOrganization(): Observable<Organization | null> {
           if (!created) return;
           cache.writeQuery({
             query: MY_ORGANIZATION,
-            data: { myOrganizationProfile: created }, // ← було myOrganization
+            data: { myOrganizationProfile: created },
           });
         },
       })

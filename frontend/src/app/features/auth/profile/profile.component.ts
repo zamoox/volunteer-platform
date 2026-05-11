@@ -8,11 +8,12 @@ import { User } from '@core/models/user.model';
 import { VolunteerRequestService, VolunteerRequest, RequestFormComponent } from '@features/requests';
 import { AbilityServiceSignal } from '@casl/angular';
 import { subject } from '@casl/ability';
+import { ModalComponent } from '@shared/components/modal/modal.component';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RequestFormComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RequestFormComponent, ModalComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
@@ -39,6 +40,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
   passwordForm!: FormGroup;
   passwordError: string | null = null;
   passwordSuccess: boolean = false;
+
+  public isDeleteModalOpen = false;
+  private requestIdToDelete: string | null = null;
 
 
   activeTab: 'info' | 'settings' | 'reviews' | 'requests' = 'info';
@@ -94,16 +98,27 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   onDeleteRequest(id: string) {
-    if (confirm('Ви впевнені, що хочете видалити цей запит?')) {
-      this.requestService.deleteRequest(id).subscribe({
-        next: () => {
-          // Оновлюємо список після видалення
-          this.requests$ = this.requestService.getMyRequests();
-          this.cdr.detectChanges();
-        }
-      });
-    }
+    this.requestIdToDelete = id;
+    this.isDeleteModalOpen = true;
   }
+
+  confirmDelete() {
+  if (!this.requestIdToDelete) return;
+
+  this.requestService.deleteRequest(this.requestIdToDelete).subscribe({
+    next: () => {
+      this.isDeleteModalOpen = false;
+      this.requestIdToDelete = null;
+      // Оновлюємо список
+      this.requests$ = this.requestService.getMyRequests();
+      this.cdr.detectChanges();
+    },
+    error: (err) => {
+      console.error('Помилка видалення:', err);
+      this.isDeleteModalOpen = false;
+    }
+  });
+}
 
   onChangeStatus(id: string, newStatus: string) {
     this.requestService.updateStatus(id, newStatus).subscribe({

@@ -5,125 +5,17 @@ import { Apollo, gql } from 'apollo-angular';
 import { User } from '../models/user.model';
 import { UserRole } from '../enums/user-role.enum';
 import { CaslService } from '../casl/services/casl.service';
-
-const LOGIN_MUTATION = gql`
-  mutation Login($email: String!, $password: String!) {
-    login(email: $email, password: $password) {
-      access_token
-      require2FA       
-      userId           
-      message
-      user {
-        id
-        email
-        firstName
-        role
-        city
-        region,
-        isEmailVerified
-        isTwoFactorEnabled
-      }
-      rules {
-        action
-        subject
-        conditions
-      }
-    }
-  }
-`;
-
-const LOGIN_WITH_2FA_MUTATION = gql`
-  mutation LoginWith2FA($userId: String!, $code: String!) {
-    loginWith2FA(userId: $userId, code: $code) {
-      access_token
-      user {
-        id
-        email
-        firstName
-        role
-        city
-        region
-        isEmailVerified
-        isTwoFactorEnabled
-      }
-      rules {
-        action
-        subject
-        conditions
-      }
-    }
-  }
-`;
-
-const REGISTER_MUTATION = gql`
-  mutation Register($input: RegisterInput!) {
-    register(input: $input) {
-      access_token
-      user {
-        id
-        email
-        role
-        firstName
-        city
-        isEmailVerified
-      }
-      rules {
-        action
-        subject
-        conditions
-      }
-    }
-  }
-`;
-
-const VERIFY_EMAIL_MUTATION = gql`
-  mutation VerifyEmail($token: String!) {
-    verifyEmail(token: $token)
-  }
-`;
-
-const GENERATE_2FA_MUTATION = gql`
-  mutation Generate2FA($userId: String!) {
-    generate2FA(userId: $userId)
-  }
-`;
-
-const TURN_ON_2FA_MUTATION = gql`
-  mutation TurnOn2FA($userId: String!, $code: String!) {
-    turnOn2FA(userId: $userId, code: $code)
-  }
-`;
-
-const RESEND_VERIFICATION_EMAIL = gql`
-  mutation ResendVerificationEmail($userId: String!) {
-    resendVerificationEmail(userId: $userId)
-  }
-`;
-
-const CHANGE_PASSWORD_MUTATION = gql`
-  mutation ChangePassword($userId: String!, $oldPassword: String!, $newPassword: String!) {
-    changePassword(userId: $userId, oldPassword: $oldPassword, newPassword: $newPassword)
-  }
-`;
-
-const GET_PROFILE = gql`
-  query {
-    me {
-      id
-      email
-      firstName
-      lastName
-      role
-      isTwoFactorEnabled
-      isEmailVerified
-    }
-    rules { 
-      action
-      subject
-      conditions
-    }
-  }
-`;
+import { 
+  LOGIN_MUTATION, 
+  LOGIN_WITH_2FA_MUTATION,
+  REGISTER_MUTATION,
+  VERIFY_EMAIL_MUTATION,
+  RESEND_VERIFICATION_EMAIL,
+  TURN_ON_2FA_MUTATION,
+  GENERATE_2FA_MUTATION,
+  CHANGE_PASSWORD_MUTATION
+ } from '@features/auth/graphql/auth.mutations';
+ import { GET_PROFILE } from '@features/auth/graphql/auth.queries';
 
 @Injectable({
   providedIn: 'root'
@@ -235,7 +127,6 @@ export class AuthService {
         console.log('=== RAW RESULT ===', result.data.register);
         return result.data.register}),
       tap(data => {
-        // Тільки зберігаємо — без navigate!
         console.log('=== TAP DATA ===', data);
         if (data.access_token && data.user) {
           this.handleAuthentication(data.access_token, data.user, data.rules);
@@ -276,7 +167,6 @@ export class AuthService {
       map(result => result.data.turnOn2FA),
       tap(success => {
         if (success) {
-          // Оновлюємо локальні дані користувача, щоб статус 2FA змінився на true
           const user = this.getUserFromStorage();
           if (user) {
             this.handleAuthentication(this.getToken() || '', { ...user, isTwoFactorAuthenticationEnabled: true });
@@ -309,14 +199,12 @@ export class AuthService {
       map(result => result.data.changePassword),
       catchError(err => {
         console.error('Помилка зміни пароля:', err);
-        // Прокидаємо помилку далі, щоб компонент міг показати текст помилки
         throw err; 
       })
     );
   }
 
   getCurrentUser() {
-    // Твій GraphQL запит для отримання профілю
     return this.apollo.query<{ me: User; rules: any[] }>({ query: GET_PROFILE, fetchPolicy: 'network-only' }).pipe(
       map(result => {
         if (!result.data || !result.data.me) {
@@ -336,7 +224,6 @@ export class AuthService {
     );
   }
 
-
   handleAuthentication(token: string, user: User | null, rules: any[] = []) {
     localStorage.setItem(this.TOKEN_KEY, token);
     localStorage.setItem(this.RULES_KEY, JSON.stringify(rules ?? []));
@@ -346,7 +233,6 @@ export class AuthService {
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
       this.currentUserSubject.next(user);
     } else {
-      // ЯКЩО ЮЗЕРА НЕМАЄ (як після Google), ЗАВАНТАЖУЄМО ЙОГО
       this.getCurrentUser().subscribe({
         next: ({ me: loadedUser }) => {
           localStorage.setItem(this.USER_KEY, JSON.stringify(loadedUser));

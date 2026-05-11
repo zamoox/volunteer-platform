@@ -275,3 +275,33 @@
     (submitted)="onEditSubmitted()">
   </app-request-form>
 }
+
+<app-modal 
+  *ngIf="isDeleteModalOpen" 
+  title="Підтвердження видалення" 
+  (closed)="isDeleteModalOpen = false">
+  
+  <div class="text-center">
+    <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-3xl bg-red-50 mb-8 rotate-3">
+      <span class="text-red-500 text-3xl -rotate-3">🗑️</span>
+    </div>
+    
+    <p class="text-slate-600 mb-10 text-lg font-medium leading-relaxed">
+      Ви впевнені, що хочете видалити цей запит? <br>
+      <span class="text-sm text-slate-400 font-normal">Цю дію неможливо буде скасувати.</span>
+    </p>
+    
+    <div class="flex gap-4">
+      <button 
+        (click)="isDeleteModalOpen = false" 
+        class="flex-1 py-4 bg-slate-50 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-100 transition-all">
+        Скасувати
+      </button>
+      <button 
+        (click)="confirmDelete()" 
+        class="flex-[2] py-4 bg-red-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-red-200 hover:bg-red-600 hover:-translate-y-0.5 transition-all active:scale-95">
+        Так, видалити
+      </button>
+    </div>
+  </div>
+</app-modal>
