@@ -1,19 +1,23 @@
 import { Resolver, Mutation, Args, Query, Context } from '@nestjs/graphql';
 import { AuthService } from './auth.service';
-import { LoginResponse } from './dto/login-response';
+import { AuthResponse } from './dto/auth-response';
 import { RegisterInput } from './dto/register.input'; // Використовуємо DTO з модуля users
 import { UsersService } from '../users/users.service';
 import { User } from '../users/user.entity';
 import { UseGuards } from '@nestjs/common';
+import { AbilityFactory } from 'src/casl/factories/ability.factory';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 @Resolver()
 export class AuthResolver {
   constructor(
     private authService: AuthService,
-    private usersService: UsersService
+    private usersService: UsersService,
+    private caslAbilityFactory: AbilityFactory,
   ) {}
 
-  @Mutation(() => LoginResponse)
+  @Mutation(() => AuthResponse)
   async login(
     @Args('email') email: string,
     @Args('password') password: string,
@@ -21,17 +25,29 @@ export class AuthResolver {
     return this.authService.login(email, password);
   }
 
-  @Mutation(() => LoginResponse) 
+  @Mutation(() => AuthResponse) 
   async register(@Args('input') input: RegisterInput) {
     return this.authService.register(input);
   }
 
-  @Mutation(() => LoginResponse) // 👈 Використовуємо той самий LoginResponse!
+  @Mutation(() => AuthResponse) // 👈 Використовуємо той самий AuthResponse!
   async loginWith2FA(
     @Args('userId', { type: () => String }) userId: string,
     @Args('code') code: string,
   ) {
     return this.authService.loginWith2FactorAuthentication(userId, code);
+  }
+
+  @Query(() => AuthResponse) // 
+  @UseGuards(JwtAuthGuard)
+  async me(@CurrentUser() user: User): Promise<AuthResponse> {
+    // Створюємо правила спеціально для цього юзера
+    const ability = this.caslAbilityFactory.createForUser(user);
+
+    return {
+      user,
+      rules: ability.rules as any, // 👈 Передаємо правила на фронт
+    };
   }
 
   @Mutation(() => Boolean)

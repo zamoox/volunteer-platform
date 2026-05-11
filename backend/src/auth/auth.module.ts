@@ -9,10 +9,12 @@ import { AuthController } from './auth.controller';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { GqlAuthGuard } from './guards/gql.guard';
+import { CaslModule } from 'src/casl/casl.module';
 
 @Module({
   imports: [
     UsersModule, // Переконайся, що цей модуль тут є
+    CaslModule,
     PassportModule,
     ConfigModule,
     JwtModule.registerAsync({
@@ -33,5 +35,9 @@ import { GqlAuthGuard } from './guards/gql.guard';
     GoogleStrategy,
     JwtStrategy,
   ],
+  exports: [
+    AuthModule,
+    CaslModule
+  ]
 })
 export class AuthModule {}

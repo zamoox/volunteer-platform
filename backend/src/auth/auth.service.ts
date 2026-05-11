@@ -12,6 +12,8 @@ import { ScureBase32Plugin } from '@otplib/plugin-base32-scure';
 import * as QRCode from 'qrcode';
 import { randomBytes } from 'crypto';
 import { UserRole } from 'src/enums/user-role.enum';
+import { AuthResponse } from './dto/auth-response';
+import { AbilityFactory } from 'src/casl/factories/ability.factory';
 
 @Injectable()
 export class AuthService {
@@ -22,7 +24,8 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private mailerService: MailerService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private caslAbilityFactory: AbilityFactory
   ) {
     this.totp = new TOTP({
       crypto: new NodeCryptoPlugin(),
@@ -30,7 +33,7 @@ export class AuthService {
     });
   }
 
-  async login(email: string, pass: string) {
+  async login(email: string, pass: string): Promise<AuthResponse> {
     console.log('--- LOGIN ATTEMPT ---');
     console.log('1. Email:', email);
 
@@ -59,11 +62,27 @@ export class AuthService {
       };
     }
 
-    console.log('5. Returning normal token');
+    // --- НОВА ЧАСТИНА: ГЕНЕРАЦІЯ ПРАВ (RULES) ---
+    console.log('5. Generating CASL abilities');
+    const ability = this.caslAbilityFactory.createForUser(user);
+
+    const rules = (ability.rules as any[]).map(rule => ({
+      ...rule,
+      // Якщо subject — це функція (клас), беремо її ім'я, інакше залишаємо як є
+      subject: typeof rule.subject === 'function' 
+        ? rule.subject.name 
+        : rule.subject
+    }));
+    
+    console.log('6. Returning normal token with rules');
     const payload = { email: user.email, sub: user.id, role: user.role };
+    
     return {
       access_token: this.jwtService.sign(payload),
       user,
+      userId: user.id,
+      rules, // Експортуємо правила для фронтенду
+      message: 'Успішний вхід'
     };
   }
 

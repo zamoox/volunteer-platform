@@ -9,6 +9,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../enums/user-role.enum';
 import { JwtUser } from '../common/interfaces/jwt-user.interface';
+import { PoliciesGuard } from 'src/casl/guards/policies.guards';
 
 @Resolver(() => VolunteerRequest)
 export class RequestsResolver {
@@ -23,7 +24,7 @@ export class RequestsResolver {
 
   // Тільки ORGANIZATION може створити запит
   @Mutation(() => VolunteerRequest)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, PoliciesGuard)
   @Roles(UserRole.ORGANIZATION)
   async createRequest(
     @CurrentUser() user: JwtUser,
@@ -34,7 +35,7 @@ export class RequestsResolver {
 
   // Тільки VOLUNTEER може прийняти запит
   @Mutation(() => VolunteerRequest)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, PoliciesGuard)
   @Roles(UserRole.VOLUNTEER)
   async acceptRequest(
     @CurrentUser() user: JwtUser,
@@ -45,13 +46,13 @@ export class RequestsResolver {
 
   // Організація або адмін змінюють статус
   @Mutation(() => VolunteerRequest)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, PoliciesGuard)
   @Roles(UserRole.ORGANIZATION, UserRole.ADMIN)
   async updateRequestStatus(
     @CurrentUser() user: JwtUser,
     @Args('id') id: string,
     @Args('status') status: string,
   ): Promise<VolunteerRequest> {
-    return this.requestsService.updateStatus(id, status, user.userId, user.role as UserRole);
+    return this.requestsService.updateStatus(id, status, user);
   }
 }

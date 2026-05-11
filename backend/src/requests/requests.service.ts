@@ -9,6 +9,10 @@ import { VolunteerRequest, RequestStatus } from './request.entity';
 import { UserRole } from '../enums/user-role.enum';
 import { OrganizationProfileService } from '../organizations/organization-profile.service';
 import { CreateVolunteerRequestInput } from './dto/create-request.input';
+import { JwtUser } from 'src/common/interfaces/jwt-user.interface';
+import { User } from 'src/users/user.entity';
+import { AbilityFactory } from 'src/casl/factories/ability.factory';
+import { Action } from 'src/casl/enums/actions.enum';
 
 @Injectable()
 export class RequestsService {
@@ -16,6 +20,7 @@ export class RequestsService {
     @InjectRepository(VolunteerRequest)
     private readonly requestRepository: Repository<VolunteerRequest>,
     private readonly orgsService: OrganizationProfileService,
+    private readonly caslAbilityFactory: AbilityFactory,
   ) {}
 
   async create(userId: string, input: CreateVolunteerRequestInput): Promise<VolunteerRequest> {
@@ -63,20 +68,24 @@ export class RequestsService {
     return this.requestRepository.save(request);
   }
 
-  async updateStatus(
-    requestId: string,
-    status: string,
-    userId: string,
-    role: UserRole,
-  ): Promise<VolunteerRequest> {
-    const request = await this.findOneById(requestId);
+  async updateStatus(id: string, status: string, currentUser: JwtUser): Promise<VolunteerRequest> {
+    const request = await this.requestRepository.findOne({ where: { id } });
+    
+    if (!request) {
+      throw new NotFoundException('Запит не знайдено');
+    }
 
-    const org = await this.orgsService.findByUserId(userId);
-    const isOwner = org && request.organization === org;
-    const isAdmin = role === UserRole.ADMIN;
+    // Створюємо тимчасовий об'єкт юзера для CASL (якщо у тебе JwtUser відрізняється від UserEntity)
+    const userEntity = new User();
+    userEntity.id = currentUser.userId;
+    userEntity.role = currentUser.role as UserRole;
 
-    if (!isOwner && !isAdmin) {
-      throw new ForbiddenException('Немає прав для зміни цього запиту');
+    const ability = this.caslAbilityFactory.createForUser(userEntity);
+
+    // CASL автоматично перевірить умову { authorId: user.id }, яку ми прописали у фабриці
+    // Для об'єкта 'request' він порівняє його властивість authorId з id нашого юзера
+    if (ability.cannot(Action.Update, request)) {
+      throw new ForbiddenException('Ви можете змінювати статус тільки власних запитів');
     }
 
     request.status = status as RequestStatus;

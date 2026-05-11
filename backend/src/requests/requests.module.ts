@@ -4,11 +4,13 @@ import { VolunteerRequest } from './request.entity';
 import { RequestsService } from './requests.service';
 import { RequestsResolver } from './requests.resolver';
 import { OrganizationProfileModule } from 'src/organizations/organization-profile.module';
+import { CaslModule } from 'src/casl/casl.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([VolunteerRequest]),
-    OrganizationProfileModule, 
+    OrganizationProfileModule,
+    CaslModule 
   ],
   providers: [RequestsService, RequestsResolver],
   exports: [RequestsService],
