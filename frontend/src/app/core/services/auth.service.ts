@@ -4,13 +4,14 @@ import { Router } from '@angular/router';
 import { Apollo, gql } from 'apollo-angular';
 import { User } from '../models/user.model';
 import { UserRole } from '../enums/user-role.enum';
+import { MongoAbility, PureAbility } from '@casl/ability';
 
 const LOGIN_MUTATION = gql`
   mutation Login($email: String!, $password: String!) {
     login(email: $email, password: $password) {
       access_token
-      require2FA       # 👈 Додаємо
-      userId           # 👈 Додаємо
+      require2FA       
+      userId           
       message
       user {
         id
@@ -21,6 +22,11 @@ const LOGIN_MUTATION = gql`
         region,
         isEmailVerified
         isTwoFactorEnabled
+      }
+      rules {
+        action
+        subject
+        conditions
       }
     }
   }
@@ -40,6 +46,11 @@ const LOGIN_WITH_2FA_MUTATION = gql`
         isEmailVerified
         isTwoFactorEnabled
       }
+      rules {
+        action
+        subject
+        conditions
+      }
     }
   }
 `;
@@ -55,6 +66,11 @@ const REGISTER_MUTATION = gql`
         firstName
         city
         isEmailVerified
+      }
+      rules {
+        action
+        subject
+        conditions
       }
     }
   }
@@ -101,6 +117,11 @@ const GET_PROFILE = gql`
       isTwoFactorEnabled
       isEmailVerified
     }
+    rules { 
+      action
+      subject
+      conditions
+    }
   }
 `;
 
@@ -110,14 +131,18 @@ const GET_PROFILE = gql`
 export class AuthService {
   private router = inject(Router);
   private apollo = inject(Apollo);
+  private ability = inject(PureAbility) as MongoAbility<any>;
+
   private currentUserSubject = new BehaviorSubject<any>(this.getUserFromStorage());
   public currentUser$ = this.currentUserSubject.asObservable();
 
   private readonly TOKEN_KEY = 'auth_token';
   private readonly USER_KEY = 'user_data';
+  private readonly RULES_KEY = 'user_rules';
 
   constructor(){
-     this.currentUserSubject.next(this.initUserFromStorage());
+     this.currentUserSubject.next(this.getUserFromStorage());
+     this.initAbilities();
   }
 
   public getUserFromStorage(): any {
@@ -125,9 +150,16 @@ export class AuthService {
     return savedUser ? JSON.parse(savedUser) : null;
   }
 
-  private initUserFromStorage(): User | null {
-    const savedUser = localStorage.getItem(this.USER_KEY);
-    return savedUser ? JSON.parse(savedUser) : null;
+  private initAbilities() {
+    const savedRules = localStorage.getItem(this.RULES_KEY);
+    if (savedRules) {
+      try {
+        this.ability.update(JSON.parse(savedRules));
+      } catch (e) {
+        console.error('Помилка парсингу правил CASL', e);
+        this.ability.update([]);
+      }
+    }
   }
 
   verifyEmail(token: string): Observable<boolean> {

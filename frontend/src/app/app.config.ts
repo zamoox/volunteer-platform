@@ -9,10 +9,10 @@ import { routes } from './app.routes';
 import { provideRouter } from '@angular/router';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
+import { createMongoAbility, PureAbility } from '@casl/ability';
 
 export const appConfig: ApplicationConfig = {
 providers: [
-    provideHttpClient(),
     provideApollo(() => {
       const httpLink = inject(HttpLink);
       return {
@@ -20,10 +20,13 @@ providers: [
         cache: new InMemoryCache(),
       };
     }),
+    {
+      provide: PureAbility,
+      useFactory: () => createMongoAbility()
+    },
     provideRouter(routes),
     provideHttpClient(
       withInterceptors([authInterceptor, loadingInterceptor])
     )
   ],
-  
 };

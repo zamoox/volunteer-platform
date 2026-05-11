@@ -1,8 +1,10 @@
-import { Component, EventEmitter, inject, Output } from '@angular/core';
-import { UiEventsService } from '../../../core/services/ui-events.service';
+import { Component, computed, EventEmitter, inject, Output } from '@angular/core';
+import { UiEventsService } from '@core/services/ui-events.service';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
+import { AuthService } from '@core/services/auth.service';
 import { CommonModule } from '@angular/common';
+import { AbilityServiceSignal } from '@casl/angular';
+ 
 
 @Component({
   selector: 'app-header',
@@ -12,10 +14,13 @@ import { CommonModule } from '@angular/common';
 })
 export class HeaderComponent {
   private router = inject(Router);
-  public authService = inject(AuthService); // Публічний для доступу з HTML
   private uiEventsService = inject(UiEventsService);
-  // Подія для відкриття форми на мапі
+  private casl = inject(AbilityServiceSignal);
+  public authService = inject(AuthService); // Публічний для доступу з HTML
+  
   @Output() createRequest = new EventEmitter<void>();
+
+  canCreateRequest = computed(() => this.casl.can('create', 'VolunteerRequest'));
 
   constructor(){}
 

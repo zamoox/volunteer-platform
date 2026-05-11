@@ -35,14 +35,18 @@
       </ng-container>
 
       <ng-template #userMenu>
-        <div class="flex items-center gap-6 pl-4 border-l border-slate-100" *ngIf="authService.currentUser$ | async as user">
+
+      @if(authService.currentUser$ | async; as user) {
+        <div class="flex items-center gap-6 pl-4 border-l border-slate-100">
           
-          <button *ngIf="user.role.toLowerCase() === 'organization'"
+        @if (canCreateRequest())  {
+          <button
             type="button"
             class="px-6 py-3 text-[11px] font-black uppercase tracking-widest bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all active:scale-95"
             (click)="onCreateRequest()">
             Створити запит
           </button>
+        }
 
           <a routerLink="/profile" class="flex items-center gap-3 group cursor-pointer">
             <div class="text-right hidden sm:block">
@@ -72,6 +76,7 @@
             </svg>
           </button>
         </div>
+      }
       </ng-template>
 
     </div>

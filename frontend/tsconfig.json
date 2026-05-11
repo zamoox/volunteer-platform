@@ -19,7 +19,8 @@
       "@core/*": ["app/core/*"],
       "@features/*": ["app/features/*"],
       "@shared/*": ["app/shared/*"],
-    } },
+    } 
+  },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,

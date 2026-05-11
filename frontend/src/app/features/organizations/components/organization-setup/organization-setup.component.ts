@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { OrganizationService } from '../../services/organization.service';
-import { ToastService } from '../../../../core/services/toast.service';
+import { ToastService } from '@core/services/toast.service';
 
 @Component({
   selector: 'app-organization-setup',
