@@ -4,12 +4,11 @@ import { VolunteerRequest } from './request.entity';
 import { RequestsService } from './requests.service';
 import { CreateVolunteerRequestInput } from './dto/create-request.input';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../enums/user-role.enum';
 import { JwtUser } from '../common/interfaces/jwt-user.interface';
 import { PoliciesGuard } from 'src/casl/guards/policies.guards';
+import { UpdateVolunteerRequestInput } from './dto/update-request.input';
 
 @Resolver(() => VolunteerRequest)
 export class RequestsResolver {
@@ -25,7 +24,6 @@ export class RequestsResolver {
   // Тільки ORGANIZATION може створити запит
   @Mutation(() => VolunteerRequest)
   @UseGuards(JwtAuthGuard, PoliciesGuard)
-  @Roles(UserRole.ORGANIZATION)
   async createRequest(
     @CurrentUser() user: JwtUser,
     @Args('input') input: CreateVolunteerRequestInput,
@@ -33,10 +31,18 @@ export class RequestsResolver {
     return this.requestsService.create(user.userId, input);
   }
 
+  @Mutation(() => VolunteerRequest)
+  @UseGuards(JwtAuthGuard, PoliciesGuard)
+  async updateRequest(
+    @CurrentUser() user: JwtUser,
+    @Args('input') input: UpdateVolunteerRequestInput,
+  ): Promise<VolunteerRequest> {
+    return this.requestsService.update(input.id, input, user);
+  }
+
   // Тільки VOLUNTEER може прийняти запит
   @Mutation(() => VolunteerRequest)
   @UseGuards(JwtAuthGuard, PoliciesGuard)
-  @Roles(UserRole.VOLUNTEER)
   async acceptRequest(
     @CurrentUser() user: JwtUser,
     @Args('requestId') requestId: string,
@@ -47,12 +53,26 @@ export class RequestsResolver {
   // Організація або адмін змінюють статус
   @Mutation(() => VolunteerRequest)
   @UseGuards(JwtAuthGuard, PoliciesGuard)
-  @Roles(UserRole.ORGANIZATION, UserRole.ADMIN)
   async updateRequestStatus(
     @CurrentUser() user: JwtUser,
     @Args('id') id: string,
     @Args('status') status: string,
   ): Promise<VolunteerRequest> {
     return this.requestsService.updateStatus(id, status, user);
+  }
+
+  @Query(() => [VolunteerRequest])
+  @UseGuards(JwtAuthGuard)
+  async getMyRequests(@CurrentUser() user: JwtUser) {
+    return this.requestsService.getMyRequests(user.userId);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(JwtAuthGuard, PoliciesGuard)
+  async deleteRequest(
+    @CurrentUser() user: JwtUser,
+    @Args('id') id: string,
+  ) {
+    return this.requestsService.deleteRequest(id, user);
   }
 }

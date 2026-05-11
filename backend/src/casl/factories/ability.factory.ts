@@ -3,15 +3,13 @@ import {
   AbilityBuilder, 
   createMongoAbility, 
   ExtractSubjectType, 
-  MongoAbility 
 } from '@casl/ability';
 import { Injectable } from '@nestjs/common';
 import { User } from '../../users/user.entity';
 import { Action } from '../enums/actions.enum';
 import { Subjects } from '../types/subjects.type';
 import { VolunteerRequest } from 'src/requests/request.entity';
-
-export type AppAbility = MongoAbility<[Action, Subjects]>;
+import { AppAbility } from '../types/app-ability.type';
 
 @Injectable()
 export class AbilityFactory {
@@ -21,9 +19,16 @@ export class AbilityFactory {
     if (user.role === 'admin') {
       can(Action.Manage, 'all'); 
     } else if (user.role === 'organization') {
-      can(Action.Create, VolunteerRequest);
-      // Організація може оновлювати лише власні запити
-      can(Action.Update, VolunteerRequest, { authorId: user.id } as any);
+        can(Action.Create, VolunteerRequest);
+        // Організація може оновлювати лише власні запити
+        
+        can(Action.Update, VolunteerRequest, { 
+          'organization.userId': user.id 
+        } as any);
+
+        can(Action.Delete, VolunteerRequest, { 
+          'organization.userId': user.id 
+        } as any);
     } else {
       // Волонтер або гість
       can(Action.Read, 'all');

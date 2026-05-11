@@ -5,8 +5,6 @@ import { OrganizationProfile } from './organization-profile.entity';
 import { OrganizationProfileService } from './organization-profile.service';
 import { CreateOrganizationInput } from './dto/create-organization-profile.input';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../enums/user-role.enum';
 import { JwtUser } from '../common/interfaces/jwt-user.interface';
@@ -16,8 +14,7 @@ export class OrganizationProfileResolver {
   constructor(private readonly service: OrganizationProfileService) {}
 
   @Mutation(() => OrganizationProfile)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ORGANIZATION)
+  @UseGuards(JwtAuthGuard)
   async createOrganizationProfile(
     @CurrentUser() user: JwtUser,
     @Args('input') input: CreateOrganizationInput,
@@ -26,8 +23,7 @@ export class OrganizationProfileResolver {
   }
 
   @Query(() => OrganizationProfile, { nullable: true })
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ORGANIZATION)
+  @UseGuards(JwtAuthGuard)
   async myOrganizationProfile(
     @CurrentUser() user: JwtUser,
   ): Promise<OrganizationProfile | null> {

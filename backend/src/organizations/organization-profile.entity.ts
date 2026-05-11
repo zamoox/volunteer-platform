@@ -39,6 +39,7 @@ export class OrganizationProfile {
   @CreateDateColumn()
   createdAt!: Date;
 
+  @Field()
   @OneToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user!: User;

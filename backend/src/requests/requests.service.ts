@@ -13,6 +13,7 @@ import { JwtUser } from 'src/common/interfaces/jwt-user.interface';
 import { User } from 'src/users/user.entity';
 import { AbilityFactory } from 'src/casl/factories/ability.factory';
 import { Action } from 'src/casl/enums/actions.enum';
+import { UpdateVolunteerRequestInput } from './dto/update-request.input';
 
 @Injectable()
 export class RequestsService {
@@ -37,6 +38,30 @@ export class RequestsService {
       status: RequestStatus.OPEN,
     });
 
+    return this.requestRepository.save(request);
+  }
+
+  async update(id: string, input: UpdateVolunteerRequestInput, currentUser: JwtUser): Promise<VolunteerRequest> {
+    const request = await this.requestRepository.findOne({ 
+      where: { id },
+      relations: ['organization', 'organization.user'] 
+    });
+
+    if (!request) throw new NotFoundException('Запит не знайдено');
+
+    const userEntity = new User();
+    userEntity.id = currentUser.userId;
+    userEntity.role = currentUser.role as UserRole;
+
+    const ability = this.caslAbilityFactory.createForUser(userEntity);
+
+    // Перевірка права на редагування
+    if (ability.cannot(Action.Update, request)) {
+      throw new ForbiddenException('Ви можете редагувати тільки власні запити');
+    }
+
+    // Оновлюємо тільки дозволені поля
+    Object.assign(request, input);
     return this.requestRepository.save(request);
   }
 
@@ -90,5 +115,37 @@ export class RequestsService {
 
     request.status = status as RequestStatus;
     return this.requestRepository.save(request);
+  }
+
+  async getMyRequests(userId: string): Promise<VolunteerRequest[]> {
+    // Знаходимо запити, де власником є організація поточного юзера
+    return this.requestRepository.find({
+      where: { organization: { user: { id: userId } } },
+      relations: ['organization'],
+      order: { createdAt: 'DESC' }
+    });
+  }
+
+  async deleteRequest(id: string, currentUser: JwtUser): Promise<boolean> {
+    const request = await this.requestRepository.findOne({ 
+      where: { id },
+      relations: ['organization'] 
+    });
+
+    if (!request) throw new NotFoundException('Запит не знайдено');
+
+    const userEntity = new User();
+    userEntity.id = currentUser.userId;
+    userEntity.role = currentUser.role as UserRole;
+
+    const ability = this.caslAbilityFactory.createForUser(userEntity);
+
+    // ПЕРЕВІРКА CASL
+    if (ability.cannot(Action.Delete, request)) {
+      throw new ForbiddenException('Ви не можете видалити чужий запит');
+    }
+
+    await this.requestRepository.remove(request);
+    return true;
   }
 }
