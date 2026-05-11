@@ -9,7 +9,7 @@ import { routes } from './app.routes';
 import { provideRouter } from '@angular/router';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
-import { createMongoAbility, PureAbility } from '@casl/ability';
+import { abilityProvider } from '@core/casl/providers/ability.provider';
 
 export const appConfig: ApplicationConfig = {
 providers: [
@@ -20,13 +20,10 @@ providers: [
         cache: new InMemoryCache(),
       };
     }),
-    {
-      provide: PureAbility,
-      useFactory: () => createMongoAbility()
-    },
     provideRouter(routes),
     provideHttpClient(
       withInterceptors([authInterceptor, loadingInterceptor])
-    )
+    ),
+    abilityProvider
   ],
 };

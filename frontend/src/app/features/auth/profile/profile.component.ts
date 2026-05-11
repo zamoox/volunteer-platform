@@ -6,6 +6,8 @@ import { finalize, Observable, take } from 'rxjs';
 import { AuthService } from '@core/services';
 import { User } from '@core/models/user.model';
 import { VolunteerRequestService, VolunteerRequest } from '@features/requests';
+import { AbilityServiceSignal } from '@casl/angular';
+import { subject } from '@casl/ability';
 
 @Component({
   selector: 'app-profile',
@@ -18,11 +20,22 @@ export class ProfileComponent implements OnInit, OnDestroy {
   public authService = inject(AuthService);
   private cdr = inject(ChangeDetectorRef);
   private fb = inject(FormBuilder);
+  private ability = inject(AbilityServiceSignal);
 
   private user: User | null = null;
 
   public requestService = inject(VolunteerRequestService);
   requests$!: Observable<VolunteerRequest[]>;
+
+  canDelete(request: VolunteerRequest): boolean {
+    if (!request) return false;
+    return this.ability.can('delete', subject('VolunteerRequest', { ...request }));
+  }
+
+  canUpdate(request: VolunteerRequest): boolean {
+    if (!request) return false;
+    return this.ability.can('update', subject('VolunteerRequest', { ...request }));
+  }
   
   qrCodeUrl: string | null = null;
   twoFaCode: string = '';
@@ -47,7 +60,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
       this.user = userData;
 
       if (userData?.role === 'organization') {
-        this.requests$ = this.requestService.getRequests();
+        this.requests$ = this.requestService.getMyRequests();
       }
 
       this.cdr.detectChanges(); // Оновлюємо UI, коли прийшли дані
@@ -55,6 +68,32 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
     this.checkExistingCooldown();
     this.initPasswordForm();
+  }
+
+  onEditRequest(req: VolunteerRequest) {
+    console.log('Редагувати:', req.id);
+    // Тут можна відкрити модалку або редірект на форму
+  }
+
+  onDeleteRequest(id: string) {
+    if (confirm('Ви впевнені, що хочете видалити цей запит?')) {
+      this.requestService.deleteRequest(id).subscribe({
+        next: () => {
+          // Оновлюємо список після видалення
+          this.requests$ = this.requestService.getMyRequests();
+          this.cdr.detectChanges();
+        }
+      });
+    }
+  }
+
+  onChangeStatus(id: string, newStatus: string) {
+    this.requestService.updateStatus(id, newStatus).subscribe({
+      next: () => {
+        this.requests$ = this.requestService.getMyRequests();
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   initPasswordForm() {

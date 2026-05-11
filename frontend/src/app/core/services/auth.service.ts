@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { Apollo, gql } from 'apollo-angular';
 import { User } from '../models/user.model';
 import { UserRole } from '../enums/user-role.enum';
-import { MongoAbility, PureAbility } from '@casl/ability';
+import { CaslService } from '../casl/services/casl.service';
 
 const LOGIN_MUTATION = gql`
   mutation Login($email: String!, $password: String!) {
@@ -131,7 +131,7 @@ const GET_PROFILE = gql`
 export class AuthService {
   private router = inject(Router);
   private apollo = inject(Apollo);
-  private ability = inject(PureAbility) as MongoAbility<any>;
+  private caslService = inject(CaslService);
 
   private currentUserSubject = new BehaviorSubject<any>(this.getUserFromStorage());
   public currentUser$ = this.currentUserSubject.asObservable();
@@ -154,10 +154,10 @@ export class AuthService {
     const savedRules = localStorage.getItem(this.RULES_KEY);
     if (savedRules) {
       try {
-        this.ability.update(JSON.parse(savedRules));
+        this.caslService.updateAbility(JSON.parse(savedRules));
       } catch (e) {
         console.error('Помилка парсингу правил CASL', e);
-        this.ability.update([]);
+        this.caslService.clear();
       }
     }
   }
@@ -192,7 +192,7 @@ export class AuthService {
           if (data.require2FA) return; 
           // Якщо це звичайний логін — зберігаємо токен і пускаємо в систему
           if (data.access_token && data.user) {
-                this.handleAuthentication(data.access_token, data.user);
+                this.handleAuthentication(data.access_token, data.user, data.rules);
           }
         })
       );
@@ -207,7 +207,7 @@ export class AuthService {
       tap(data => {
         // Якщо бекенд повернув токен, зберігаємо його і авторизуємо юзера
         if (data.access_token && data.user) {
-          this.handleAuthentication(data.access_token, data.user);
+          this.handleAuthentication(data.access_token, data.user, data.rules);
         }
       })
     );
@@ -238,9 +238,7 @@ export class AuthService {
         // Тільки зберігаємо — без navigate!
         console.log('=== TAP DATA ===', data);
         if (data.access_token && data.user) {
-          localStorage.setItem(this.TOKEN_KEY, data.access_token);
-          localStorage.setItem(this.USER_KEY, JSON.stringify(data.user));
-          this.currentUserSubject.next(data.user);
+          this.handleAuthentication(data.access_token, data.user, data.rules);
         }
       })
     );
@@ -249,6 +247,8 @@ export class AuthService {
   logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
+    localStorage.removeItem(this.RULES_KEY);
+    this.caslService.clear();
     this.currentUserSubject.next(null);
     this.router.navigate(['/login']);
   }
@@ -317,12 +317,17 @@ export class AuthService {
 
   getCurrentUser() {
     // Твій GraphQL запит для отримання профілю
-    return this.apollo.query<{ me: User }>({ query: GET_PROFILE, fetchPolicy: 'network-only' }).pipe(
+    return this.apollo.query<{ me: User; rules: any[] }>({ query: GET_PROFILE, fetchPolicy: 'network-only' }).pipe(
       map(result => {
         if (!result.data || !result.data.me) {
           throw new Error('Профіль не знайдено');
         }
-        return result.data.me
+        return result.data;
+      }),
+      tap(({ me, rules }) => {
+        if (this.getToken()) {
+          this.handleAuthentication(this.getToken() || '', me, rules);
+        }
       }),
       catchError(err => {
         console.error('Помилка завантаження профіля:', err);
@@ -332,8 +337,10 @@ export class AuthService {
   }
 
 
-  handleAuthentication(token: string, user: User | null) {
+  handleAuthentication(token: string, user: User | null, rules: any[] = []) {
     localStorage.setItem(this.TOKEN_KEY, token);
+    localStorage.setItem(this.RULES_KEY, JSON.stringify(rules ?? []));
+    this.caslService.updateAbility(rules ?? []);
     
     if (user) {
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
@@ -341,7 +348,7 @@ export class AuthService {
     } else {
       // ЯКЩО ЮЗЕРА НЕМАЄ (як після Google), ЗАВАНТАЖУЄМО ЙОГО
       this.getCurrentUser().subscribe({
-        next: (loadedUser) => {
+        next: ({ me: loadedUser }) => {
           localStorage.setItem(this.USER_KEY, JSON.stringify(loadedUser));
           this.currentUserSubject.next(loadedUser);
         },
