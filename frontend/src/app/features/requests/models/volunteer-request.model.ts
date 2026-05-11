@@ -1,4 +1,6 @@
 export interface VolunteerRequest {
+  __typename?: 'VolunteerRequest';
+  
   id: string;
   title: string;
   description: string;
@@ -10,17 +12,22 @@ export interface VolunteerRequest {
     lat: number;
     lng: number;
     address: string;
+    __typename?: 'Location';
   };
 
   organization?: {
     id: string;
     name: string;
     description?: string;
+    userId: string;
+    __typename?: 'OrganizationProfile';
   };
 
   volunteer?: {
     id: string;
     firstName?: string;
     lastName?: string;
+    __typename?: 'User';
   };
 }
+

@@ -45,7 +45,7 @@ export class MapComponent implements OnInit, AfterViewInit {
   selectedRequest: any = null;
 
   ngOnInit() {
-    this.requests$ = this.requestService.getRequests();
+    this.requests$ = this.requestService.getAllRequests();
 
     this.route.queryParamMap.subscribe((params) => {
       if (params.get('action') === 'create') {

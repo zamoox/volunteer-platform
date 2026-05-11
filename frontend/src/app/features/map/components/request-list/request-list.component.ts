@@ -31,7 +31,7 @@ export class RequestListComponent {
   ]).pipe(
     // Завантажуємо дані з сервера при зміні категорії
     switchMap(([category, term, sort]) => 
-      this.requestService.getRequests(category).pipe(
+      this.requestService.getAllRequests(category).pipe(
         map(requests => ({ requests, term, sort }))
       )
     ),

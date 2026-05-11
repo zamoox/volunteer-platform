@@ -1,11 +1,6 @@
 import { createMongoAbility, mongoQueryMatcher, PureAbility } from '@casl/ability';
 import { AppAbility } from '../types/app-ability.type';
 
-// export const abilityProvider = {
-//   provide: AppAbility,
-//   useValue: createMongoAbility(),
-// };
-
 export const abilityProvider = {
   provide: PureAbility,
   useFactory: (): AppAbility => {

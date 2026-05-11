@@ -16,6 +16,7 @@ export const GET_ALL_REQUESTS = gql`
         id
         name
         description
+        userId
       }
       volunteer {
         id
@@ -26,6 +27,26 @@ export const GET_ALL_REQUESTS = gql`
         lat
         lng
         address
+      }
+    }
+  }
+`;
+
+const GET_MY_REQUESTS = gql`
+  query GetMyRequests {
+    getMyRequests {
+      id
+      title
+      description
+      category
+      status
+      createdAt
+      location {
+        address
+      }
+      organization {
+        id
+        userId  
       }
     }
   }
@@ -62,12 +83,42 @@ const UPDATE_REQUEST_STATUS = gql`
   }
 `;
 
+const UPDATE_REQUEST = gql`
+  mutation UpdateRequest($input: UpdateVolunteerRequestInput!) {
+    updateRequest(input: $input) {
+      id
+      title
+      description
+      category
+    }
+  }
+`;
+
+const DELETE_REQUEST = gql`
+  mutation DeleteRequest($id: String!) {
+    deleteRequest(id: $id)
+  }
+`;
+
+const ACCEPT_REQUEST = gql`
+  mutation AcceptRequest($requestId: String!) {
+    acceptRequest(requestId: $requestId) {
+      id
+      status
+      volunteer {
+        id
+        firstName
+      }
+    }
+  }
+`;
+
 @Injectable({ providedIn: 'root' })
 export class VolunteerRequestService {
 
   constructor(private apollo: Apollo) {}
 
-  getRequests(category: string | null = null) {
+  getAllRequests(category: string | null = null) {
     const vars = { category: category ?? null };
 
     return this.apollo.watchQuery<any>({
@@ -80,41 +131,82 @@ export class VolunteerRequestService {
   }
 
   createRequest(title: string, description: string, lat: number, lng: number, address: string, category: string) {
-    return this.apollo.mutate({
-    mutation: CREATE_REQUEST,
-    variables: {
-      input: { title, description, category, location: { lat, lng, address } }
-    },
-    // Вручну оновлюємо кеш для миттєвого відображення
-    update: (cache, { data }: any) => {
-      const newRequest = data?.createRequest;
-      if (!newRequest) return;
+      return this.apollo.mutate({
+      mutation: CREATE_REQUEST,
+      variables: {
+        input: { title, description, category, location: { lat, lng, address } }
+      },
+      // Вручну оновлюємо кеш для миттєвого відображення
+      update: (cache, { data }: any) => {
+        const newRequest = data?.createRequest;
+        if (!newRequest) return;
 
-      // Читаємо поточний стан кешу для запиту GET_ALL_REQUESTS
-      const existingRequests: any = cache.readQuery({
-        query: GET_ALL_REQUESTS,
-        variables: { category: null } // Переконайся, що змінні збігаються з тими, що в watchQuery
-      });
-
-      if (existingRequests) {
-        // Записуємо оновлений список назад у кеш
-        cache.writeQuery({
+        // Читаємо поточний стан кешу для запиту GET_ALL_REQUESTS
+        const existingRequests: any = cache.readQuery({
           query: GET_ALL_REQUESTS,
-          variables: { category: null },
-          data: {
-            getAllRequests: [...existingRequests.getAllRequests, newRequest]
-          }
+          variables: { category: null } // Переконайся, що змінні збігаються з тими, що в watchQuery
         });
-      }
-    }
-  });
-}
 
+        if (existingRequests) {
+          // Записуємо оновлений список назад у кеш
+          cache.writeQuery({
+            query: GET_ALL_REQUESTS,
+            variables: { category: null },
+            data: {
+              getAllRequests: [...existingRequests.getAllRequests, newRequest]
+            }
+          });
+        }
+      }
+    });
+  }
+
+  getMyRequests() {
+    return this.apollo.watchQuery<any>({
+      query: GET_MY_REQUESTS,
+      fetchPolicy: 'network-only'
+    }).valueChanges.pipe(
+      map(result => result.data?.getMyRequests ?? [])
+    );
+  }
+
+  // 2. Повне редагування запиту
+  updateRequest(id: string, updates: Partial<any>) {
+    return this.apollo.mutate({
+      mutation: UPDATE_REQUEST,
+      variables: {
+        input: { id, ...updates }
+      },
+      // Оновлюємо кеш, щоб зміни миттєво з'явилися в списку
+      refetchQueries: [{ query: GET_MY_REQUESTS }, { query: GET_ALL_REQUESTS }]
+    });
+  }
+
+  // 3. Видалення запиту
+  deleteRequest(id: string) {
+    return this.apollo.mutate({
+      mutation: DELETE_REQUEST,
+      variables: { id },
+      // Після видалення просимо Apollo перепитати список "Мої запити"
+      refetchQueries: [{ query: GET_MY_REQUESTS }, { query: GET_ALL_REQUESTS }]
+    });
+  }
+
+  // 4. Відгук волонтера (Accept)
+  acceptRequest(requestId: string) {
+    return this.apollo.mutate({
+      mutation: ACCEPT_REQUEST,
+      variables: { requestId },
+      refetchQueries: [{ query: GET_ALL_REQUESTS }]
+    });
+  }
+
+  // Твій існуючий метод для зміни статусу (для Організації/Адміна)
   updateStatus(id: string, status: string) {
     return this.apollo.mutate({
       mutation: UPDATE_REQUEST_STATUS,
       variables: { id, status },
-      refetchQueries: ['GetAllRequests']
+      refetchQueries: [{ query: GET_MY_REQUESTS }, { query: GET_ALL_REQUESTS }]
     });
   }
 
