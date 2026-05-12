@@ -1,29 +1,57 @@
 import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AbstractControl, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
 import { finalize, Observable, take } from 'rxjs';
+import { Apollo } from 'apollo-angular';
 
 import { AuthService } from '@core/services';
+import { ToastService } from '@core/services/toast.service';
 import { User } from '@core/models/user.model';
-import { VolunteerRequestService, VolunteerRequest, RequestFormComponent } from '@features/requests';
+import {
+  VolunteerRequestService,
+  VolunteerRequest,
+  RequestFormComponent,
+  CompleteReviewModalComponent,
+} from '@features/requests';
 import { AbilityServiceSignal } from '@casl/angular';
 import { subject } from '@casl/ability';
 import { ModalComponent } from '@shared/components/modal/modal.component';
+import { MY_VOLUNTEER_PROFILE } from '@features/volunteers/graphql/volunteer-profile.queries';
+import type { MyVolunteerProfile } from '@features/volunteers/models/my-volunteer-profile.model';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RequestFormComponent, ModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    RouterModule,
+    RequestFormComponent,
+    ModalComponent,
+    CompleteReviewModalComponent,
+  ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
 export class ProfileComponent implements OnInit, OnDestroy {
   public authService = inject(AuthService);
+  private toastService = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
   private fb = inject(FormBuilder);
   private ability = inject(AbilityServiceSignal);
+  private apollo = inject(Apollo);
+  private router = inject(Router);
 
   private user: User | null = null;
+
+  /** Дані волонтерського кабінету (activeTasks + reviews) з myVolunteerProfile. */
+  volunteerDashboard: MyVolunteerProfile | null = null;
+  volunteerDashboardLoading = false;
+  volunteerDashboardError = false;
+
+  readonly starIndexes = [1, 2, 3, 4, 5] as const;
 
   public isEditModalOpen = false;
   public selectedRequest: VolunteerRequest | null = null;
@@ -43,6 +71,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   public isDeleteModalOpen = false;
   private requestIdToDelete: string | null = null;
+
+  public isCompleteReviewOpen = false;
+  public completeReviewRequestId: string | null = null;
 
 
   activeTab: 'info' | 'settings' | 'reviews' | 'requests' = 'info';
@@ -90,6 +121,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.requests$ = this.requestService.getMyRequests();
       }
 
+      if (userData?.role === 'volunteer') {
+        this.loadVolunteerDashboard();
+      } else {
+        this.volunteerDashboard = null;
+        this.volunteerDashboardLoading = false;
+        this.volunteerDashboardError = false;
+      }
+
       this.cdr.detectChanges(); // Оновлюємо UI, коли прийшли дані
     });
 
@@ -125,7 +164,54 @@ export class ProfileComponent implements OnInit, OnDestroy {
       next: () => {
         this.requests$ = this.requestService.getMyRequests();
         this.cdr.detectChanges();
-      }
+      },
+    });
+  }
+
+  openCompleteReview(req: VolunteerRequest): void {
+    this.completeReviewRequestId = req.id;
+    this.isCompleteReviewOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  onCompleteReviewDismiss(): void {
+    this.isCompleteReviewOpen = false;
+    this.completeReviewRequestId = null;
+    this.cdr.detectChanges();
+  }
+
+  onCompleteReviewSuccess(_req: VolunteerRequest): void {
+    this.requests$ = this.requestService.getMyRequests();
+    this.isCompleteReviewOpen = false;
+    this.completeReviewRequestId = null;
+    if (this.user?.role === 'volunteer') {
+      this.loadVolunteerDashboard();
+    }
+    this.cdr.detectChanges();
+  }
+
+  volunteerRequestVolunteerName(req: VolunteerRequest): string {
+    const v = req.volunteer;
+    if (!v) return '';
+    const fn = v.firstName || v.user?.firstName || '';
+    const ln = v.lastName || v.user?.lastName || '';
+    return `${fn} ${ln}`.trim() || 'Волонтер';
+  }
+
+  volunteerRequestVolunteerInitial(req: VolunteerRequest): string {
+    const n = this.volunteerRequestVolunteerName(req);
+    return n ? n.charAt(0).toUpperCase() : 'V';
+  }
+
+  onCancelVolunteerHelp(req: VolunteerRequest): void {
+    if (req.status !== 'in_progress') return;
+    this.requestService.updateStatus(req.id, 'cancelled').subscribe({
+      next: () => {
+        this.toastService.show('Оновлено', 'Допомогу скасовано', 'success');
+        this.requests$ = this.requestService.getMyRequests();
+        this.cdr.detectChanges();
+      },
+      error: () => this.toastService.show('Помилка', 'Не вдалося скасувати', 'error'),
     });
   }
 
@@ -246,6 +332,59 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   setTab(tab: 'info' | 'settings' | 'reviews' | 'requests') {
     this.activeTab = tab as 'info' | 'settings' | 'reviews' | 'requests';
+    if (tab === 'requests' && this.user?.role === 'volunteer') {
+      this.loadVolunteerDashboard();
+    }
+    if (tab === 'reviews' && this.user?.role === 'volunteer') {
+      this.loadVolunteerDashboard();
+    }
+  }
+
+  loadVolunteerDashboard(): void {
+    this.volunteerDashboardLoading = true;
+    this.volunteerDashboardError = false;
+    this.apollo
+      .query<{ myVolunteerProfile: MyVolunteerProfile | null }>({
+        query: MY_VOLUNTEER_PROFILE,
+        fetchPolicy: 'network-only',
+      })
+      .pipe(take(1))
+      .subscribe({
+        next: (r) => {
+          this.volunteerDashboard = r.data?.myVolunteerProfile ?? null;
+          this.volunteerDashboardLoading = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.volunteerDashboardLoading = false;
+          this.volunteerDashboardError = true;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  volunteerActiveTasks(): VolunteerRequest[] {
+    return this.volunteerDashboard?.activeTasks ?? [];
+  }
+
+  volunteerReviews() {
+    return this.volunteerDashboard?.reviews ?? [];
+  }
+
+  organizationPhoneForVolunteerTask(req: VolunteerRequest): string | null {
+    const org = req.organization;
+    if (!org) return null;
+    const p = org.phone || org.user?.phone;
+    return p && String(p).trim() ? String(p).trim() : null;
+  }
+
+  openRequestOnMap(req: VolunteerRequest): void {
+    void this.router.navigate(['/map'], { queryParams: { requestId: req.id } });
+  }
+
+  secondTabLabel(role: string | undefined): string {
+    if (role === 'organization') return 'Мої запити';
+    return 'Активні задачі';
   }
 
   onEnable2FA(userId: string) {
