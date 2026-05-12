@@ -1,39 +1,178 @@
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-  <div class="lg:col-span-2 grid grid-cols-2 gap-4">
-    <div class="p-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-[2.5rem] text-white">
-      <p class="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">Завершено місій</p>
-      <p class="text-4xl font-black italic">14</p>
+<div class="mx-auto max-w-4xl space-y-8">
+  @if (loading()) {
+    <div class="rounded-3xl border border-slate-100 bg-white p-16 text-center text-sm font-bold text-slate-400 transition-all">
+      Завантаження профілю…
     </div>
-    <div class="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
-      <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Рейтинг довіри</p>
-      <p class="text-4xl font-black text-slate-900">4.9<span class="text-lg text-amber-400">★</span></p>
+  } @else if (error() || !profile()) {
+    <div class="rounded-3xl border border-amber-100 bg-amber-50 p-10 text-center transition-all">
+      <p class="text-sm font-black uppercase tracking-widest text-amber-800">Профіль волонтера не знайдено</p>
+      <p class="mt-2 text-xs text-amber-700/80">Після першої відповіді на запит профіль з’явиться автоматично.</p>
     </div>
-
-    <div class="col-span-2 mt-4">
-      <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6">Запити, де я допомагаю</h3>
-      <div class="space-y-3">
-        <div *ngFor="let item of activeHelps" class="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100">
-          <div class="flex items-center gap-4">
-            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">📦</div>
-            <div>
-              <!-- <p class="text-sm font-bold text-slate-900">{{item.title}}</p>
-              <p class="text-[10px] font-medium text-slate-500">{{item.orgName}}</p> -->
+  } @else {
+    <header class="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm transition-all">
+      <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div class="flex items-center gap-5">
+          <div
+            class="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-blue-600 text-2xl font-black text-white shadow-lg transition-all"
+          >
+            {{ displayName().charAt(0) || 'V' }}
+          </div>
+          <div class="min-w-0">
+            <h1 class="text-2xl font-black tracking-tight text-slate-900">{{ displayName() }}</h1>
+            <p class="mt-1 text-[10px] font-black uppercase tracking-widest text-blue-600">Волонтер · активний</p>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <div class="flex gap-0.5 text-lg leading-none text-amber-400" aria-hidden="true">
+                @for (i of starIndexes; track i) {
+                  <span [class.opacity-25]="i > filledStars()">★</span>
+                }
+              </div>
+              <span class="text-xs font-black text-slate-600">
+                {{ profile()?.averageRating | number: '1.1-1' }}
+              </span>
+              <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                · {{ profile()?.completedRequestsCount }} виконаних запитів
+              </span>
             </div>
           </div>
-          <button class="text-[10px] font-black uppercase text-blue-600 hover:underline">Чат →</button>
         </div>
       </div>
-    </div>
-  </div>
+    </header>
 
-  <div class="space-y-4">
-    <div class="p-6 bg-slate-900 rounded-[2rem] text-white">
-      <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">Мої компетенції</h4>
-      <div class="flex flex-wrap gap-2">
-        <span class="px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold">Логістика</span>
-        <span class="px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold">Медицина</span>
-        <span class="px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold">Водій (B, C)</span>
-      </div>
-    </div>
-  </div>
+    <nav class="flex flex-wrap gap-2 rounded-3xl border border-slate-100 bg-slate-50/80 p-2 transition-all">
+      <button
+        type="button"
+        (click)="setTab('overview')"
+        class="min-w-0 flex-1 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest transition-all"
+        [class.bg-slate-900]="activeTab() === 'overview'"
+        [class.text-white]="activeTab() === 'overview'"
+        [class.text-slate-500]="activeTab() !== 'overview'"
+        [class.hover:text-slate-800]="activeTab() !== 'overview'"
+      >
+        Огляд
+      </button>
+      <button
+        type="button"
+        (click)="setTab('tasks')"
+        class="min-w-0 flex-1 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest transition-all"
+        [class.bg-slate-900]="activeTab() === 'tasks'"
+        [class.text-white]="activeTab() === 'tasks'"
+        [class.text-slate-500]="activeTab() !== 'tasks'"
+        [class.hover:text-slate-800]="activeTab() !== 'tasks'"
+      >
+        Активні задачі
+      </button>
+      <button
+        type="button"
+        (click)="setTab('reviews')"
+        class="min-w-0 flex-1 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest transition-all"
+        [class.bg-slate-900]="activeTab() === 'reviews'"
+        [class.text-white]="activeTab() === 'reviews'"
+        [class.text-slate-500]="activeTab() !== 'reviews'"
+        [class.hover:text-slate-800]="activeTab() !== 'reviews'"
+      >
+        Відгуки
+      </button>
+    </nav>
+
+    @if (activeTab() === 'overview') {
+      <section class="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm transition-all">
+        <h2 class="text-xs font-black uppercase tracking-[0.25em] text-slate-400">Коротко</h2>
+        <p class="mt-4 text-sm leading-relaxed text-slate-600">
+          Тут зібрано вашу репутацію на платформі: середній бал від організацій та кількість успішно завершених запитів. Запити, які ви зараз виконуєте, — у вкладці «Активні задачі»; детальні відгуки — у «Відгуки».
+        </p>
+        @if (profile()?.user?.phone) {
+          <p class="mt-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Телефон у профілі</p>
+          <a
+            [href]="'tel:' + profile()?.user?.phone"
+            class="mt-1 inline-block text-sm font-black text-blue-600 transition-all hover:text-blue-500"
+          >
+            {{ profile()?.user?.phone }}
+          </a>
+        }
+      </section>
+    }
+
+    @if (activeTab() === 'tasks') {
+      <section class="space-y-4 transition-all">
+        <h2 class="text-xs font-black uppercase tracking-[0.25em] text-slate-400">Активні задачі</h2>
+        @if (!(profile()?.activeTasks?.length)) {
+          <div
+            class="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center transition-all"
+          >
+            <p class="text-sm font-bold text-slate-500">
+              У вас поки немає активних задач. Знайдіть запит на карті, щоб допомогти!
+            </p>
+            <a
+              routerLink="/map"
+              class="mt-6 inline-flex rounded-3xl bg-slate-900 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-slate-800"
+            >
+              Відкрити карту
+            </a>
+          </div>
+        } @else {
+          <ul class="flex flex-col gap-4 transition-all">
+            @for (req of profile()?.activeTasks ?? []; track req.id) {
+              <li
+                class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-slate-200"
+              >
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                  <div class="min-w-0 flex-1">
+                    <span
+                      class="inline-block rounded-xl border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700"
+                    >
+                      {{ req.status }}
+                    </span>
+                    <p class="mt-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{{ req.category }}</p>
+                    <h3 class="mt-1 text-lg font-black tracking-tight text-slate-900">{{ req.title }}</h3>
+                    <p class="mt-2 line-clamp-2 text-sm text-slate-600">{{ req.description }}</p>
+                    <p class="mt-3 text-[10px] font-bold text-slate-400">
+                      {{ req.organization?.name }} · {{ req.location.address }} · {{ req.createdAt | date: 'dd.MM.yyyy' }}
+                    </p>
+                  </div>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+
+    @if (activeTab() === 'reviews') {
+      <section class="space-y-4 transition-all">
+        <h2 class="text-xs font-black uppercase tracking-[0.25em] text-slate-400">Відгуки організацій</h2>
+        @if (!(profile()?.reviews?.length)) {
+          <div
+            class="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center transition-all"
+          >
+            <p class="text-sm font-bold text-slate-500">
+              Відгуків поки немає. Завершуйте задачі, щоб отримувати оцінки від організацій
+            </p>
+          </div>
+        } @else {
+          <ul class="flex flex-col gap-4 transition-all">
+            @for (rev of profile()?.reviews; track rev.id) {
+              <li
+                class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-slate-200"
+              >
+                <div class="flex gap-0.5 text-lg leading-none text-amber-400" aria-hidden="true">
+                  @for (i of starIndexes; track i) {
+                    <span [class.opacity-25]="i > (rev.rating || 0)">★</span>
+                  }
+                </div>
+                <p class="mt-3 text-sm font-black text-slate-900">
+                  {{ rev.organization?.name || 'Організація' }}
+                </p>
+                @if (rev.comment) {
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ rev.comment }}</p>
+                }
+                <p class="mt-3 text-xs text-slate-400">
+                  {{ rev.createdAt | date: 'dd.MM.yyyy HH:mm' }}
+                </p>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  }
 </div>
