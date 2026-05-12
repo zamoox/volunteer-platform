@@ -32,6 +32,10 @@ export class User {
   @Column({ nullable: true })
   lastName?: string;
 
+  @Field({ nullable: true }) // Робимо видимим для GraphQL
+  @Column({ nullable: true }) // Додаємо в колонку БД
+  phone?: string;
+
   @Field(() => String)
   @Column({
     type: 'enum',

@@ -29,10 +29,13 @@ export class AbilityFactory {
         can(Action.Delete, VolunteerRequest, { 
           'organization.userId': user.id 
         } as any);
-    } else {
-      // Волонтер або гість
-      can(Action.Read, 'all');
-    }
+    } else if (user.role === 'volunteer') {
+        can(Action.Read, 'all');
+        // Дозволяємо волонтеру оновлювати запити, щоб він міг змінити статус на in_progress
+        can(Action.Update, VolunteerRequest, { status: 'open' } as any);
+      } else { 
+        can(Action.Read, 'all');
+      }
 
     return build({
       detectSubjectType: (item) => item.constructor as ExtractSubjectType<Subjects>,
