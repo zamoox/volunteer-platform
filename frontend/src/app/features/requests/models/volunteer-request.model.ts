@@ -1,6 +1,13 @@
+import type { Volunteer } from '@features/volunteers/models/volunteer.model';
+
+export interface RequestReview {
+  id: string;
+  __typename?: 'Review';
+}
+
 export interface VolunteerRequest {
   __typename?: 'VolunteerRequest';
-  
+
   id: string;
   title: string;
   description: string;
@@ -18,16 +25,18 @@ export interface VolunteerRequest {
   organization?: {
     id: string;
     name: string;
+    phone?: string | null;
     description?: string;
     userId: string;
+    user?: {
+      id: string;
+      phone?: string | null;
+      firstName?: string | null;
+      lastName?: string | null;
+    } | null;
     __typename?: 'OrganizationProfile';
   };
 
-  volunteer?: {
-    id: string;
-    firstName?: string;
-    lastName?: string;
-    __typename?: 'User';
-  };
+  volunteer?: Volunteer | null;
+  review?: RequestReview | null;
 }
-
