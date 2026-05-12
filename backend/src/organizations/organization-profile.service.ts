@@ -38,7 +38,10 @@ async create(userId: string, input: CreateOrganizationInput): Promise<Organizati
 }
 
   async findByUserId(userId: string): Promise<OrganizationProfile | null> {
-    return this.profileRepo.findOne({ where: { userId } });
+    return this.profileRepo.findOne({
+      where: { userId },
+      relations: ['user'],
+    });
   }
 
   async hasProfile(userId: string): Promise<boolean> {
