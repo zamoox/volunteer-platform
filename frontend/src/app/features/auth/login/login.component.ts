@@ -4,11 +4,12 @@ import { ReactiveFormsModule, FormGroup, FormControl, Validators, FormsModule } 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { LoadingService } from '@core/services/loading.service';
+import { SpinnerComponent } from '@shared/components';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, SpinnerComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
@@ -88,6 +89,7 @@ export class LoginComponent implements OnInit {
 
   verify2FA() {
     if (this.twoFaCode.length !== 6) return;
+    
     this.loginError = false;
 
     // Просто робимо підписку, сервіс сам знає, коли показати/приховати спіннер
