@@ -1,0 +1,67 @@
+@if (open()) {
+  <div
+    class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+    role="dialog"
+    aria-modal="true"
+    (click)="onBackdrop()"
+  >
+    <div
+      class="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl border border-slate-100"
+      (click)="$event.stopPropagation()"
+    >
+      <h3 class="text-xl font-black text-slate-900 tracking-tight">Завершити запит</h3>
+      <p class="mt-2 text-sm text-slate-500 leading-relaxed">
+        Оцініть допомогу волонтера. Після збереження запит отримає статус «Виконано», і відгук буде неможливо змінити.
+      </p>
+
+      <div class="mt-8">
+        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Оцінка</p>
+        <div class="flex gap-2">
+          @for (n of starOptions; track n) {
+            <button
+              type="button"
+              (click)="setRating(n)"
+              class="text-3xl leading-none transition-transform hover:scale-110 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded-lg p-1"
+              [class.text-amber-400]="n <= rating()"
+              [class.text-slate-200]="n > rating()"
+              [attr.aria-pressed]="n <= rating()"
+            >
+              ★
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="mt-8">
+        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400" for="review-comment">Коментар</label>
+        <textarea
+          id="review-comment"
+          name="reviewComment"
+          rows="4"
+          [(ngModel)]="comment"
+          class="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+          placeholder="Опишіть, як пройшла взаємодія (необов’язково)"
+        ></textarea>
+      </div>
+
+      <div class="mt-10 flex flex-col gap-3 sm:flex-row-reverse sm:justify-end">
+        <button
+          type="button"
+          (click)="submit()"
+          [disabled]="submitting() || rating() < 1"
+          class="rounded-3xl bg-slate-900 px-6 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Зберегти та завершити
+        </button>
+        <button
+          type="button"
+          (click)="cancel()"
+          [disabled]="submitting()"
+          class="rounded-3xl border border-slate-200 bg-white px-6 py-3 text-sm font-black uppercase tracking-widest text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
+        >
+          Скасувати
+        </button>
+      </div>
+    </div>
+  </div>
+}
