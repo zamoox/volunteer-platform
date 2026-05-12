@@ -140,7 +140,7 @@ export class OrganizationSetupComponent implements OnInit {
     this.orgService.createProfile(this.form.value as any).subscribe({
       next: () => {
         this.toast.success('Профіль створено', 'Тепер ви можете публікувати запити');
-        this.router.navigate(['/organization']);
+        this.router.navigate(['/profile']);
       },
       error: (err) => {
         this.isLoading = false;
