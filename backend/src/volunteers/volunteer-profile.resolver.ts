@@ -1,63 +1,30 @@
-// import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-// import { UseGuards } from '@nestjs/common';
-// import { Organization } from './volunteer-profile.entity';
-// import { OrganizationsService } from './volunteer-profile.service';
-// import { CreateOrganizationInput } from './dto/create-organization.input';
-// import { UpdateOrganizationInput } from './dto/update-organization.input';
-// import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-// import { RolesGuard } from '../common/guards/roles.guard';
-// import { Roles } from '../common/decorators/roles.decorator';
-// import { CurrentUser } from '../common/decorators/current-user.decorator';
-// import { UserRole } from '../enums/user-role.enum';
-// import { JwtUser } from '../common/interfaces/jwt-user.interface';
+import { Resolver, Query, ResolveField, Parent } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { JwtUser } from 'src/common/interfaces/jwt-user.interface';
+import { VolunteerProfile } from './volunteer-profile.entity';
+import { VolunteerProfileService } from './volunteer-profile.service';
+import { RequestsService } from 'src/requests/requests.service';
+import { VolunteerRequest } from 'src/requests/request.entity';
 
-// @Resolver(() => Organization)
-// export class OrganizationsResolver {
-//   constructor(private readonly orgsService: OrganizationsService) {}
+@Resolver(() => VolunteerProfile)
+export class VolunteerProfileResolver {
+  constructor(
+    private readonly volunteerProfileService: VolunteerProfileService,
+    private readonly requestsService: RequestsService,
+  ) {}
 
-//   @Query(() => [Organization])
-//   async getAllOrganizations(): Promise<Organization[]> {
-//     return this.orgsService.findAll();
-//   }
+  @Query(() => VolunteerProfile, { nullable: true })
+  @UseGuards(JwtAuthGuard)
+  async myVolunteerProfile(
+    @CurrentUser() user: JwtUser,
+  ): Promise<VolunteerProfile | null> {
+    return this.volunteerProfileService.findMineWithReviews(user.userId);
+  }
 
-//   @Query(() => Organization, { nullable: true })
-//   @UseGuards(JwtAuthGuard, RolesGuard)
-//   @Roles(UserRole.ORGANIZATION)
-//   async myOrganization(
-//     @CurrentUser() user: JwtUser,
-//   ): Promise<Organization | null> {
-//     return this.orgsService.findByUserId(user.userId);
-//   }
-
-//   @Query(() => Organization)
-//   async organization(@Args('id') id: string): Promise<Organization> {
-//     return this.orgsService.findOneById(id);
-//   }
-
-//   @Mutation(() => Organization)
-//   @UseGuards(JwtAuthGuard, RolesGuard)
-//   @Roles(UserRole.ORGANIZATION)
-//   async createOrganizationProfile(
-//     @CurrentUser() user: JwtUser,
-//     @Args('input') input: CreateOrganizationInput,
-//   ): Promise<Organization> {
-//     return this.orgsService.create(user.userId, user.role as UserRole, input);
-//   }
-
-//   @Mutation(() => Organization)
-//   @UseGuards(JwtAuthGuard, RolesGuard)
-//   @Roles(UserRole.ORGANIZATION)
-//   async updateOrganizationProfile(
-//     @CurrentUser() user: JwtUser,
-//     @Args('input') input: UpdateOrganizationInput,
-//   ): Promise<Organization> {
-//     return this.orgsService.update(user.userId, input);
-//   }
-
-//   @Mutation(() => Organization)
-//   @UseGuards(JwtAuthGuard, RolesGuard)
-//   @Roles(UserRole.ADMIN)
-//   async verifyOrganization(@Args('id') id: string): Promise<Organization> {
-//     return this.orgsService.verify(id);
-//   }
-// }
+  @ResolveField(() => [VolunteerRequest])
+  async activeTasks(@Parent() profile: VolunteerProfile): Promise<VolunteerRequest[]> {
+    return this.requestsService.findInProgressForVolunteer(profile.userId);
+  }
+}

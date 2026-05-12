@@ -1,9 +1,23 @@
-// src/volunteers/volunteer-profile.entity.ts
-import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToOne, JoinColumn } from 'typeorm';
+import {
+  ObjectType,
+  Field,
+  ID,
+  Float,
+  Int,
+} from '@nestjs/graphql';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  OneToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 import { User } from '../users/user.entity';
+import { Review } from '../reviews/review.entity';
 
-@ObjectType()
+@ObjectType('Volunteer')
 @Entity('volunteer_profiles')
 export class VolunteerProfile {
   @Field(() => ID)
@@ -26,10 +40,19 @@ export class VolunteerProfile {
   @Column({ nullable: true })
   city?: string;
 
+  @Field(() => Float)
+  @Column({ type: 'double precision', default: 0 })
+  averageRating!: number;
+
+  @Field(() => Int)
+  @Column({ type: 'int', default: 0 })
+  completedRequestsCount!: number;
+
   @Field()
   @CreateDateColumn()
   createdAt!: Date;
 
+  @Field(() => User)
   @OneToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user!: User;
@@ -37,4 +60,8 @@ export class VolunteerProfile {
   @Field(() => String)
   @Column()
   userId!: string;
+
+  @Field(() => [Review])
+  @OneToMany(() => Review, (review) => review.volunteer)
+  reviews!: Review[];
 }
