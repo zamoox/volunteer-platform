@@ -1,15 +1,16 @@
 import { RequestDetailsComponent } from "./components/request-detail/request-details.component";
 import { RequestFormComponent } from "./components/request-form/request-form.component";
+import { CompleteReviewModalComponent } from "./components/complete-review-modal/complete-review-modal.component";
 
-import { VolunteerRequestService } from "./services/volunter-request.service"; 
+import { VolunteerRequestService } from "./services/volunter-request.service";
 
 import { VolunteerRequest } from "./models/volunteer-request.model";
 
 export {
-    RequestDetailsComponent,
-    RequestFormComponent,
-    VolunteerRequestService,
+  RequestDetailsComponent,
+  RequestFormComponent,
+  CompleteReviewModalComponent,
+  VolunteerRequestService,
+};
 
-}
-
-export type { VolunteerRequest }
+export type { VolunteerRequest };
