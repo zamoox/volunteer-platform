@@ -13,12 +13,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth/auth.controller';
 import { OrganizationProfileModule } from './organizations/organization-profile.module';
 import { OrganizationProfile } from './organizations/organization-profile.entity';
+import { VolunteerProfile } from './volunteers/volunteer-profile.entity';
+import { Review } from './reviews/review.entity';
+import { VolunteerProfileModule } from './volunteers/volunteer-profile.module';
 
 @Module({
   imports: [
     RequestsModule,
     AuthModule,
     OrganizationProfileModule,
+    VolunteerProfileModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
@@ -33,7 +37,7 @@ import { OrganizationProfile } from './organizations/organization-profile.entity
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        entities: [VolunteerRequest, User, OrganizationProfile],
+        entities: [VolunteerRequest, User, OrganizationProfile, VolunteerProfile, Review],
         synchronize: true, // для розробки; на проді краще false + міграції
       }),
       inject: [ConfigService],
