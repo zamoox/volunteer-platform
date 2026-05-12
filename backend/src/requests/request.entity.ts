@@ -6,10 +6,11 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToOne,
 } from 'typeorm';
-// import { Organization } from '../organizations/organization.entity';
-import { User } from '../users/user.entity';
 import { OrganizationProfile } from 'src/organizations/organization-profile.entity';
+import { VolunteerProfile } from 'src/volunteers/volunteer-profile.entity';
+import { Review } from 'src/reviews/review.entity';
 
 @ObjectType()
 export class Location {
@@ -79,9 +80,14 @@ export class VolunteerRequest {
   @Column({ nullable: true })
   volunteerId?: string;
 
- @Field(() => User, { nullable: true })
-  @ManyToOne(() => User, { eager: true, nullable: true })
-  @JoinColumn({ name: 'volunteerId' })
-  volunteer?: User;
+  /** Зберігає userId волонтера; зв'язок з профілем через userId профілю */
+  @Field(() => VolunteerProfile, { nullable: true })
+  @ManyToOne(() => VolunteerProfile, { eager: true, nullable: true })
+  @JoinColumn({ name: 'volunteerId', referencedColumnName: 'userId' })
+  volunteer?: VolunteerProfile;
+
+  @Field(() => Review, { nullable: true })
+  @OneToOne(() => Review, (review) => review.volunteerRequest)
+  review?: Review;
 }
 

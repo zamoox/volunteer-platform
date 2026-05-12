@@ -14,3 +14,25 @@
   background: #e2e8f0;
   border-radius: 10px;
 }
+
+/* Додамо плавний перехід для лівого відступу, якщо захочеш міняти його динамічно */
+.details-panel {
+  /* Позиціонування: 400px (список) + 16px (відступ) */
+  left: 416px;
+  width: 384px; /* w-96 */
+  
+  /* Початковий стан для анімації появи */
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Скляний ефект */
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+}
+
+/* Клас, який Angular додасть автоматично при рендері, або через [class.show] */
+.details-panel.visible {
+  opacity: 1;
+  transform: translateX(0);
+}

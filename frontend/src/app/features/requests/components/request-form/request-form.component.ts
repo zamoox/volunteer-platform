@@ -18,8 +18,14 @@ export type RequestCategory = 'MEDICINE' | 'FOOD' | 'TRANSPORT' | 'SHELTER' | 'O
   styleUrl: './request-form.component.css'
 })
 export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
-
+  
+  @Output() submitted = new EventEmitter<VolunteerRequest | void>();
   @Input() requestToEdit: VolunteerRequest | null = null; // Запит для редагування
+  @Output() closed = new EventEmitter<void>();
+
+  @Input() lat!: number;
+  @Input() lng!: number;
+  @Input() address: string = '';
 
   private requestService = inject(VolunteerRequestService);
   private geoService = inject(GeoService);
@@ -45,12 +51,8 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
     { value: 'OTHER',    label: 'Інше',      icon: '📋' },
   ];
 
-  @Input() lat!: number;
-  @Input() lng!: number;
-  @Input() address: string = '';
 
-  @Output() closed = new EventEmitter<void>();
-  @Output() submitted = new EventEmitter<void>();
+  
   
 
   requestForm = new FormGroup({
