@@ -5,10 +5,12 @@ import { RequestsService } from './requests.service';
 import { RequestsResolver } from './requests.resolver';
 import { OrganizationProfileModule } from 'src/organizations/organization-profile.module';
 import { CaslModule } from 'src/casl/casl.module';
+import { VolunteerProfile } from 'src/volunteers/volunteer-profile.entity';
+import { Review } from 'src/reviews/review.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([VolunteerRequest]),
+    TypeOrmModule.forFeature([VolunteerRequest, VolunteerProfile, Review]),
     OrganizationProfileModule,
     CaslModule 
   ],

@@ -9,6 +9,7 @@ import { UserRole } from '../enums/user-role.enum';
 import { JwtUser } from '../common/interfaces/jwt-user.interface';
 import { PoliciesGuard } from 'src/casl/guards/policies.guards';
 import { UpdateVolunteerRequestInput } from './dto/update-request.input';
+import { CompleteRequestWithReviewInput } from './dto/complete-request-with-review.input';
 
 @Resolver(() => VolunteerRequest)
 export class RequestsResolver {
@@ -59,6 +60,15 @@ export class RequestsResolver {
     @Args('status') status: string,
   ): Promise<VolunteerRequest> {
     return this.requestsService.updateStatus(id, status, user);
+  }
+
+  @Mutation(() => VolunteerRequest)
+  @UseGuards(JwtAuthGuard, PoliciesGuard)
+  async completeRequestWithReview(
+    @CurrentUser() user: JwtUser,
+    @Args('input') input: CompleteRequestWithReviewInput,
+  ): Promise<VolunteerRequest> {
+    return this.requestsService.completeRequestWithReview(user, input);
   }
 
   @Query(() => [VolunteerRequest])
