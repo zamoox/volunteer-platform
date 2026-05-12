@@ -2,9 +2,11 @@ import {
   Injectable,
   ForbiddenException,
   NotFoundException,
+  BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { VolunteerRequest, RequestStatus } from './request.entity';
 import { UserRole } from '../enums/user-role.enum';
 import { OrganizationProfileService } from '../organizations/organization-profile.service';
@@ -14,12 +16,28 @@ import { User } from 'src/users/user.entity';
 import { AbilityFactory } from 'src/casl/factories/ability.factory';
 import { Action } from 'src/casl/enums/actions.enum';
 import { UpdateVolunteerRequestInput } from './dto/update-request.input';
+import { VolunteerProfile } from 'src/volunteers/volunteer-profile.entity';
+import { Review } from 'src/reviews/review.entity';
+import { CompleteRequestWithReviewInput } from './dto/complete-request-with-review.input';
+import { OrganizationProfile } from 'src/organizations/organization-profile.entity';
+
+const REQUEST_RELATIONS = [
+  'organization',
+  'organization.user',
+  'volunteer',
+  'volunteer.user',
+  'review',
+] as const;
 
 @Injectable()
 export class RequestsService {
   constructor(
     @InjectRepository(VolunteerRequest)
     private readonly requestRepository: Repository<VolunteerRequest>,
+    @InjectRepository(VolunteerProfile)
+    private readonly volunteerProfileRepository: Repository<VolunteerProfile>,
+    @InjectRepository(Review)
+    private readonly reviewRepository: Repository<Review>,
     private readonly orgsService: OrganizationProfileService,
     private readonly caslAbilityFactory: AbilityFactory,
   ) {}
@@ -32,13 +50,30 @@ export class RequestsService {
       );
     }
 
+    if (!org.user) {
+      const orgWithUser = await this.requestRepository.manager.findOne(
+        OrganizationProfile,
+        {
+          where: { id: org.id },
+          relations: ['user'],
+        },
+      );
+      if (!orgWithUser?.user) {
+        throw new NotFoundException('Користувача організації не знайдено');
+      }
+      org.user = orgWithUser.user;
+    }
+
     const request = this.requestRepository.create({
       ...input,
       organizationId: org.id,
       status: RequestStatus.OPEN,
     });
 
-    return this.requestRepository.save(request);
+    const savedRequest = await this.requestRepository.save(request);
+    savedRequest.organization = org;
+
+    return this.findOneById(savedRequest.id);
   }
 
   async update(id: string, input: UpdateVolunteerRequestInput, currentUser: JwtUser): Promise<VolunteerRequest> {
@@ -66,19 +101,47 @@ export class RequestsService {
   }
 
   async findAll(category?: string): Promise<VolunteerRequest[]> {
+    const base = {
+      relations: [...REQUEST_RELATIONS],
+      order: { createdAt: 'DESC' as const },
+    };
     if (category) {
-      return this.requestRepository.find({ where: { category } });
+      return this.requestRepository.find({ where: { category }, ...base });
     }
-    return this.requestRepository.find();
+    return this.requestRepository.find(base);
   }
 
   async findOneById(id: string): Promise<VolunteerRequest> {
     const request = await this.requestRepository.findOne({
       where: { id },
-      relations: ['organization', 'volunteer'],
+      relations: [...REQUEST_RELATIONS],
     });
     if (!request) throw new NotFoundException(`Запит з id=${id} не знайдено`);
     return request;
+  }
+
+  /** Запити, які волонтер узяв у роботу (для профілю). volunteerId у БД = userId волонтера. */
+  async findInProgressForVolunteer(volunteerUserId: string): Promise<VolunteerRequest[]> {
+    return this.requestRepository.find({
+      where: { volunteerId: volunteerUserId, status: RequestStatus.IN_PROGRESS },
+      relations: ['organization', 'organization.user'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  private async ensureVolunteerProfile(userId: string): Promise<VolunteerProfile> {
+    let profile = await this.volunteerProfileRepository.findOne({
+      where: { userId },
+    });
+    if (!profile) {
+      profile = this.volunteerProfileRepository.create({
+        userId,
+        averageRating: 0,
+        completedRequestsCount: 0,
+      });
+      profile = await this.volunteerProfileRepository.save(profile);
+    }
+    return profile;
   }
 
   async acceptRequest(requestId: string, volunteerId: string): Promise<VolunteerRequest> {
@@ -88,27 +151,36 @@ export class RequestsService {
       throw new ForbiddenException('Цей запит вже не доступний');
     }
 
+    await this.ensureVolunteerProfile(volunteerId);
+
     request.volunteerId = volunteerId;
     request.status = RequestStatus.IN_PROGRESS;
-    return this.requestRepository.save(request);
+    await this.requestRepository.save(request);
+    return this.findOneById(requestId);
   }
 
   async updateStatus(id: string, status: string, currentUser: JwtUser): Promise<VolunteerRequest> {
-    const request = await this.requestRepository.findOne({ where: { id } });
-    
+    const request = await this.requestRepository.findOne({
+      where: { id },
+      relations: ['organization', 'organization.user'],
+    });
+
     if (!request) {
       throw new NotFoundException('Запит не знайдено');
     }
 
-    // Створюємо тимчасовий об'єкт юзера для CASL (якщо у тебе JwtUser відрізняється від UserEntity)
+    if (status === RequestStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Щоб завершити запит, використайте completeRequestWithReview з відгуком',
+      );
+    }
+
     const userEntity = new User();
     userEntity.id = currentUser.userId;
     userEntity.role = currentUser.role as UserRole;
 
     const ability = this.caslAbilityFactory.createForUser(userEntity);
 
-    // CASL автоматично перевірить умову { authorId: user.id }, яку ми прописали у фабриці
-    // Для об'єкта 'request' він порівняє його властивість authorId з id нашого юзера
     if (ability.cannot(Action.Update, request)) {
       throw new ForbiddenException('Ви можете змінювати статус тільки власних запитів');
     }
@@ -117,12 +189,127 @@ export class RequestsService {
     return this.requestRepository.save(request);
   }
 
+  async completeRequestWithReview(
+    currentUser: JwtUser,
+    input: CompleteRequestWithReviewInput,
+  ): Promise<VolunteerRequest> {
+    if (input.rating < 1 || input.rating > 5) {
+      throw new BadRequestException('Рейтинг має бути від 1 до 5');
+    }
+
+    return await this.requestRepository.manager.transaction(async (em) => {
+      // VolunteerRequest має eager organization + volunteer (nullable) — без
+      // loadEagerRelations: false Postgres отримує LEFT JOIN + FOR UPDATE і падає.
+      const reqBase = await em.findOne(VolunteerRequest, {
+        where: { id: input.requestId },
+        lock: { mode: 'pessimistic_write' },
+        loadEagerRelations: false,
+      });
+
+      if (!reqBase) {
+        throw new NotFoundException('Запит не знайдено');
+      }
+
+      const fullReq = await em.findOne(VolunteerRequest, {
+        where: { id: reqBase.id },
+        relations: ['organization', 'volunteer', 'review'],
+        loadEagerRelations: false,
+      });
+
+      if (!fullReq) {
+        throw new NotFoundException('Помилка завантаження даних запиту');
+      }
+
+      if (fullReq.organization.userId !== currentUser.userId) {
+        throw new ForbiddenException('Лише власник організації може завершити цей запит');
+      }
+
+      if (fullReq.status !== RequestStatus.IN_PROGRESS) {
+        throw new BadRequestException('Можна завершити лише запит у статусі "У процесі"');
+      }
+
+      if (!fullReq.volunteerId || !fullReq.volunteer) {
+        throw new BadRequestException('До запиту не прив’язано волонтера');
+      }
+
+      if (fullReq.review) {
+        throw new ConflictException('Відгук для цього запиту вже залишено');
+      }
+
+      const review = em.create(Review, {
+        rating: input.rating,
+        comment: input.comment,
+        organizationId: fullReq.organizationId,
+        volunteerProfileId: fullReq.volunteer.id,
+        volunteerRequestId: fullReq.id,
+      });
+
+      try {
+        await em.save(review);
+      } catch (e) {
+        if (this.isPostgresUniqueViolation(e)) {
+          throw new ConflictException('Відгук для цього запиту вже залишено');
+        }
+        throw e;
+      }
+
+      // Тільки колонка статусу: em.save(fullReq) з inverse OneToOne `review` у пам’яті
+      // без прив’язаного Review змусить TypeORM оновити reviews і занулити volunteerRequestId.
+      await em.update(VolunteerRequest, { id: fullReq.id }, { status: RequestStatus.COMPLETED });
+
+      await this.refreshVolunteerStatsAfterReview(em, fullReq.volunteer.id);
+
+      const completed = await em.findOne(VolunteerRequest, {
+        where: { id: fullReq.id },
+        relations: [...REQUEST_RELATIONS],
+      });
+
+      if (!completed) {
+        throw new NotFoundException('Запит не знайдено після завершення');
+      }
+
+      return completed;
+    });
+  }
+
+  private isPostgresUniqueViolation(error: unknown): boolean {
+    if (!(error instanceof QueryFailedError)) {
+      return false;
+    }
+    const driver = error.driverError;
+    if (driver && typeof driver === 'object' && 'code' in driver) {
+      return (driver as { code: string }).code === '23505';
+    }
+    return false;
+  }
+
+  private async refreshVolunteerStatsAfterReview(
+    em: EntityManager,
+    volunteerProfileId: string,
+  ): Promise<void> {
+    const raw = await em
+      .getRepository(Review)
+      .createQueryBuilder('r')
+      .select('COALESCE(AVG(r.rating), 0)', 'avg')
+      .addSelect('COUNT(r.id)', 'cnt')
+      .where('r.volunteerProfileId = :id', { id: volunteerProfileId })
+      .getRawOne<{ avg: string; cnt: string }>();
+
+    const avg =
+      raw?.avg != null ? Math.round(Number(raw.avg) * 100) / 100 : 0;
+    const completedCnt = raw?.cnt != null ? parseInt(raw.cnt, 10) : 0;
+
+    await em.getRepository(VolunteerProfile).update(volunteerProfileId, {
+      averageRating: avg,
+      completedRequestsCount: completedCnt,
+    });
+  }
+
   async getMyRequests(userId: string): Promise<VolunteerRequest[]> {
-    // Знаходимо запити, де власником є організація поточного юзера
     return this.requestRepository.find({
       where: { organization: { user: { id: userId } } },
-      relations: ['organization'],
-      order: { createdAt: 'DESC' }
+      relations: [...REQUEST_RELATIONS],
+      order: { createdAt: 'DESC' },
     });
   }
 
