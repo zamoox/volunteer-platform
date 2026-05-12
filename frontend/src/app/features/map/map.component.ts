@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 
 // Сервіси
-import { VolunteerRequestService } from '@features/requests';
+import { VolunteerRequest, VolunteerRequestService } from '@features/requests';
 import { GeoService } from '@features/geo/services/geo.service';
 import { UiEventsService } from '@core/services/ui-events.service';
 
@@ -13,28 +13,39 @@ import { RequestListComponent } from '@features/map/components/request-list/requ
 import { MapViewComponent } from '@features/map/components/map-view/map-view.component';
 import { Observable } from 'rxjs';
 import { CreateRequestData } from '@core/models';
+import { ModalComponent } from '@shared/components/modal/modal.component';
+import { ModalService } from '@core/services/modal.service';
+import { ToastService } from '@core/services';
+import { CaslService } from '@core/casl/services/casl.service';
+import { VolunteerRequestsStore } from '@features/requests/services/volunteer-requests-store.service';
 
 @Component({
   selector: 'app-map',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RequestFormComponent, RequestDetailsComponent, RequestListComponent, MapViewComponent],
+  imports: [CommonModule, RequestFormComponent, RequestDetailsComponent, RequestListComponent, MapViewComponent, ModalComponent],
   templateUrl: './map.component.html',
   styleUrl: './map.component.css',
 })
 export class MapComponent implements OnInit, AfterViewInit {
   private requestService = inject(VolunteerRequestService);
-  private geoService = inject(GeoService); // Використовуємо наш новий сервіс
+  private geoService = inject(GeoService); 
   private uiEventsService = inject(UiEventsService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private zone = inject(NgZone);
   private cdr = inject(ChangeDetectorRef);
+  private modalService = inject(ModalService);
+  private toastService = inject(ToastService);
+  private caslService = inject(CaslService);
+
+  public store = inject(VolunteerRequestsStore);
   
   @ViewChild(MapViewComponent) private mapView?: MapViewComponent;
   private shouldAutoOpenCreateFormFromRoute = false;
+  /** Після навігації з `?requestId=` — підсвітити запит, коли карта готова. */
+  private pendingFlyToRequestId: string | null = null;
 
-  requests$!: Observable<any[]>;
   categories = this.requestService.getCategories();
   requestsForMap: any[] = [];
 
@@ -44,8 +55,25 @@ export class MapComponent implements OnInit, AfterViewInit {
   selectedAddress = '';
   selectedRequest: any = null;
 
+  public isDeleteModalOpen = false;
+  private requestIdToDelete: string | null = null;
+
+  selectedRequestToEdit: VolunteerRequest | null = null;
+
+
+  // Перевірка права на створення (для шаблону)
+  get canCreate(): boolean {
+    return this.caslService.can('create', 'VolunteerRequest');
+  }
+
   ngOnInit() {
-    this.requests$ = this.requestService.getAllRequests();
+    const initialRequestId = this.route.snapshot.queryParamMap.get('requestId');
+    if (initialRequestId) {
+      this.store.loadAllAndSelect(initialRequestId);
+      this.pendingFlyToRequestId = initialRequestId;
+    } else {
+      this.store.loadAll();
+    }
 
     this.route.queryParamMap.subscribe((params) => {
       if (params.get('action') === 'create') {
@@ -53,24 +81,37 @@ export class MapComponent implements OnInit, AfterViewInit {
       }
     });
 
+    // 2. Слухаємо зовнішні події створення
     this.uiEventsService.openCreateRequest$.subscribe((data?: CreateRequestData) => {
-      if (!data) {
-        this.handleHeaderCreateRequest();
-        return;
-      }
-
-      this.zone.run(() => {
-        this.selectedRequest = null;
-        this.selectedLat = data.lat;
-        this.selectedLng = data.lng;
-        this.selectedAddress = data.address || '';
-        this.showForm = true;
-        this.cdr.detectChanges();
-      });
+      if (!data) { this.handleHeaderCreateRequest(); return; }
+      this.openFormForCreate(data.lat, data.lng, data.address || '');
     });
   }
 
+  private tryFlyToSelectedRequestAndClearQuery(): void {
+    const req = this.store.selectedRequest();
+    if (req && this.mapView) {
+      this.mapView.flyTo(req.location.lat, req.location.lng, 16);
+    }
+    if (this.route.snapshot.queryParamMap.get('requestId')) {
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { requestId: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
+    this.pendingFlyToRequestId = null;
+    this.cdr.markForCheck();
+  }
+
   ngAfterViewInit(): void {
+    if (this.pendingFlyToRequestId) {
+      this.zone.run(() => {
+        setTimeout(() => this.tryFlyToSelectedRequestAndClearQuery(), 400);
+      });
+    }
+
     // Auto-open form when navigated to /map?action=create
     if (this.shouldAutoOpenCreateFormFromRoute) {
       this.shouldAutoOpenCreateFormFromRoute = false;
@@ -122,54 +163,70 @@ export class MapComponent implements OnInit, AfterViewInit {
     });
   }
 
-  onRequestsFiltered(requests: any[]): void {
-    this.requestsForMap = requests;
-  }
 
-  onRequestSelectedFromMap(request: any): void {
-    this.selectedRequest = request;
+  onRequestSelectedFromMap(request: VolunteerRequest): void {
+    this.store.select(request.id);
     this.showForm = false;
-
-    if (request.location?.lat && request.location?.lng) {
-      // Викликаємо flyTo у дочірнього компонента mapView
-      // 16 — це оптимальний рівень зуму для перегляду конкретної локації
-      this.mapView?.flyTo(request.location.lat, request.location.lng, 16);
-      console.log(request)
-      // Також відкриваємо поп-ап для візуального підтвердження вибору
-      this.mapView?.openRequestPopup(request);
-    }
-
+    
+    // Примусово закриваємо попап, якщо він був відкритий
+    this.mapView?.closeAllPopups(); 
+    
+    this.mapView?.flyTo(request.location.lat, request.location.lng, 16);
     this.cdr.detectChanges();
   }
 
-  onFormSubmitted(newRequest?: any) {
+  onSelectFromList(request: VolunteerRequest) {
+    this.store.select(request.id);
     this.showForm = false;
-    this.mapView?.clearTemporaryMarker();
-    // Оскільки дані в ListComponent оновлюються через Apollo refetchQueries, 
-    // воно автоматично оновить маркери через (requestsFiltered)
-    if (newRequest && newRequest.location) {
-      console.log(newRequest)
-      // Даємо невелику затримку, щоб переконатися, що маркер встиг відрендеритись у MapView
-      setTimeout(() => {
-        this.mapView?.flyTo(newRequest.location.lat, newRequest.location.lng, 16);
-        this.mapView?.openRequestPopup(newRequest);
-      }, 600);
-    }
+    
+    // Закриваємо попап, бо ми перейшли до деталей зі списку
+    this.mapView?.closeAllPopups();
+    
+    this.mapView?.flyTo(request.location.lat, request.location.lng, 16);
+    // Ми більше не викликаємо openRequestPopup(request) тут, 
+    // щоб не перекривати панель деталей
   }
 
-  onSelectFromList(request: any) {
-    this.selectedRequest = request;
-    this.showForm = false;
-    this.mapView?.flyTo(request.location.lat, request.location.lng, 16);
-    this.mapView?.openRequestPopup(request);
+  // Обробка форми
+onFormSubmitted(newRequest: any): void { // Використовуємо any або VolunteerRequest | void
+  this.showForm = false;
+  this.selectedRequestToEdit = null;
+  this.mapView?.clearTemporaryMarker();
+  
+  // Якщо форма повернула дані (успішне створення або редагування)
+  if (newRequest && newRequest.location) {
+    this.store.addOrUpdate(newRequest);
+    
+    // Закриваємо всі відкриті попапи на карті
+    this.mapView?.closeAllPopups();
+
+    // Невелика затримка, щоб DOM карти встиг оновитися
+    setTimeout(() => {
+      // Використовуємо поточний зум карти, щоб не "зумити" примусово (без масштабування)
+      const currentZoom = this.mapView?.getCurrentZoom() || 16;
+      
+      this.mapView?.flyTo(
+        newRequest.location.lat, 
+        newRequest.location.lng, 
+        currentZoom // передаємо поточний зум замість фіксованого 16
+      );
+      
+      // Якщо хочеш просто показати маркер без попапа — на цьому все.
+      // Якщо треба підсвітити — можна викликати метод підсвічування без відкриття вікна.
+    }, 300);
   }
+  
+  this.cdr.detectChanges();
+}
+
+
 
   onResponseSent(requestId: string) {
     this.selectedRequest = null;
     // Логіка сповіщення
   }
 
-  private handleHeaderCreateRequest(data?: CreateRequestData): void {
+  public handleHeaderCreateRequest(data?: CreateRequestData): void {
     // Пріоритет: 1. Дані з сервісу -> 2. Центр карти
     const center = this.mapView?.getCenter();
     const lat = data?.lat ?? center?.lat ?? 50.45;
@@ -196,4 +253,48 @@ export class MapComponent implements OnInit, AfterViewInit {
       });
     }
   }
+
+  onEditRequest(request: VolunteerRequest) {
+    this.zone.run(() => {
+      this.mapView?.closeAllPopups(); // 🟢 Попап зникає при редагуванні
+      this.selectedRequest = null;
+      this.selectedRequestToEdit = request;
+      this.selectedLat = request.location.lat;
+      this.selectedLng = request.location.lng;
+      this.selectedAddress = request.location.address;
+      this.showForm = true;
+      this.cdr.detectChanges();
+    });
+  }
+
+  private openFormForCreate(lat: number, lng: number, address: string) {
+    this.store.select(null); // Закриваємо деталі, якщо були відкриті
+    this.selectedLat = lat;
+    this.selectedLng = lng;
+    this.selectedAddress = address;
+    this.showForm = true;
+    this.cdr.detectChanges();
+  }
+
+  // 2. ПІДГОТОВКА ДО ВИДАЛЕННЯ
+  onDeleteRequest(id: string) {
+    this.requestIdToDelete = id;
+    this.isDeleteModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  // 3. ПІДТВЕРДЖЕННЯ ВИДАЛЕННЯ
+  confirmDelete() {
+      if (!this.requestIdToDelete) return;
+      const id = this.requestIdToDelete;
+
+      this.requestService.deleteRequest(id).subscribe({
+        next: () => {
+          this.store.remove(id); // Видаляємо зі стору — мапа і список оновляться самі
+          this.toastService.show('Видалено', 'Запит успішно видалено', 'success');
+          this.isDeleteModalOpen = false;
+          this.requestIdToDelete = null;
+        }
+      });
+    }
 }

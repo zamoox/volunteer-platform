@@ -1,7 +1,10 @@
 import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { VolunteerRequestService } from '@features/requests';
+import {
+  VolunteerRequestService,
+  type VolunteerRequest,
+} from '@features/requests';
 import { BehaviorSubject, combineLatest, distinctUntilChanged, map, switchMap, tap } from 'rxjs';
 
 @Component({
@@ -11,8 +14,8 @@ import { BehaviorSubject, combineLatest, distinctUntilChanged, map, switchMap, t
   templateUrl: './request-list.component.html'
 })
 export class RequestListComponent {
-  @Output() requestsFiltered = new EventEmitter<any[]>();
-  @Output() requestSelected = new EventEmitter<any>();
+  @Output() requestsFiltered = new EventEmitter<VolunteerRequest[]>();
+  @Output() requestSelected = new EventEmitter<VolunteerRequest>();
   
   private requestService = inject(VolunteerRequestService);
   
@@ -42,19 +45,22 @@ export class RequestListComponent {
       // Пошук
       if (term) {
         const lowerTerm = term.toLowerCase();
-        list = list.filter(r => 
-          r.title.toLowerCase().includes(lowerTerm) || 
-          r.description.toLowerCase().includes(lowerTerm)
+        list = list.filter(
+          (r) =>
+            (r.title ?? '').toLowerCase().includes(lowerTerm) ||
+            (r.description ?? '').toLowerCase().includes(lowerTerm),
         );
       }
 
       // Сортування
       list.sort((a, b) => {
         if (sort === 'date') {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        } else {
-          return a.title.localeCompare(b.title);
+          return (
+            new Date(b.createdAt ?? 0).getTime() -
+            new Date(a.createdAt ?? 0).getTime()
+          );
         }
+        return (a.title ?? '').localeCompare(b.title ?? '');
       });
 
       return list;
@@ -81,7 +87,7 @@ export class RequestListComponent {
     this.sortBy$.next(type);
   }
 
-  selectRequest(req: any) {
+  selectRequest(req: VolunteerRequest) {
     this.requestSelected.emit(req);
   }
 }

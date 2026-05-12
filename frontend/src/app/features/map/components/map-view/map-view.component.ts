@@ -46,6 +46,36 @@ export class MapViewComponent implements AfterViewInit, OnChanges {
     }
   }
 
+    private renderMarkers(requests: any[]): void {
+    if (!this.map) return;
+
+    this.markersClusterGroup.clearLayers();
+    if (!requests?.length) return;
+
+    const newMarkers = requests.map((req) => {
+      const category = this.categories?.find((c) => c.id === req.category);
+
+      const customIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="background-color:${category?.color || '#6b7280'}; width:30px; height:30px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; border:2px solid white;">
+                <span style="transform:rotate(45deg); font-size:14px;">${category?.label.split(' ')[0] || '📍'}</span>
+               </div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+      });
+
+      const marker = L.marker([req.location.lat, req.location.lng], { icon: customIcon });
+      marker.on('click', () =>
+        this.zone.run(() => {
+          this.openRequestPopup(req);
+        })
+      );
+      return marker;
+    });
+
+    this.markersClusterGroup.addLayers(newMarkers);
+  }
+
   getCenter(): L.LatLng | null {
     return this.map ? this.map.getCenter() : null;
   }
@@ -67,35 +97,39 @@ export class MapViewComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  openRequestPopup(request: any): void {
-    if (!this.map) return;
+  getCurrentZoom(): number {
+    return this.map?.getZoom() || 13;
+  }
 
-    // 1. Створюємо компонент динамічно
+  closeAllPopups(): void {
+    this.map?.closePopup();
+  }
+
+openRequestPopup(request: any): void {
     const componentRef = createComponent(RequestPopupComponent, {
       environmentInjector: this.injector
     });
 
-    // 2. Передаємо дані в Input'и
     componentRef.instance.request = request;
     componentRef.instance.category = this.categories?.find(c => c.id === request.category);
+    
+    // Обробка кліку на "ДЕТАЛІ"
+    componentRef.instance.showDetails.subscribe((req) => {
+        this.zone.run(() => {
+          this.requestSelected.emit(req); // Відправляємо в MapComponent
+          this.map?.closePopup();         // ЗАКРИВАЄМО ПОПАП, коли з'являються деталі
+        });
+      });
 
-    // 3. Запускаємо Change Detection, щоб відрендерити HTML
     componentRef.changeDetectorRef.detectChanges();
-
-    // 4. Отримуємо HTML-елемент компонента
-    const popupHtml = componentRef.location.nativeElement;
-
-    // 5. Відкриваємо попап Leaflet, передаючи йому DOM-елемент
-    L.popup({
-      autoClose: true,
-      closeOnClick: true,
-      offset: [0, -20],
-      className: 'custom-leaflet-popup'
-    })
+    
+    L.popup({ offset: [0, -20], className: 'custom-leaflet-popup' })
       .setLatLng([request.location.lat, request.location.lng])
-      .setContent(popupHtml)
-      .openOn(this.map);
+      .setContent(componentRef.location.nativeElement)
+      .openOn(this.map!);
   }
+
+  
 
   showCreatePopupAt(lat: number, lng: number, address: string): void {
     if (!this.map) return;
@@ -147,34 +181,6 @@ export class MapViewComponent implements AfterViewInit, OnChanges {
     });
   }
 
-  private renderMarkers(requests: any[]): void {
-    if (!this.map) return;
 
-    this.markersClusterGroup.clearLayers();
-    if (!requests?.length) return;
-
-    const newMarkers = requests.map((req) => {
-      const category = this.categories?.find((c) => c.id === req.category);
-
-      const customIcon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="background-color:${category?.color || '#6b7280'}; width:30px; height:30px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; border:2px solid white;">
-                <span style="transform:rotate(45deg); font-size:14px;">${category?.label.split(' ')[0] || '📍'}</span>
-               </div>`,
-        iconSize: [30, 30],
-        iconAnchor: [15, 30],
-      });
-
-      const marker = L.marker([req.location.lat, req.location.lng], { icon: customIcon });
-      marker.on('click', () =>
-        this.zone.run(() => {
-          this.requestSelected.emit(req);
-        })
-      );
-      return marker;
-    });
-
-    this.markersClusterGroup.addLayers(newMarkers);
-  }
 }
 
