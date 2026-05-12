@@ -35,7 +35,24 @@ export class OrganizationSetupComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.form.statusChanges.subscribe(res => console.log(res));
+    this.checkExistingProfile();
+  }
+
+  private checkExistingProfile() {
+    this.isLoading = true;
+    this.orgService.getMyOrganization().subscribe({
+      next: (profile) => {
+        if (profile) {
+          // Якщо профіль знайдено, не даємо заповнювати форму знову
+          this.router.navigate(['/organization']);
+        }
+        this.isLoading = false;
+      },
+      error: () => {
+        this.isLoading = false; 
+        // Якщо профілю немає (помилка 404), залишаємо користувача на формі
+      }
+    });
   }
 
   isInvalid(field: string): boolean {
