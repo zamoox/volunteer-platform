@@ -4,7 +4,7 @@ import { ORGANIZATION_FIELDS } from "./organizations.fragments";
 export const MY_ORGANIZATION = gql`
   query MyOrganizationProfile {
     myOrganizationProfile {
-      ...ORGANIZATION_FIELDS
+      ...OrganizationFields
     }
   }
   ${ORGANIZATION_FIELDS}

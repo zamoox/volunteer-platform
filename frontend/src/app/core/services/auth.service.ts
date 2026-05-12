@@ -205,42 +205,53 @@ export class AuthService {
   }
 
   getCurrentUser() {
-    return this.apollo.query<{ me: User; rules: any[] }>({ query: GET_PROFILE, fetchPolicy: 'network-only' }).pipe(
+    // Очікуємо AuthResponse від поля "me"
+    return this.apollo.query<{ me: { user: User; rules: any[] } }>({ 
+      query: GET_PROFILE, 
+      fetchPolicy: 'network-only' 
+    }).pipe(
       map(result => {
-        if (!result.data || !result.data.me) {
+        // Перевіряємо вкладеність me.user
+        if (!result.data || !result.data.me || !result.data.me.user) {
           throw new Error('Профіль не знайдено');
         }
-        return result.data;
+        return result.data.me; // Повертаємо { user, rules }
       }),
-      tap(({ me, rules }) => {
+      tap(({ user, rules }) => {
         if (this.getToken()) {
-          this.handleAuthentication(this.getToken() || '', me, rules);
+          this.handleAuthentication(this.getToken() || '', user, rules);
         }
       }),
       catchError(err => {
         console.error('Помилка завантаження профіля:', err);
-        throw err; 
+        throw err;
       })
     );
   }
 
-  handleAuthentication(token: string, user: User | null, rules: any[] = []) {
+handleAuthentication(token: string, user: User | null, rules: any[] = []) {
+  if (token) {
     localStorage.setItem(this.TOKEN_KEY, token);
-    localStorage.setItem(this.RULES_KEY, JSON.stringify(rules ?? []));
-    this.caslService.updateAbility(rules ?? []);
-    
-    if (user) {
-      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-      this.currentUserSubject.next(user);
-    } else {
-      this.getCurrentUser().subscribe({
-        next: ({ me: loadedUser }) => {
-          localStorage.setItem(this.USER_KEY, JSON.stringify(loadedUser));
-          this.currentUserSubject.next(loadedUser);
-        },
-        error: (err) => console.error('Не вдалося завантажити профіль після Google:', err)
-      });
-    }
   }
+  
+  if (rules && rules.length > 0) {
+    localStorage.setItem(this.RULES_KEY, JSON.stringify(rules));
+    this.caslService.updateAbility(rules);
+  }
+  
+  if (user) {
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    this.currentUserSubject.next(user);
+  } else if (token) {
+    // Тільки якщо є токен, але немає юзера (Google callback)
+    this.getCurrentUser().subscribe({
+      next: (res) => {
+        // res тепер { user, rules } завдяки мапуванню вище
+        console.log('Профіль завантажено після Google');
+      },
+      error: (err) => console.error('Критична помилка завантаження профіля:', err)
+    });
+  }
+}
  
 }

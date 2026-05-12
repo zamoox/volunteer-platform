@@ -1,8 +1,8 @@
-import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AbstractControl, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { finalize, Observable, take } from 'rxjs';
+import { catchError, finalize, Observable, of, shareReplay, take } from 'rxjs';
 import { Apollo } from 'apollo-angular';
 
 import { AuthService } from '@core/services';
@@ -19,6 +19,7 @@ import { subject } from '@casl/ability';
 import { ModalComponent } from '@shared/components/modal/modal.component';
 import { MY_VOLUNTEER_PROFILE } from '@features/volunteers/graphql/volunteer-profile.queries';
 import type { MyVolunteerProfile } from '@features/volunteers/models/my-volunteer-profile.model';
+import { OrganizationService } from '@features/organizations/services/organization.service';
 
 @Component({
   selector: 'app-profile',
@@ -38,13 +39,16 @@ import type { MyVolunteerProfile } from '@features/volunteers/models/my-voluntee
 export class ProfileComponent implements OnInit, OnDestroy {
   public authService = inject(AuthService);
   private toastService = inject(ToastService);
+  public orgService = inject(OrganizationService);
   private cdr = inject(ChangeDetectorRef);
   private fb = inject(FormBuilder);
   private ability = inject(AbilityServiceSignal);
   private apollo = inject(Apollo);
   private router = inject(Router);
+  private ngZone = inject(NgZone);
 
   private user: User | null = null;
+  public organizationProfile$!: Observable<any>;
 
   /** Дані волонтерського кабінету (activeTasks + reviews) з myVolunteerProfile. */
   volunteerDashboard: MyVolunteerProfile | null = null;
@@ -131,6 +135,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
       this.cdr.detectChanges(); // Оновлюємо UI, коли прийшли дані
     });
+
+  this.organizationProfile$ = this.orgService.getMyOrganization().pipe(
+    // shareReplay(1) гарантує, що запит піде один раз, навіть якщо в HTML кілька підписок
+    shareReplay(1), 
+    catchError(err => {
+      console.error('Помилка профілю організації:', err);
+      return of(null);
+    })
+  );
 
     this.checkExistingCooldown();
     this.initPasswordForm();
@@ -308,16 +321,27 @@ export class ProfileComponent implements OnInit, OnDestroy {
   private startTimerInterval() {
     if (this.timerInterval) clearInterval(this.timerInterval);
     
-    this.timerInterval = setInterval(() => {
-      if (this.cooldownSeconds > 0) {
-        this.cooldownSeconds--;
-        this.cdr.detectChanges();
-      } else {
-        clearInterval(this.timerInterval);
-        localStorage.removeItem(this.COOLDOWN_KEY);
-        this.cdr.detectChanges();
-      }
-    }, 1000);
+  this.ngZone.run(() => {
+      this.timerInterval = setInterval(() => {
+        if (this.cooldownSeconds > 0) {
+          this.cooldownSeconds--;
+          // Примусове оновлення дерева компонентів
+          this.cdr.detectChanges(); 
+        } else {
+          this.stopTimer();
+        }
+      }, 1000);
+    });
+  }
+
+  private stopTimer() {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+    this.cooldownSeconds = 0;
+    localStorage.removeItem(this.COOLDOWN_KEY);
+    this.cdr.detectChanges();
   }
 
   // Допоміжний метод для гарного відображення ролі
