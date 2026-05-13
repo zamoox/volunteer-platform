@@ -40,9 +40,9 @@ export const routes: Routes = [
     children: [
       { path: 'volunteer', component: VolunteerProfileComponent },
       { path: 'organization', component: OrganizationDashboardComponent },
-      { path: 'admin', component: AdminPanelComponent },
     ]
   },
+  { path: 'admin', component: AdminPanelComponent },
     {
     path: 'organization/setup',
     loadComponent: () => import('./features/organizations/components/organization-setup/organization-setup.component')

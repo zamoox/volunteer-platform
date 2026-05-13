@@ -1,40 +1,109 @@
-<div class="space-y-8">
-  <div class="flex gap-4 overflow-x-auto pb-4">
-    <div class="min-w-[200px] p-6 bg-white border border-slate-100 rounded-3xl">
-      <p class="text-[10px] font-black uppercase text-slate-400">Всього юзерів</p>
-      <p class="text-2xl font-black">1,240</p>
+<div class="min-h-screen bg-slate-50 pt-28 pb-12 px-4 md:px-8">
+  <div class="max-w-[1400px] mx-auto space-y-8">
+    
+    <div class="flex items-center justify-between mb-10">
+      <div>
+        <h1 class="text-3xl font-black text-slate-900 tracking-tight">Панель керування</h1>
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-2">Огляд та модерація користувачів</p>
+      </div>
+      <div class="w-12 h-12 bg-slate-950 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-200">
+        <span class="text-white text-xl">🛡️</span>
+      </div>
     </div>
-    <div class="min-w-[200px] p-6 bg-white border border-slate-100 rounded-3xl text-amber-600">
-      <p class="text-[10px] font-black uppercase text-slate-400">Очікують верифікації</p>
-      <p class="text-2xl font-black text-amber-600">12 фондів</p>
-    </div>
-  </div>
 
-  <div class="bg-white rounded-[2rem] border border-slate-100 overflow-hidden">
-    <table class="w-full text-left border-collapse">
-      <thead class="bg-slate-50 border-b border-slate-100">
-        <tr>
-          <th class="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Користувач</th>
-          <th class="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Роль</th>
-          <th class="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Статус</th>
-          <th class="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Дія</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-50">
-        <tr *ngFor="let user of allUsers" class="hover:bg-slate-50/50 transition-colors">
-          <!-- <td class="p-5 text-sm font-bold text-slate-900">{{user.email}}</td> -->
-          <td class="p-5">
-            <!-- <span class="px-2 py-1 bg-slate-100 rounded text-[10px] font-black uppercase">{{user.role}}</span> -->
-          </td>
-          <td class="p-5">
-             <!-- <div class="w-2 h-2 rounded-full" [ngClass]="user.isEmailVerified ? 'bg-emerald-500' : 'bg-amber-500'"></div> -->
-              <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-          </td>
-          <td class="p-5">
-            <button class="p-2 hover:bg-red-50 text-red-500 rounded-lg">🚫</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="p-8 bg-slate-950 rounded-[2.5rem] text-white shadow-2xl shadow-slate-200 transition-transform hover:scale-[1.02] duration-300">
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6">Спільнота платформи</p>
+        <div class="flex items-end justify-between">
+          <p class="text-4xl font-black italic">1,240</p>
+          <div class="text-[10px] font-bold bg-white/10 text-white px-3 py-1 rounded-xl border border-white/5">
+            Юзерів
+          </div>
+        </div>
+      </div>
+
+      <div class="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm transition-transform hover:scale-[1.02] duration-300">
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 mb-6">Верифікація фондів</p>
+        <div class="flex items-end justify-between">
+          <p class="text-4xl font-black text-slate-900 italic">12</p>
+          <div class="flex items-center gap-2 px-3 py-1 bg-amber-50 rounded-xl border border-amber-100">
+            <div class="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+            <span class="text-[10px] font-black uppercase text-amber-600">Очікують</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm transition-transform hover:scale-[1.02] duration-300">
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6">Активність</p>
+        <div class="flex items-end justify-between">
+          <p class="text-4xl font-black text-slate-900 italic">456</p>
+          <span class="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded-xl">Запитів</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div class="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4">
+        <h3 class="text-xs font-black uppercase tracking-[0.3em] text-slate-400 italic">База користувачів</h3>
+        <div class="relative w-full md:w-80">
+          <input type="text" placeholder="Пошук за email чи ID..." 
+                 class="w-full px-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-bold outline-none focus:border-slate-900 focus:bg-white transition-all placeholder:text-slate-300">
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50/50">
+              <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Користувач</th>
+              <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Роль</th>
+              <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Статус</th>
+              <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Дії</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            <tr *ngFor="let user of dummyUsers" class="hover:bg-slate-50/30 transition-all group">
+              <td class="p-6">
+                <div class="flex items-center gap-4">
+                  <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all rotate-2 group-hover:rotate-0">
+                    {{ user.email[0] | uppercase }}
+                  </div>
+                  <div>
+                    <p class="text-sm font-black text-slate-900">{{ user.email }}</p>
+                    <p class="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">{{ user.id.substring(0, 8) }}...</p>
+                  </div>
+                </div>
+              </td>
+              <td class="p-6 text-center">
+                <span class="px-3 py-1 bg-slate-100 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-600">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td class="p-6">
+                <div class="flex justify-center">
+                  <div class="flex items-center gap-2 px-3 py-1 rounded-full border transition-all" 
+                       [ngClass]="user.isEmailVerified ? 'border-emerald-100 bg-emerald-50 text-emerald-600' : 'border-amber-100 bg-amber-50 text-amber-600'">
+                    <div class="w-1.5 h-1.5 rounded-full" [ngClass]="user.isEmailVerified ? 'bg-emerald-500' : 'bg-amber-500'"></div>
+                    <span class="text-[9px] font-black uppercase tracking-widest">
+                      {{ user.isEmailVerified ? 'Активний' : 'Не підтверджено' }}
+                    </span>
+                  </div>
+                </div>
+              </td>
+              <td class="p-6 text-right">
+                <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                  <button title="Блокувати" class="p-3 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all active:scale-90">
+                    🚫
+                  </button>
+                  <button title="Деталі" class="p-3 bg-slate-50 hover:bg-slate-900 text-slate-400 hover:text-white rounded-xl transition-all">
+                    👁️
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
