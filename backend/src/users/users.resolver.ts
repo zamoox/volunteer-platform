@@ -13,11 +13,4 @@ export class UsersResolver {
     return this.usersService.findAll(); 
   }
 
-  @UseGuards(GqlAuthGuard)
-  @Query(() => User, { name: 'me' })
-  async getMe(@Context() ctx: any) {
-    return this.usersService.findOneById(
-      ctx.req.user.userId,
-    );
-  }
 }

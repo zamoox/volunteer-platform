@@ -57,8 +57,8 @@ export class User {
   createdAt!: Date;
 
   @Field(() => Boolean)
-  @Column({ default: false })
-  isEmailVerified: boolean;
+  @Column({ default: false, nullable: false })
+  isEmailVerified: boolean = false
 
   @Column({ nullable: true })
   verificationToken: string;

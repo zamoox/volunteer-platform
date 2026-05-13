@@ -38,15 +38,23 @@ export class AuthResolver {
     return this.authService.loginWith2FactorAuthentication(userId, code);
   }
 
-  @Query(() => AuthResponse) // 
+  @Query(() => AuthResponse)
   @UseGuards(JwtAuthGuard)
-  async me(@CurrentUser() user: User): Promise<AuthResponse> {
-    // Створюємо правила спеціально для цього юзера
-    const ability = this.caslAbilityFactory.createForUser(user);
+  async me(@CurrentUser() user: any): Promise<AuthResponse> {
+    // 1. Отримуємо ПОВНУ сутність з бази (де точно є isEmailVerified)
+    const fullUser = await this.usersService.findOneById(user.id);
+
+    // 2. Створюємо правила на основі повної сутності
+    const ability = this.caslAbilityFactory.createForUser(fullUser);
+
+    const rules = (ability.rules as any[]).map(rule => ({
+      ...rule,
+      subject: typeof rule.subject === 'function' ? rule.subject.name : rule.subject,
+    }));
 
     return {
-      user,
-      rules: ability.rules as any, // 👈 Передаємо правила на фронт
+      user: fullUser, // Повертаємо повний об'єкт
+      rules,
     };
   }
 
