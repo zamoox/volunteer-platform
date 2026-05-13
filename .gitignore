@@ -25,3 +25,4 @@ npm-debug.log*
 
 # Дерево проєкта
 repomix-output.xml
+**/repomix-output.xml
