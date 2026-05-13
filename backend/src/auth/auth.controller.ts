@@ -16,6 +16,9 @@ export class AuthController {
     // 1. Обробляємо дані користувача в сервісі
     const result = await this.authService.validateGoogleUser(req.user);
 
+    console.log('CONTROLLER: ' + result.user.email);
+    console.log('CONTROLLER isEmailVerified: ' + result.user.isEmailVerified);
+
     // 2. Редиректимо на фронтенд з токеном у URL
     const frontendUrl = 'http://localhost:4200/login'; 
     return res.redirect(`${frontendUrl}?token=${result.access_token}`);

@@ -87,29 +87,36 @@ export class AuthService {
     };
   }
 
-  async loginWith2FactorAuthentication(userId: string, code: string) {
-    const user = await this.usersService.findOneWithSecret(userId);
-    const secret = user?.twoFactorSecret;
+async loginWith2FactorAuthentication(userId: string, code: string): Promise<AuthResponse> {
+  const user = await this.usersService.findOneWithSecret(userId);
+  const secret = user?.twoFactorSecret;
 
-    if (!user || !secret) {
-      throw new UnauthorizedException('Секрет не знайдено в базі');
-    }
-
-    // ОСНОВНА ПЕРЕВІРКА
-    const result = await this.totp.verify(code, {
-      secret: secret,
-    });
-
-    if (!result || !result.valid) {
-      throw new UnauthorizedException('Невірний код 2FA');
-    }
-
-    const payload = { email: user.email, sub: user.id, role: user.role };
-    return {
-      access_token: this.jwtService.sign(payload),
-      user,
-    };
+  if (!user || !secret) {
+    throw new UnauthorizedException('Секрет не знайдено');
   }
+
+  const result = await this.totp.verify(code, { secret });
+
+  if (!result || !result.valid) {
+    throw new UnauthorizedException('Невірний код 2FA');
+  }
+
+  // ОБОВ'ЯЗКОВО генеруємо права тут теж:
+  const ability = this.caslAbilityFactory.createForUser(user);
+  const rules = (ability.rules as any[]).map(rule => ({
+    ...rule,
+    subject: typeof rule.subject === 'function' ? rule.subject.name : rule.subject,
+  }));
+
+  const payload = { email: user.email, sub: user.id, role: user.role };
+  
+  return {
+    access_token: this.jwtService.sign(payload),
+    user,
+    rules, // Додаємо правила
+    userId: user.id
+  };
+}
 
   async register(input: RegisterInput) {
     // 1. Створюємо користувача в БД
@@ -243,30 +250,48 @@ export class AuthService {
     return result.valid;
   }
 
-  async validateGoogleUser(googleUser: any) {
-    let user = await this.usersService.findOneByEmail(googleUser.email);
+async validateGoogleUser(googleUser: any): Promise<AuthResponse> {
+  let user = await this.usersService.findOneByEmail(googleUser.email);
 
-    if (!user) {
-      // Якщо юзера немає — створюємо (пароль можна зарандомити)
-      user = await this.usersService.create({
-        email: googleUser.email,
-        name: googleUser.firstName,
-        password: Math.random().toString(36).slice(-12), // Рандомний пароль для OAuth
-        role: UserRole.VOLUNTEER, // Роль за замовчуванням
-        region: 'Unknown',
-        city: 'Unknown'
-      });
-      
-      // Одразу мітимо пошту як верифіковану
-      await this.usersService.markAsVerified(user.id);
-    }
+  if (!user) {
+     user = await this.usersService.create({
+      email: googleUser.email,
+      firstName: googleUser.firstName, 
+      password: Math.random().toString(36).slice(-12),
+      role: UserRole.VOLUNTEER,
+      region: 'Unknown',
+      city: 'Unknown'
+    });
 
-    // Генеруємо наш JWT (ігноруючи 2FA для Google)
-    const payload = { email: user.email, sub: user.id, role: user.role };
-    return {
-      access_token: this.jwtService.sign(payload),
-      user
-    };
+    await this.usersService.markAsVerified(user.id);
+    user.isEmailVerified = true;
   }
+
+  if (user.isEmailVerified === null || user.isEmailVerified === undefined) {
+    user.isEmailVerified = true; 
+    await this.usersService.markAsVerified(user.id);
+  }
+
+  // --- ГЕНЕРУЄМО ПРАВА (RULES) ТАКОЖ ДЛЯ GOOGLE ЮЗЕРА ---
+  const ability = this.caslAbilityFactory.createForUser(user);
+  const rules = (ability.rules as any[]).map(rule => ({
+    ...rule,
+    subject: typeof rule.subject === 'function' 
+      ? rule.subject.name 
+      : rule.subject
+  }));
+
+  const payload = { email: user.email, sub: user.id, role: user.role };
+
+  console.log('user isEmailVerified? ' + user.isEmailVerified);
+  
+  return {
+    access_token: this.jwtService.sign(payload),
+    user,
+    userId: user.id,
+    rules, // Тепер GraphQL не поверне помилку 400
+    message: 'Успішний вхід через Google'
+  };
+}
 
 }
