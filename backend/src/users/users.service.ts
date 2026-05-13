@@ -6,6 +6,8 @@ import { User } from './user.entity';
 import * as bcrypt from 'bcrypt';
 import { RegisterInput } from '../auth/dto/register.input';
 import { v4 as uuidv4 } from 'uuid';
+import { UserRole } from 'src/enums/user-role.enum';
+import { UserStatus } from './enums/user-status.enum';
 
 
 @Injectable()
@@ -89,6 +91,16 @@ export class UsersService {
     }
     
     return user;
+  }
+
+  async updateStatus(id: string, status: UserStatus): Promise<User> {
+    await this.usersRepository.update(id, { status });
+    return this.findOneById(id);
+  }
+
+  async countByRole(role?: UserRole): Promise<number> {
+    if (role) return this.usersRepository.count({ where: { role } });
+    return this.usersRepository.count();
   }
 
   async updateVerificationToken(userId: string | number, token: string, expiresAt: Date): Promise<User> {

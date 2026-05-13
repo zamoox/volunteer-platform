@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { ObjectType, Field, ID, HideField } from '@nestjs/graphql';
 import { UserRole } from '../enums/user-role.enum';
+import { UserStatus } from './enums/user-status.enum';
 // import { Organization } from '../organizations/organization.entity';
 
 @ObjectType()
@@ -15,6 +16,10 @@ export class User {
   @Field(() => ID)
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  @Field(() => String)
+  @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
+  status: UserStatus;
 
   @Field()
   @Column({ unique: true })
@@ -32,8 +37,8 @@ export class User {
   @Column({ nullable: true })
   lastName?: string;
 
-  @Field({ nullable: true }) // Робимо видимим для GraphQL
-  @Column({ nullable: true }) // Додаємо в колонку БД
+  @Field({ nullable: true }) 
+  @Column({ nullable: true }) 
   phone?: string;
 
   @Field(() => String)
