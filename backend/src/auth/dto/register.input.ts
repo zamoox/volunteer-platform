@@ -42,4 +42,5 @@ export class RegisterInput {
   @IsOptional()
   @IsString()
   city?: string;
+
 }
