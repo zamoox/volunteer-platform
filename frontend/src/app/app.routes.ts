@@ -42,8 +42,13 @@ export const routes: Routes = [
       { path: 'organization', component: OrganizationDashboardComponent },
     ]
   },
-  { path: 'admin', component: AdminPanelComponent },
-    {
+  { path: 'fadmin', component: AdminPanelComponent },
+  {
+    path: 'admin',
+    // Ліниве завантаження модуля адмінки
+    loadChildren: () => import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES)
+  },
+  {
     path: 'organization/setup',
     loadComponent: () => import('./features/organizations/components/organization-setup/organization-setup.component')
       .then(m => m.OrganizationSetupComponent),

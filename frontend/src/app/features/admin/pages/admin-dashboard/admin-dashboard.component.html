@@ -1,0 +1,24 @@
+<div class="min-h-screen bg-slate-50 pt-28 pb-12 px-4 md:px-8" 
+     *ngIf="{ stats: stats$ | async, users: users$ | async } as data">
+  <div class="max-w-[1400px] mx-auto space-y-8">
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <app-admin-stats-card label="Спільнота" [value]="data.stats?.totalUsers" variant="dark">
+        <div class="text-[10px] font-bold bg-white/10 text-white px-3 py-1 rounded-xl border border-white/5 uppercase">Юзерів</div>
+      </app-admin-stats-card>
+
+      <app-admin-stats-card label="Верифікація" [value]="data.stats?.pendingOrganizations" labelClass="text-amber-500">
+        <div class="flex items-center gap-2 px-3 py-1 bg-amber-50 rounded-xl border border-amber-100">
+          <div class="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+          <span class="text-[10px] font-black uppercase text-amber-600">Очікують</span>
+        </div>
+      </app-admin-stats-card>
+
+      <app-admin-stats-card label="Активність" [value]="data.stats?.totalRequests" labelClass="text-blue-500">
+        <span class="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded-xl">Запитів</span>
+      </app-admin-stats-card>
+    </div>
+
+    <app-admin-users-table [users]="data.users" (ban)="handleBan($event)"></app-admin-users-table>
+  </div>
+</div>
