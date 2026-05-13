@@ -15,7 +15,7 @@ import { Observable } from 'rxjs';
 import { CreateRequestData } from '@core/models';
 import { ModalComponent } from '@shared/components/modal/modal.component';
 import { ModalService } from '@core/services/modal.service';
-import { ToastService } from '@core/services';
+import { AuthService, ToastService } from '@core/services';
 import { CaslService } from '@core/casl/services/casl.service';
 import { VolunteerRequestsStore } from '@features/requests/services/volunteer-requests-store.service';
 
@@ -37,7 +37,14 @@ export class MapComponent implements OnInit, AfterViewInit {
   private cdr = inject(ChangeDetectorRef);
   private modalService = inject(ModalService);
   private toastService = inject(ToastService);
+  private authService = inject(AuthService);
   private caslService = inject(CaslService);
+
+
+  // Додаємо публічну властивість для шаблону
+  public user$ = this.authService.currentUser$;
+
+  // Додаємо публічну властивість для шаблону
 
   public store = inject(VolunteerRequestsStore);
   

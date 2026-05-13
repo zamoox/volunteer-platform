@@ -17,6 +17,7 @@ export type MapCreateRequestPayload = { lat: number; lng: number; address: strin
 export class MapViewComponent implements AfterViewInit, OnChanges {
   private zone = inject(NgZone);
   private injector = inject(EnvironmentInjector);
+  @Input() currentUserId?: string;
 
   @ViewChild('mapEl', { static: true }) private mapEl!: ElementRef<HTMLDivElement>;
 
@@ -46,35 +47,62 @@ export class MapViewComponent implements AfterViewInit, OnChanges {
     }
   }
 
-    private renderMarkers(requests: any[]): void {
-    if (!this.map) return;
+private renderMarkers(requests: any[]): void {
+  if (!this.map) return;
+  this.markersClusterGroup.clearLayers();
+  if (!requests?.length) return;
 
-    this.markersClusterGroup.clearLayers();
-    if (!requests?.length) return;
+  const newMarkers = requests.map((req) => {
+    const category = this.categories?.find((c) => c.id === req.category);
 
-    const newMarkers = requests.map((req) => {
-      const category = this.categories?.find((c) => c.id === req.category);
+    // 1. Визначаємо, чи запит "мій" (як і раніше)
+    const isMine = !!(this.currentUserId && (
+      req.organization?.userId === this.currentUserId || 
+      req.volunteerId === this.currentUserId
+    ));
 
-      const customIcon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="background-color:${category?.color || '#6b7280'}; width:30px; height:30px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; border:2px solid white;">
-                <span style="transform:rotate(45deg); font-size:14px;">${category?.label.split(' ')[0] || '📍'}</span>
-               </div>`,
-        iconSize: [30, 30],
-        iconAnchor: [15, 30],
-      });
+    // const isOpen = req.status === 'open';
+    const isInProgress = req.status === 'in_progress';
 
-      const marker = L.marker([req.location.lat, req.location.lng], { icon: customIcon });
-      marker.on('click', () =>
-        this.zone.run(() => {
-          this.openRequestPopup(req);
-        })
-      );
-      return marker;
+    let borderColor = '#ffffff'; // дефолтний білий
+    let animationClass = '';
+
+    if (isInProgress) {
+      borderColor = '#2563eb'; // синій (Tailwind primary)
+      animationClass = 'marker-pulse-blue';
+    }
+
+    const customIcon = L.divIcon({
+      className: 'custom-marker-wrapper',
+      html: `
+        <div class="${animationClass}" style="
+          background-color: ${category?.color || '#6b7280'}; 
+          width: 30px; height: 30px; 
+          border-radius: 50% 50% 50% 0; 
+          transform: rotate(-45deg); 
+          display: flex; align-items: center; justify-content: center; 
+          border: 3px solid ${borderColor};
+          box-shadow: ${isMine ? '0 0 10px rgba(0,0,0,0.3)' : 'none'};
+        ">
+          <span style="transform: rotate(45deg); font-size: 14px;">
+            ${ category?.label.split(' ')[0] }
+          </span>
+        </div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
     });
 
-    this.markersClusterGroup.addLayers(newMarkers);
-  }
+    const marker = L.marker([req.location.lat, req.location.lng], { 
+      icon: customIcon,
+      zIndexOffset: isInProgress ? 1000 : 0 // Пріоритет на карті для активних задач
+    });
+
+    marker.on('click', () => this.zone.run(() => this.openRequestPopup(req)));
+    return marker;
+  });
+
+  this.markersClusterGroup.addLayers(newMarkers);
+}
 
   getCenter(): L.LatLng | null {
     return this.map ? this.map.getCenter() : null;

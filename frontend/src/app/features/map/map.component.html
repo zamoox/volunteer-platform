@@ -22,7 +22,8 @@
       [categories]="categories"
       (requestSelected)="onRequestSelectedFromMap($event)"
       (createRequestRequested)="onMapClickRequested($event.lat, $event.lng)"
-      (createRequestConfirmed)="onMapCreateConfirmed($event)">
+      (createRequestConfirmed)="onMapCreateConfirmed($event)"
+      [currentUserId]="(user$ | async)?.id">
     </app-map-view>
 
     <!-- Модальні компоненти (z-index має бути > 1000 всередині них) -->
