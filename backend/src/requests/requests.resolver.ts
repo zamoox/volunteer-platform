@@ -29,7 +29,7 @@ export class RequestsResolver {
     @CurrentUser() user: JwtUser,
     @Args('input') input: CreateVolunteerRequestInput,
   ): Promise<VolunteerRequest> {
-    return this.requestsService.create(user.userId, input);
+    return this.requestsService.create(user.id, input);
   }
 
   @Mutation(() => VolunteerRequest)
@@ -48,7 +48,7 @@ export class RequestsResolver {
     @CurrentUser() user: JwtUser,
     @Args('requestId') requestId: string,
   ): Promise<VolunteerRequest> {
-    return this.requestsService.acceptRequest(requestId, user.userId);
+    return this.requestsService.acceptRequest(requestId, user.id);
   }
 
   // Організація або адмін змінюють статус
@@ -74,7 +74,7 @@ export class RequestsResolver {
   @Query(() => [VolunteerRequest])
   @UseGuards(JwtAuthGuard)
   async getMyRequests(@CurrentUser() user: JwtUser) {
-    return this.requestsService.getMyRequests(user.userId);
+    return this.requestsService.getMyRequests(user.id);
   }
 
   @Mutation(() => Boolean)

@@ -77,9 +77,4 @@ export class User {
   @HideField()
   @Column({ type: 'simple-array', nullable: true })
   twoFactorRecoveryCodes?: string[];
-
-  // Зв'язок: якщо роль ORGANIZATION — тут буде профіль організації
-  // @Field(() => Organization, { nullable: true })
-  // @OneToOne(() => Organization, (org) => org.user, { nullable: true, eager: true })
-  // organization?: Organization;
 }

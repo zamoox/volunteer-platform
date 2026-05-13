@@ -20,7 +20,7 @@ export class VolunteerProfileResolver {
   async myVolunteerProfile(
     @CurrentUser() user: JwtUser,
   ): Promise<VolunteerProfile | null> {
-    return this.volunteerProfileService.findMineWithReviews(user.userId);
+    return this.volunteerProfileService.findMineWithReviews(user.id);
   }
 
   @ResolveField(() => [VolunteerRequest])

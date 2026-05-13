@@ -19,7 +19,7 @@ export class OrganizationProfileResolver {
     @CurrentUser() user: JwtUser,
     @Args('input') input: CreateOrganizationInput,
   ): Promise<OrganizationProfile> {
-    return this.service.create(user.userId, input);
+    return this.service.create(user.id, input);
   }
 
   @Query(() => OrganizationProfile, { nullable: true })
@@ -27,6 +27,6 @@ export class OrganizationProfileResolver {
   async myOrganizationProfile(
     @CurrentUser() user: JwtUser,
   ): Promise<OrganizationProfile | null> {
-    return this.service.findByUserId(user.userId);
+    return this.service.findByUserId(user.id);
   }
 }

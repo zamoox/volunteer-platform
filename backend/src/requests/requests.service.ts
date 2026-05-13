@@ -85,7 +85,7 @@ export class RequestsService {
     if (!request) throw new NotFoundException('Запит не знайдено');
 
     const userEntity = new User();
-    userEntity.id = currentUser.userId;
+    userEntity.id = currentUser.id;
     userEntity.role = currentUser.role as UserRole;
 
     const ability = this.caslAbilityFactory.createForUser(userEntity);
@@ -176,7 +176,7 @@ export class RequestsService {
     }
 
     const userEntity = new User();
-    userEntity.id = currentUser.userId;
+    userEntity.id = currentUser.id;
     userEntity.role = currentUser.role as UserRole;
 
     const ability = this.caslAbilityFactory.createForUser(userEntity);
@@ -220,7 +220,7 @@ export class RequestsService {
         throw new NotFoundException('Помилка завантаження даних запиту');
       }
 
-      if (fullReq.organization.userId !== currentUser.userId) {
+      if (fullReq.organization.userId !== currentUser.id) {
         throw new ForbiddenException('Лише власник організації може завершити цей запит');
       }
 
@@ -322,7 +322,7 @@ export class RequestsService {
     if (!request) throw new NotFoundException('Запит не знайдено');
 
     const userEntity = new User();
-    userEntity.id = currentUser.userId;
+    userEntity.id = currentUser.id;
     userEntity.role = currentUser.role as UserRole;
 
     const ability = this.caslAbilityFactory.createForUser(userEntity);

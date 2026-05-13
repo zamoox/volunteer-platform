@@ -2,7 +2,7 @@
 // Це те що повертає jwt.strategy.ts -> validate()
 // і що @CurrentUser() дає в resolvers
 export class JwtUser {
-  userId: string;  // payload.sub
+  id: string;  // payload.sub
   email: string;
   role: string;    // UserRole enum value
 }
