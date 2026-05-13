@@ -24,6 +24,9 @@ export const LOGIN_WITH_2FA_MUTATION = gql`
   mutation LoginWith2FA($userId: String!, $code: String!) {
     loginWith2FA(userId: $userId, code: $code) {
       access_token
+      require2FA       
+      userId           
+      message
       user {
         ...UserFields
       }

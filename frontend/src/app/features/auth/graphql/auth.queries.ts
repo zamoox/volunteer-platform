@@ -5,13 +5,20 @@ export const GET_PROFILE = gql`
   query GetProfile {
     me {
       user {
-        ...UserFields
+        id
+        email
+        firstName
+        role
+        city
+        region
+        isEmailVerified
+        isTwoFactorEnabled
       }
       rules {
-        ...RuleFields
+        action
+        subject
+        conditions
       }
     }
   }
-  ${USER_FIELDS}
-  ${RULE_FIELDS}
 `;

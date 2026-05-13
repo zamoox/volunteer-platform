@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, catchError, map, Observable, of, tap } from 'rxjs'; // Додали 'of'
+import { BehaviorSubject, catchError, map, Observable, of, take, tap } from 'rxjs'; // Додали 'of'
 import { Router } from '@angular/router';
 import { Apollo, gql } from 'apollo-angular';
 import { User } from '../models/user.model';
@@ -211,6 +211,7 @@ export class AuthService {
       fetchPolicy: 'network-only' 
     }).pipe(
       map(result => {
+        console.log(result);
         // Перевіряємо вкладеність me.user
         if (!result.data || !result.data.me || !result.data.me.user) {
           throw new Error('Профіль не знайдено');
@@ -218,6 +219,7 @@ export class AuthService {
         return result.data.me; // Повертаємо { user, rules }
       }),
       tap(({ user, rules }) => {
+        console.log(`${user} ${rules}`)
         if (this.getToken()) {
           this.handleAuthentication(this.getToken() || '', user, rules);
         }
@@ -230,28 +232,43 @@ export class AuthService {
   }
 
 handleAuthentication(token: string, user: User | null, rules: any[] = []) {
-  if (token) {
-    localStorage.setItem(this.TOKEN_KEY, token);
+
+  if (!token) {
+    this.logout();
+    return;
   }
+
+  localStorage.setItem(this.TOKEN_KEY, token);
   
-  if (rules && rules.length > 0) {
-    localStorage.setItem(this.RULES_KEY, JSON.stringify(rules));
-    this.caslService.updateAbility(rules);
+  if (user && rules?.length > 0) {
+    this.saveSessionData(user, rules);
+    return;
   }
-  
-  if (user) {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    this.currentUserSubject.next(user);
-  } else if (token) {
-    // Тільки якщо є токен, але немає юзера (Google callback)
-    this.getCurrentUser().subscribe({
-      next: (res) => {
-        // res тепер { user, rules } завдяки мапуванню вище
-        console.log('Профіль завантажено після Google');
-      },
-      error: (err) => console.error('Критична помилка завантаження профіля:', err)
-    });
-  }
+
+  // 4. Сценарій Б: Тільки токен (Google OAuth редирект)
+  // Використовуємо take(1) для автоматичного відключення від стріму
+  this.getCurrentUser().pipe(take(1)).subscribe({
+    next: (response: any) => {
+      console.log(response + ' GET CURRENT USER METHOD FRONTEND')
+      if (response?.user && response?.rules) {
+        this.saveSessionData(response.user, response.rules);
+      }
+    },
+    error: (err) => {
+      console.error('Failed to hydrate profile after OAuth:', err);
+      this.logout(); // Якщо не вдалося завантажити профіль — сесія недійсна
+    }
+  });
+}
+
+private saveSessionData(user: User, rules: any[]): void {
+  // Зберігаємо в Storage
+  localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+  localStorage.setItem(this.RULES_KEY, JSON.stringify(rules));
+
+  // Оновлюємо реактивні стани
+  this.caslService.updateAbility(rules);
+  this.currentUserSubject.next(user);
 }
  
 }
