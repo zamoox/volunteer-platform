@@ -19,11 +19,12 @@ export class RegisterComponent {
 
   registerForm = new FormGroup({
     userType: new FormControl('individual', [Validators.required]),
-    name: new FormControl('', [Validators.required, Validators.minLength(2)]),
     email: new FormControl('', [Validators.required, Validators.email]),
+    password: new FormControl('', [Validators.required, Validators.minLength(6)]),
+    name: new FormControl('', [Validators.required, Validators.minLength(2)]),
+    phone: new FormControl('', [Validators.required, Validators.pattern('^[0-9+]{10,13}$')]),
     region: new FormControl('', [Validators.required]),
     city: new FormControl('', [Validators.required]),
-    password: new FormControl('', [Validators.required, Validators.minLength(6)])
   });
 
   isLoading = false;
@@ -39,6 +40,8 @@ export class RegisterComponent {
   get currentUserType() {
     return this.registerForm.get('userType')?.value;
   }
+
+  
 
   isInvalid(controlName: string): boolean {
     const control = this.registerForm.get(controlName);

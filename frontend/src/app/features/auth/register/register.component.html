@@ -1,158 +1,130 @@
 <div class="min-h-screen flex items-center justify-center bg-slate-50 p-6 font-sans">
-  <!-- Основний контейнер -->
   <div 
-    class="w-full max-w-lg rounded-[2.5rem] shadow-2xl p-10 border transition-all duration-500 ease-in-out"
+    class="w-full max-w-lg rounded-[2.5rem] shadow-2xl shadow-slate-200/50 p-12 border transition-all duration-500 ease-in-out"
     [class.bg-white]="currentUserType === 'individual'"
     [class.border-slate-100]="currentUserType === 'individual'"
-    [class.bg-blue-600]="currentUserType === 'organization'"
-    [class.border-blue-500]="currentUserType === 'organization'"
+    [class.bg-slate-900]="currentUserType === 'organization'"
+    [class.border-slate-800]="currentUserType === 'organization'"
   >
     
-    <!-- Заголовок -->
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4 transition-colors duration-500"
-           [class.bg-blue-50]="currentUserType === 'individual'"
-           [class.bg-white/20]="currentUserType === 'organization'">
+    <div class="text-center mb-10">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-3xl mb-6 shadow-lg transition-all duration-500"
+           [class.bg-blue-600]="currentUserType === 'individual'"
+           [class.bg-white]="currentUserType === 'organization'">
         <span class="text-2xl">{{ currentUserType === 'individual' ? '✨' : '🏢' }}</span>
       </div>
       <h2 class="text-3xl font-black tracking-tight leading-none transition-colors duration-500"
-          [class.text-slate-900]="currentUserType === 'individual'"
+          [class.text-slate-950]="currentUserType === 'individual'"
           [class.text-white]="currentUserType === 'organization'">
-        {{ currentUserType === 'individual' ? 'Реєстрація' : 'Реєстрація ГО' }}
+        {{ currentUserType === 'individual' ? 'Створити профіль' : 'Реєстрація ГО' }}
       </h2>
     </div>
 
-    <form [formGroup]="registerForm" (ngSubmit)="onRegister()" class="space-y-4">
+    <form [formGroup]="registerForm" (ngSubmit)="onRegister()" class="space-y-5">
       
-      <!-- Перемикач типу (Toggle) -->
-      <div class="flex p-1 rounded-2xl border transition-all duration-500"
+      <div class="flex p-1.5 rounded-2xl border transition-all duration-500"
            [class.bg-slate-50]="currentUserType === 'individual'"
            [class.border-slate-100]="currentUserType === 'individual'"
-           [class.bg-blue-700/40]="currentUserType === 'organization'"
-           [class.border-white/20]="currentUserType === 'organization'">
+           [class.bg-slate-800/50]="currentUserType === 'organization'"
+           [class.border-white/5]="currentUserType === 'organization'">
         
-        <label class="flex-1 text-center py-3 rounded-xl cursor-pointer transition-all font-bold text-sm"
+        <label class="flex-1 text-center py-3 rounded-xl cursor-pointer transition-all font-black text-[10px] uppercase tracking-widest"
                [class.bg-white]="currentUserType === 'individual'"
                [class.text-blue-600]="currentUserType === 'individual'"
-               [class.text-blue-100]="currentUserType === 'organization'">
+               [class.text-slate-500]="currentUserType === 'organization'">
           <input type="radio" formControlName="userType" value="individual" class="hidden">
-          Фізична особа
+          Волонтер
         </label>
         
-        <label class="flex-1 text-center py-3 rounded-xl cursor-pointer transition-all font-bold text-sm"
-               [class.bg-blue-500]="currentUserType === 'organization'"
+        <label class="flex-1 text-center py-3 rounded-xl cursor-pointer transition-all font-black text-[10px] uppercase tracking-widest"
+               [class.bg-slate-700]="currentUserType === 'organization'"
                [class.text-white]="currentUserType === 'organization'"
                [class.text-slate-400]="currentUserType === 'individual'">
           <input type="radio" formControlName="userType" value="organization" class="hidden">
-          Фонд / Організація
+          Організація
         </label>
       </div>
 
-      <!-- Ім'я / Назва ГО -->
-      <div class="space-y-1">
-        <label 
-          class="text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors duration-500"
-          [class.text-slate-400]="currentUserType === 'individual'"
-          [class.text-white]="currentUserType === 'organization'"
-        >
-          {{ currentUserType === 'individual' ? "Ім'я та Прізвище" : "Назва організації" }}
-        </label>
-        <input formControlName="name" type="text" class="form-input" [class.border-red-400]="isInvalid('name')">
-        <span *ngIf="isInvalid('name')" class="text-[10px] font-bold block ml-1 mt-1" [class.text-red-500]="currentUserType === 'individual'" [class.text-red-200]="currentUserType === 'organization'">
-          {{ getErrorMessage('name') }}
-        </span>
-      </div>
-
-      <!-- Email -->
-      <div class="space-y-1">
-        <label 
-          class="text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors duration-500"
-          [class.text-slate-400]="currentUserType === 'individual'"
-          [class.text-white]="currentUserType === 'organization'"
-        >
-          Email
-        </label>
-        <input formControlName="email" type="email" class="form-input" [class.border-red-400]="isInvalid('email')">
-        <span *ngIf="isInvalid('email')" class="text-[10px] font-bold block ml-1 mt-1" [class.text-red-500]="currentUserType === 'individual'" [class.text-red-200]="currentUserType === 'organization'">
-          {{ getErrorMessage('email') }}
-        </span>
-      </div>
-
-      <!-- Локація -->
-      <div class="grid grid-cols-2 gap-4">
+      <div class="space-y-4">
         <div class="space-y-1">
-          <label 
-            class="text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors duration-500"
-            [class.text-slate-400]="currentUserType === 'individual'"
-            [class.text-white]="currentUserType === 'organization'"
-          >
-            Область
+          <label class="text-[10px] font-black uppercase tracking-widest ml-1 opacity-50"
+                 [class.text-slate-900]="currentUserType === 'individual'"
+                 [class.text-white]="currentUserType === 'organization'">
+            {{ currentUserType === 'individual' ? "Ім'я та Прізвище" : "Назва організації" }}
           </label>
-          <select formControlName="region" class="form-input" [class.border-red-400]="isInvalid('region')">
-            <option value="" disabled selected>Оберіть...</option>
-            <option *ngFor="let r of regions" [value]="r">{{r}}</option>
-          </select>
-          <span *ngIf="isInvalid('region')" class="text-[10px] font-bold block ml-1 mt-1" [class.text-red-500]="currentUserType === 'individual'" [class.text-red-200]="currentUserType === 'organization'">
-            {{ getErrorMessage('region') }}
-          </span>
+          <input formControlName="name" type="text" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none transition-all focus:bg-white focus:border-slate-950"
+                 [class.bg-slate-800/50]="currentUserType === 'organization'"
+                 [class.text-white]="currentUserType === 'organization'"
+                 [class.border-white/10]="currentUserType === 'organization'">
         </div>
+
         <div class="space-y-1">
-          <label 
-            class="text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors duration-500"
-            [class.text-slate-400]="currentUserType === 'individual'"
-            [class.text-white]="currentUserType === 'organization'"
-          >
-            Місто
-          </label>
-          <input formControlName="city" type="text" placeholder="Київ" class="form-input" [class.border-red-400]="isInvalid('city')">
-          <span *ngIf="isInvalid('city')" class="text-[10px] font-bold block ml-1 mt-1" [class.text-red-500]="currentUserType === 'individual'" [class.text-red-200]="currentUserType === 'organization'">
-            {{ getErrorMessage('city') }}
-          </span>
+          <label class="text-[10px] font-black uppercase tracking-widest ml-1 opacity-50"
+                 [class.text-slate-900]="currentUserType === 'individual'"
+                 [class.text-white]="currentUserType === 'organization'">Номер телефону</label>
+          <input formControlName="phone" type="tel" placeholder="+380XXXXXXXXX" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none transition-all focus:bg-white focus:border-slate-950"
+                 [class.bg-slate-800/50]="currentUserType === 'organization'"
+                 [class.text-white]="currentUserType === 'organization'"
+                 [class.border-white/10]="currentUserType === 'organization'">
+          <p *ngIf="isInvalid('phone')" class="text-[9px] text-red-500 font-bold ml-1 uppercase">{{ getErrorMessage('phone') }}</p>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[10px] font-black uppercase tracking-widest ml-1 opacity-50"
+                 [class.text-slate-900]="currentUserType === 'individual'"
+                 [class.text-white]="currentUserType === 'organization'">Електронна пошта</label>
+          <input formControlName="email" type="email" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none transition-all focus:bg-white focus:border-slate-950"
+                 [class.bg-slate-800/50]="currentUserType === 'organization'"
+                 [class.text-white]="currentUserType === 'organization'"
+                 [class.border-white/10]="currentUserType === 'organization'">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-1">
+            <label class="text-[10px] font-black uppercase tracking-widest ml-1 opacity-50"
+                   [class.text-slate-900]="currentUserType === 'individual'"
+                   [class.text-white]="currentUserType === 'organization'">Область</label>
+            <select formControlName="region" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none transition-all appearance-none focus:bg-white"
+                    [class.bg-slate-800/50]="currentUserType === 'organization'"
+                    [class.text-white]="currentUserType === 'organization'"
+                    [class.border-white/10]="currentUserType === 'organization'">
+              <option value="" disabled selected>Оберіть...</option>
+              <option *ngFor="let r of regions" [value]="r">{{r}}</option>
+            </select>
+          </div>
+          <div class="space-y-1">
+            <label class="text-[10px] font-black uppercase tracking-widest ml-1 opacity-50"
+                   [class.text-slate-900]="currentUserType === 'individual'"
+                   [class.text-white]="currentUserType === 'organization'">Місто</label>
+            <input formControlName="city" type="text" placeholder="Київ" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none transition-all focus:bg-white focus:border-slate-950"
+                   [class.bg-slate-800/50]="currentUserType === 'organization'"
+                   [class.text-white]="currentUserType === 'organization'"
+                   [class.border-white/10]="currentUserType === 'organization'">
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[10px] font-black uppercase tracking-widest ml-1 opacity-50"
+                 [class.text-slate-900]="currentUserType === 'individual'"
+                 [class.text-white]="currentUserType === 'organization'">Пароль</label>
+          <input formControlName="password" type="password" placeholder="••••••••" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none transition-all focus:bg-white focus:border-slate-950"
+                 [class.bg-slate-800/50]="currentUserType === 'organization'"
+                 [class.text-white]="currentUserType === 'organization'"
+                 [class.border-white/10]="currentUserType === 'organization'">
         </div>
       </div>
 
-      <!-- Пароль -->
-      <div class="space-y-1">
-        <label 
-          class="text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors duration-500"
-          [class.text-slate-400]="currentUserType === 'individual'"
-          [class.text-white]="currentUserType === 'organization'"
-        >
-          Пароль
-        </label>
-        <input formControlName="password" type="password" placeholder="••••••••" class="form-input" [class.border-red-400]="isInvalid('password')">
-        <span *ngIf="isInvalid('password')" class="text-[10px] font-bold block ml-1 mt-1" [class.text-red-500]="currentUserType === 'individual'" [class.text-red-200]="currentUserType === 'organization'">
-          {{ getErrorMessage('password') }}
-        </span>
-      </div>
-
-      <!-- Кнопка -->
-      <!-- Додано registerForm.invalid, disabled:opacity-50 та cursor-not-allowed -->
       <button 
         type="submit" 
         [disabled]="registerForm.invalid || isLoading" 
-        class="w-full mt-6 py-5 rounded-2xl font-black text-sm transition-all duration-300 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none active:scale-[0.98]"
-        [class.bg-blue-600]="currentUserType === 'individual'"
+        class="w-full mt-4 py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed"
+        [class.bg-slate-950]="currentUserType === 'individual'"
         [class.text-white]="currentUserType === 'individual'"
         [class.bg-white]="currentUserType === 'organization'"
-        [class.text-blue-600]="currentUserType === 'organization'"
+        [class.text-slate-950]="currentUserType === 'organization'"
       >
-        {{ isLoading ? 'Реєстрація...' : 'Зареєструватися' }}
+        {{ isLoading ? 'Реєстрація...' : 'Створити акаунт' }}
       </button>
     </form>
-    
-    <!-- Посилання на логін -->
-    <p class="mt-8 text-center text-[11px] font-black uppercase tracking-widest transition-colors duration-500"
-       [class.text-slate-400]="currentUserType === 'individual'"
-       [class.text-blue-200]="currentUserType === 'organization'">
-      Вже є акаунт? 
-      <a routerLink="/login" class="transition-colors ml-1 underline decoration-2 underline-offset-4"
-         [class.text-blue-600]="currentUserType === 'individual'"
-         [class.hover:text-slate-900]="currentUserType === 'individual'"
-         [class.text-white]="currentUserType === 'organization'"
-         [class.hover:text-blue-100]="currentUserType === 'organization'">
-        Увійти
-      </a>
-    </p>
   </div>
 </div>
