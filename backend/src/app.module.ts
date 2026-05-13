@@ -16,6 +16,7 @@ import { OrganizationProfile } from './organizations/organization-profile.entity
 import { VolunteerProfile } from './volunteers/volunteer-profile.entity';
 import { Review } from './reviews/review.entity';
 import { VolunteerProfileModule } from './volunteers/volunteer-profile.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { VolunteerProfileModule } from './volunteers/volunteer-profile.module';
     AuthModule,
     OrganizationProfileModule,
     VolunteerProfileModule,
+    AdminModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
