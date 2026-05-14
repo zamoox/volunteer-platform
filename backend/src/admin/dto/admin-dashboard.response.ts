@@ -1,6 +1,15 @@
 import { Field, Int, ObjectType } from "@nestjs/graphql";
 
 @ObjectType()
+export class ChartDataPoint {
+  @Field()
+  date: string; // Формат "DD.MM"
+
+  @Field(() => Int)
+  count: number;
+}
+
+@ObjectType()
 export class AdminDashboardResponse {
   @Field(() => Int)
   totalUsers: number;
@@ -11,5 +20,7 @@ export class AdminDashboardResponse {
   @Field(() => Int)
   totalRequests: number;
 
-  // Можна додати дані для графіків
+  @Field(() => [ChartDataPoint]) // Нове поле для графіка
+  activityChart: ChartDataPoint[];
+
 }

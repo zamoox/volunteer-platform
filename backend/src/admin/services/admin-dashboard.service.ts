@@ -2,9 +2,9 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { OrganizationProfile } from "src/organizations/organization-profile.entity";
 import { VolunteerRequest } from "src/requests/request.entity";
-import { AdminDashboardResponse } from "../dto/admin-dashboard.response";
+import { AdminDashboardResponse, ChartDataPoint } from "../dto/admin-dashboard.response";
 import { UsersService } from "src/users/users.service";
-import { Repository } from "typeorm";
+import { Repository, MoreThanOrEqual } from "typeorm";
 
 @Injectable()
 export class AdminDashboardService {
@@ -16,11 +16,46 @@ export class AdminDashboardService {
 
   async getStats(): Promise<AdminDashboardResponse> {
     const [totalUsers, pendingOrgs, totalRequests] = await Promise.all([
-      this.usersService.countByRole(), // Скільки всього юзерів
-      this.orgRepo.count({ where: { isVerified: false } }), // Скільки фондів чекають
-      this.requestRepo.count(), // Скільки всього запитів на мапі
+      this.usersService.countByRole(),
+      this.orgRepo.count({ where: { isVerified: false } }),
+      this.requestRepo.count(),
     ]);
 
-    return { totalUsers, pendingOrganizations: pendingOrgs, totalRequests };
+    const activityChart = await this.getActivityStats();
+
+    return { 
+      totalUsers, 
+      pendingOrganizations: pendingOrgs, 
+      totalRequests,
+      activityChart 
+    };
+  }
+
+  private async getActivityStats(): Promise<ChartDataPoint[]> {
+    const days = 7;
+    const chartData: ChartDataPoint[] = [];
+    const now = new Date();
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      const count = await this.requestRepo.count({
+        where: {
+          createdAt: MoreThanOrEqual(date),
+        }
+      });
+
+      chartData.push({
+        date: `${date.getDate()}.${date.getMonth() + 1}`,
+        count
+      });
+    }
+
+    return chartData;
   }
 }

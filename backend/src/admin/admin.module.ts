@@ -12,6 +12,10 @@ import { AdminLog } from './entities/admin-log.entity';
 import { OrganizationProfile } from 'src/organizations/organization-profile.entity';
 import { AdminDashboardService } from './services/admin-dashboard.service';
 import { AdminDashboardResolver } from './resolvers/admin-dashboard.resolver';
+import { AdminRequestsService } from './services/admin-requests.service';
+import { AdminRequestsResolver } from './resolvers/admin-requests.resolver';
+import { AdminOrganizationsResolver } from './resolvers/admin-organizations.resolver';
+import { AdminOrganizationsService } from './services/admin-organizations.service';
 
 @Module({
   imports: [
@@ -24,7 +28,8 @@ import { AdminDashboardResolver } from './resolvers/admin-dashboard.resolver';
   providers: [
     AdminUsersService, AdminUsersResolver,
     AdminDashboardService, AdminDashboardResolver,
-    // ... інші сервіси та резолвери
+    AdminRequestsService, AdminRequestsResolver,      
+    AdminOrganizationsService, AdminOrganizationsResolver, 
   ]
 })
 export class AdminModule {}
