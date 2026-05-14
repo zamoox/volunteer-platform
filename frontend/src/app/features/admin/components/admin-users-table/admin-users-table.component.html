@@ -1,53 +1,65 @@
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-slate-50/50">
-              <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Користувач</th>
-              <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Роль</th>
-              <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Статус</th>
-              <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Дії</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr *ngFor="let user of users" class="hover:bg-slate-50/30 transition-all group">
-              <td class="p-6">
-                <div class="flex items-center gap-4">
-                  <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all rotate-2 group-hover:rotate-0">
-                    {{ user.email[0] | uppercase }}
-                  </div>
-                  <div>
-                    <p class="text-sm font-black text-slate-900">{{ user.email }}</p>
-                    <p class="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">{{ user.id.substring(0, 8) }}...</p>
-                  </div>
-                </div>
-              </td>
-              <td class="p-6 text-center">
-                <span class="px-3 py-1 bg-slate-100 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-600">
-                  {{ user.role }}
-                </span>
-              </td>
-              <td class="p-6">
-                <div class="flex justify-center">
-                  <div class="flex items-center gap-2 px-3 py-1 rounded-full border transition-all" 
-                       [ngClass]="user.isEmailVerified ? 'border-emerald-100 bg-emerald-50 text-emerald-600' : 'border-amber-100 bg-amber-50 text-amber-600'">
-                    <div class="w-1.5 h-1.5 rounded-full" [ngClass]="user.isEmailVerified ? 'bg-emerald-500' : 'bg-amber-500'"></div>
-                    <span class="text-[9px] font-black uppercase tracking-widest">
-                      {{ user.isEmailVerified ? 'Активний' : 'Не підтверджено' }}
-                    </span>
-                  </div>
-                </div>
-              </td>
-              <td class="p-6 text-right">
-                <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                  <button title="Блокувати" class="p-3 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all active:scale-90">
-                    🚫
-                  </button>
-                  <button title="Деталі" class="p-3 bg-slate-50 hover:bg-slate-900 text-slate-400 hover:text-white rounded-xl transition-all">
-                    👁️
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+<div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+  <table class="w-full text-left border-separate border-spacing-0">
+    <thead class="table-head">
+      <tr class="bg-slate-900">
+        <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Користувач</th>
+        <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Роль</th>
+        <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Телефон</th>
+        <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Статус</th>
+        <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Деталі</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      <ng-container *ngFor="let user of users">
+        <tr (click)="toggleRow(user.id)" class="zebra-row hover:bg-slate-50 transition-colors cursor-pointer group">
+          <td class="p-6">
+            <div class="flex items-center gap-4">
+              <div class="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center font-black text-[10px] text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all"
+                   [class.bg-slate-900]="expandedElementId === user.id" [class.text-white]="expandedElementId === user.id">
+                {{ user.email[0] | uppercase }}
+              </div>
+              <p class="text-sm font-black text-slate-900">{{ user.email }}</p>
+            </div>
+          </td>
+          <td class="p-6 text-center">
+            <span class="px-3 py-1 bg-slate-100 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-600 border border-slate-200">
+              {{ user.role }}
+            </span>
+          </td>
+          <td class="p-6 text-center">
+            <a [href]="'tel:' + user.phone" (click)="$event.stopPropagation()" 
+              class="text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors">
+              <span class="mr-1">📞</span> {{ user.phone || 'не вказано' }}
+            </a>
+          </td>
+          <td class="p-6 text-center">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border" 
+                 [ngClass]="user.status === 'active' ? 'border-emerald-100 bg-emerald-50 text-emerald-600' : 'border-red-100 bg-red-50 text-red-600'">
+              <span class="text-[9px] font-black uppercase tracking-widest">{{ user.status }}</span>
+            </div>
+          </td>
+          <td class="p-6 text-right">
+            <span class="text-[10px] transition-transform duration-300 inline-block" [class.rotate-180]="expandedElementId === user.id">▼</span>
+          </td>
+        </tr>
+        <tr *ngIf="expandedElementId === user.id" class="zebra-row">
+          <td colspan="4" class="p-8 bg-slate-50/50 border-y border-slate-100 animate-in fade-in slide-in-from-top-2">
+            <div class="grid grid-cols-3 gap-8">
+              <div class="space-y-1">
+                <p class="text-[9px] font-black text-slate-400 uppercase">Локація</p>
+                <p class="text-xs font-bold text-slate-700">{{ user.region || 'Не вказано' }}, {{ user.city }}</p>
+              </div>
+              <div class="space-y-1">
+                <p class="text-[9px] font-black text-slate-400 uppercase">Дата реєстрації</p>
+                <p class="text-xs font-bold text-slate-700">{{ user.createdAt | date:'dd.MM.yyyy HH:mm' }}</p>
+              </div>
+              <div class="flex justify-end">
+                <button (click)="ban.emit({id: user.id, email: user.email})" class="px-4 py-2 bg-red-500 text-white text-[9px] font-black uppercase rounded-xl hover:bg-red-600 transition-all">Ban User</button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </ng-container>
+    </tbody>
+  </table>
+</div>

@@ -12,6 +12,12 @@ import { AdminUser } from '@features/admin/models/admin-user.model';
 export class AdminUsersTableComponent {
   @Input() users: AdminUser[] | null = [];
   @Output() ban = new EventEmitter<{ id: string; email: string }>();
+  
+  expandedElementId: string | null = null;
+
+  toggleRow(id: string) {
+    this.expandedElementId = this.expandedElementId === id ? null : id;
+  }
 
   getRoleClass(role: string): string {
     const roles: any = {

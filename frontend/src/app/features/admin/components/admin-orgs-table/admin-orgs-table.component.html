@@ -1,0 +1,86 @@
+<div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+  <table class="w-full text-left border-separate border-spacing-0">
+    <thead>
+      <tr class="bg-slate-900">
+        <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Організація</th>
+        <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">ЄДРПОУ</th>
+        <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Статус</th>
+        <th class="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Дії</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      <ng-container *ngFor="let org of organizations">
+        
+        <tr (click)="toggleRow(org.id)" class="chess-row cursor-pointer transition-colors group">
+          <td class="p-6">
+            <div class="flex items-center gap-4">
+              <div class="w-6 h-6 flex items-center justify-center transition-transform duration-300"
+                   [class.rotate-180]="expandedElementId === org.id">
+                <span class="text-[10px]">▼</span>
+              </div>
+              <div>
+                <p class="text-sm font-black text-slate-900">{{ org.name }}</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase italic">{{ org.user?.email }}</p>
+              </div>
+            </div>
+          </td>
+          <td class="p-6 text-center font-mono text-xs font-bold text-slate-600">{{ org.edrpou }}</td>
+          <td class="p-6 text-center">
+            <span [ngClass]="org.isVerified ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-amber-600 bg-amber-50 border-amber-100'" 
+                  class="px-3 py-1 rounded-full text-[9px] font-black uppercase border tracking-widest">
+              {{ org.isVerified ? 'Верифіковано' : 'В очікуванні' }}
+            </span>
+          </td>
+          <td class="p-6 text-right">
+            <button *ngIf="!org.isVerified" 
+                    (click)="$event.stopPropagation(); verify.emit(org.id)" 
+                    class="px-4 py-2 bg-slate-900 text-white text-[9px] font-black uppercase rounded-xl hover:bg-emerald-600 transition-all">
+              Верифікувати
+            </button>
+          </td>
+        </tr>
+
+        <tr *ngIf="expandedElementId === org.id" class="chess-row">
+          <td colspan="4" class="p-8 border-y border-slate-100 bg-slate-50/30">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 animate-in fade-in slide-in-from-top-2 duration-300">
+              
+              <div class="space-y-4">
+                <div>
+                  <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Опис діяльності</h4>
+                  <p class="text-xs leading-relaxed text-slate-600">{{ org.description || 'Опис не заповнено користувачем.' }}</p>
+                </div>
+                <div class="pt-4 border-t border-slate-100">
+                  <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Сайт</h4>
+                  <a [href]="org.website" target="_blank" class="text-xs font-bold text-blue-500 hover:underline">
+                    {{ org.website || 'сайт відсутній' }}
+                  </a>
+                </div>
+              </div>
+
+              <div class="space-y-3">
+                <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Завантажені документи</h4>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-400 transition-all cursor-pointer">
+                    <div class="flex items-center gap-3">
+                      <span class="text-lg">📄</span>
+                      <span class="text-[10px] font-black text-slate-700 uppercase">Registration_Certificate.pdf</span>
+                    </div>
+                    <span class="text-[8px] font-bold text-slate-300 uppercase">2.4 MB</span>
+                  </div>
+                  <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-400 transition-all cursor-pointer">
+                    <div class="flex items-center gap-3">
+                      <span class="text-lg">⚖️</span>
+                      <span class="text-[10px] font-black text-slate-700 uppercase">Statute_Final_v2.pdf</span>
+                    </div>
+                    <span class="text-[8px] font-bold text-slate-300 uppercase">5.1 MB</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </td>
+        </tr>
+      </ng-container>
+    </tbody>
+  </table>
+</div>
