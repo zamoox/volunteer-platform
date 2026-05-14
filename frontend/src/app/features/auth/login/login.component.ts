@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { LoadingService } from '@core/services/loading.service';
 import { SpinnerComponent } from '@shared/components';
+import { filter, take } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -53,15 +54,17 @@ export class LoginComponent implements OnInit {
       }
       
       this.authService.login(email, password).subscribe({
-            next: (response) => {
+            next: (data) => {
               // Якщо бекенд просить 2FA
-              if (response.require2FA) {
+              if (data.require2FA) {
                 this.is2FAStep = true; // Перемикаємо UI на форму введення коду
-                this.userIdFor2FA = response.userId; // Зберігаємо ID для наступного запиту
+                this.userIdFor2FA = data.userId; // Зберігаємо ID для наступного запиту
               } 
               // Якщо звичайний логін (2FA вимкнено)
-              else if (response.access_token) {
-                this.router.navigate(['/profile']); // Або куди ти там редиректиш
+              else if (data.access_token) {
+                if (data?.access_token && data?.user) {
+                  this.navigateToDashboard(data.user.role);
+                }
               }
             },
             error: (err) => {
@@ -72,11 +75,25 @@ export class LoginComponent implements OnInit {
   }
 
   private processGoogleLogin(token: string) {
-    // 1. Зберігаємо токен
+    // 1. Запускаємо процес гідрації профілю
     this.authService.handleAuthentication(token, null);
     
-    // 2. Очищуємо URL від токена (з міркувань безпеки) і редиректимо
-    this.router.navigate(['/profile'], { replaceUrl: true });
+    // 2. "Підстерігаємо" момент, коли сервіс отримає дані профілю
+    this.authService.currentUser$.pipe(
+      // Чекаємо, поки в Subject прийде об'єкт юзера (не null)
+      filter(user => !!user), 
+      // Беремо лише перше значення і автоматично відписуємось
+      take(1) 
+    ).subscribe({
+      next: (user) => {
+        // 3. Тепер ми точно знаємо роль і редиректимо
+        this.navigateToDashboard(user.role);
+      },
+      error: () => {
+        // Якщо щось пішло не так, AuthGuard все одно викине на логін
+        this.router.navigate(['/login']);
+      }
+    });
   }
 
   loginWithGoogle() {
@@ -94,14 +111,24 @@ export class LoginComponent implements OnInit {
 
     // Просто робимо підписку, сервіс сам знає, коли показати/приховати спіннер
     this.authService.loginWith2FA(this.userIdFor2FA, this.twoFaCode).subscribe({
-      next: (res) => {
-        if (res?.access_token) this.router.navigate(['/profile']);
+      next: (data) => {
+        if (data?.access_token && data?.user) {
+        this.navigateToDashboard(data.user.role);
+      }
       },
       error: () => {
         this.loginError = true;
         this.twoFaCode = '';
       }
     });
+  }
+
+  private navigateToDashboard(role: string) {
+    if (role === 'admin') {
+    this.router.navigate(['/admin'], { replaceUrl: true });
+    } else {
+      this.router.navigate(['/profile'], { replaceUrl: true });
+    }
   }
 
   togglePassword() {

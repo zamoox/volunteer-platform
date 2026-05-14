@@ -7,6 +7,7 @@ import { VolunteerProfileComponent } from './features/auth/profile/components/vo
 import { OrganizationDashboardComponent } from './features/auth/profile/components/organization-dashboard/organization-dashboard.component';
 import { AdminPanelComponent } from './features/auth/profile/components/admin-panel/admin-panel.component';
 import { roleGuard } from './core/guards/role.guard';
+import { adminGuard } from '@core/guards/admin.guard';
 
 
 export const routes: Routes = [
@@ -45,6 +46,7 @@ export const routes: Routes = [
   { path: 'fadmin', component: AdminPanelComponent },
   {
     path: 'admin',
+    canActivate: [authGuard, adminGuard],
     // Ліниве завантаження модуля адмінки
     loadChildren: () => import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES)
   },

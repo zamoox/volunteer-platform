@@ -1,17 +1,19 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { AuthService } from '../services/auth.service'; // Твій сервіс авторизації
+import { AuthService } from '../services/auth.service';
+import { UserRole } from '../enums/user-role.enum';
 
-export const adminGuard: CanActivateFn = () => {
+export const adminGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  // Перевіряємо роль (наприклад, беремо її з поточного користувача або JWT)
+  const user = authService.getUserFromStorage();
 
-//   if (role === 'admin') {
-//     return true; // Дозволяємо перехід
-//   }
+  if (authService.isLoggedIn() && user?.role === UserRole.ADMIN) {
+    return true;
+  }
 
-  // Якщо це не адмін — мовчки викидаємо на головну (або сторінку 403)
-  return router.parseUrl('/map'); 
+  console.warn('Доступ заборонено: Недостатньо прав для перегляду цієї сторінки');
+  
+  return router.createUrlTree(['/profile']);
 };

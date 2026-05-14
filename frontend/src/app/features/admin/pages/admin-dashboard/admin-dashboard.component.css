@@ -1,0 +1,44 @@
+/* src/app/features/admin/pages/admin-dashboard/admin-dashboard.component.css */
+
+.stats-tab {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  outline: none !important;
+  position: relative;
+  border-radius: 1.5rem; /* Має збігатися з радіусом компонента app-admin-stats-card */
+  overflow: hidden; /* Щоб лінія не вилазила за закруглені кути */
+  background: transparent;
+}
+
+.tab-inactive {
+  opacity: 0.5;
+  transform: scale(0.98);
+  filter: grayscale(1);
+}
+
+.tab-active {
+  opacity: 1;
+  transform: scale(1);
+  filter: grayscale(0);
+  /* М'яка тінь, що піднімає картку */
+  box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+/* Лінія по всій довжині знизу */
+.tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 6px; /* Трохи товстіша для акценту */
+  background: currentColor;
+  z-index: 20;
+}
+
+/* Кольори для активних станів */
+.tab-active-users { background-color: #0f172a; }
+.tab-active-orgs { background-color: #f59e0b; }
+.tab-active-reqs { background-color: #3b82f6; }
+

@@ -7,6 +7,9 @@ import { AdminService } from '@features/admin/services/admin.service';
 import { CommonModule } from '@angular/common';
 import { AdminStatsCardComponent } from '@features/admin/components/admin-stats-card/admin-stats-card.component';
 import { AdminUsersTableComponent } from '@features/admin/components/admin-users-table/admin-users-table.component';
+import { AdminOrgsTableComponent } from '@features/admin/components/admin-orgs-table/admin-orgs-table.component';
+import { AdminRequestsTableComponent } from '@features/admin/components/admin-requests-table/admin-requests-table.component';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 export type AdminTab = 'users' | 'organizations' | 'requests';
 
@@ -16,7 +19,9 @@ export type AdminTab = 'users' | 'organizations' | 'requests';
   imports: [
     CommonModule, 
     AdminStatsCardComponent, 
-    AdminUsersTableComponent
+    AdminUsersTableComponent,
+    AdminOrgsTableComponent,
+    AdminRequestsTableComponent
   ],
   templateUrl: './admin-dashboard.component.html', // Переконайся, що цей шлях вірний
   styleUrl: './admin-dashboard.component.css'    // І цей також
@@ -25,8 +30,10 @@ export class AdminDashboardComponent  {
 
   private adminService = inject(AdminService);
 
-  stats$ = this.adminService.getDashboardStats();
-  users$ = this.adminService.getAllUsers();
+  stats = toSignal(this.adminService.getDashboardStats());
+  users = toSignal(this.adminService.getAllUsers(), { initialValue: [] });
+  organizations = toSignal(this.adminService.getAllOrganizations(), { initialValue: [] });
+  requests = toSignal(this.adminService.getAllRequests(), { initialValue: [] });
 
   activeTab: AdminTab = 'users';
 
@@ -39,6 +46,19 @@ export class AdminDashboardComponent  {
     const reason = prompt(`Причина бану для ${event.email}:`);
     if (reason) {
       this.adminService.banUser(event.id, reason).subscribe();
+    }
+  }
+
+  handleVerifyOrg(id: string) {
+    if (confirm('Підтвердити верифікацію цієї організації?')) {
+      this.adminService.verifyOrganization(id).subscribe();
+    }
+  }
+
+  handleDeleteRequest(id: string) {
+    const reason = prompt('Вкажіть причину видалення запиту:');
+    if (reason) {
+      this.adminService.deleteRequest(id, reason).subscribe();
     }
   }
 }
