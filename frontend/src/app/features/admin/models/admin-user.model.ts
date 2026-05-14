@@ -10,5 +10,7 @@ export interface AdminUser {
   role: UserRole;
   status: UserStatus;
   isEmailVerified: boolean;
-  createdAt: string; // GraphQL повертає дату як ISO string
+  createdAt: string; 
+  region: string;
+  city: string;
 }

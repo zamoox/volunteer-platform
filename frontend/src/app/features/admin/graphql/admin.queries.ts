@@ -6,6 +6,10 @@ export const GET_ADMIN_STATS = gql`
       totalUsers
       pendingOrganizations
       totalRequests
+      activityChart {
+        date
+        count
+      }
     }
   }
 `;
@@ -18,8 +22,51 @@ export const GET_ADMIN_USERS = gql`
       firstName
       role
       status
+      phone
       isEmailVerified
       createdAt
+      region
+      city
+    }
+  }
+`;
+
+export const GET_ADMIN_ORGS = gql`
+  query GetAdminOrgs {
+    adminGetAllOrganizations {
+      id
+      name
+      edrpou
+      isVerified
+      website
+      description
+      createdAt
+      user {      
+        id
+        email
+      }
+    }
+  }
+`;
+
+export const GET_ADMIN_REQUESTS = gql`
+  query GetAdminRequests {
+    adminGetAllRequests {
+      id
+      title
+      category
+      description
+      status
+      createdAt
+      location {
+        address
+      }
+      organization {
+        name
+        user {
+          email
+        }
+      }
     }
   }
 `;
