@@ -8,6 +8,8 @@ import { CommonModule } from '@angular/common';
 import { AdminStatsCardComponent } from '@features/admin/components/admin-stats-card/admin-stats-card.component';
 import { AdminUsersTableComponent } from '@features/admin/components/admin-users-table/admin-users-table.component';
 
+export type AdminTab = 'users' | 'organizations' | 'requests';
+
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
@@ -25,6 +27,13 @@ export class AdminDashboardComponent  {
 
   stats$ = this.adminService.getDashboardStats();
   users$ = this.adminService.getAllUsers();
+
+  activeTab: AdminTab = 'users';
+
+  // Метод для перемикання
+  setActiveTab(tab: AdminTab) {
+    this.activeTab = tab;
+  }
 
   handleBan(event: { id: string; email: string }) {
     const reason = prompt(`Причина бану для ${event.email}:`);
