@@ -20,6 +20,11 @@ import { ModalComponent } from '@shared/components/modal/modal.component';
 import { MY_VOLUNTEER_PROFILE } from '@features/volunteers/graphql/volunteer-profile.queries';
 import type { MyVolunteerProfile } from '@features/volunteers/models/my-volunteer-profile.model';
 import { OrganizationService } from '@features/organizations/services/organization.service';
+import { ProfileHeaderComponent } from './components/profile-header/profile-header.component';
+import { ProfileSettingsComponent } from './components/profile-settings/profile-settings.component';
+import { ProfileReviewsComponent } from './components/profile-reviews/profile-reviews.component';
+import { ProfileInfoComponent } from './components/profile-info/profile-info.component';
+import { ProfileRequestsComponent } from './components/profile-requests/profile-requests.component';
 
 @Component({
   selector: 'app-profile',
@@ -32,6 +37,11 @@ import { OrganizationService } from '@features/organizations/services/organizati
     RequestFormComponent,
     ModalComponent,
     CompleteReviewModalComponent,
+    ProfileHeaderComponent,
+    ProfileInfoComponent,
+    ProfileRequestsComponent,
+    ProfileReviewsComponent,
+    ProfileSettingsComponent
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
@@ -41,7 +51,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
   private toastService = inject(ToastService);
   public orgService = inject(OrganizationService);
   private cdr = inject(ChangeDetectorRef);
-  private fb = inject(FormBuilder);
   private ability = inject(AbilityServiceSignal);
   private apollo = inject(Apollo);
   private router = inject(Router);
@@ -50,7 +59,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
   private user: User | null = null;
   public organizationProfile$!: Observable<any>;
 
-  /** Дані волонтерського кабінету (activeTasks + reviews) з myVolunteerProfile. */
   volunteerDashboard: MyVolunteerProfile | null = null;
   volunteerDashboardLoading = false;
   volunteerDashboardError = false;
@@ -79,12 +87,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
   public isCompleteReviewOpen = false;
   public completeReviewRequestId: string | null = null;
 
-
   activeTab: 'info' | 'settings' | 'reviews' | 'requests' = 'info';
   isSendingEmail: boolean = false;
   emailSent: boolean = false;
 
-  
   public requestService = inject(VolunteerRequestService);
   requests$!: Observable<VolunteerRequest[]>;
 
@@ -115,8 +121,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
   
-
-
   ngOnInit() {
     this.authService.currentUser$.subscribe(userData => {
       this.user = userData;
@@ -146,7 +150,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
   );
 
     this.checkExistingCooldown();
-    this.initPasswordForm();
   }
 
   onDeleteRequest(id: string) {
@@ -225,77 +228,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       },
       error: () => this.toastService.show('Помилка', 'Не вдалося скасувати', 'error'),
-    });
-  }
-
-  initPasswordForm() {
-    this.passwordForm = this.fb.group({
-      oldPassword: ['', [Validators.required, Validators.minLength(6)]],
-      newPassword: ['', [Validators.required, Validators.minLength(6)]],
-      confirmPassword: ['', [Validators.required]]
-    }, { validators: this.passwordMatchValidator });
-  }
-
-  // Кастомний валідатор: перевіряє, чи збігаються паролі
-  passwordMatchValidator(control: AbstractControl) {
-    const newPassword = control.get('newPassword')?.value;
-    const confirmPassword = control.get('confirmPassword')?.value;
-    
-    if (newPassword !== confirmPassword) {
-      control.get('confirmPassword')?.setErrors({ passwordMismatch: true });
-      return { passwordMismatch: true };
-    }
-    return null;
-  }
-
-  togglePasswordForm() {
-    this.isChangingPasswordMode = !this.isChangingPasswordMode;
-    if (!this.isChangingPasswordMode) {
-      // Очищаємо форму при закритті
-      this.passwordForm.reset();
-      this.passwordError = null;
-      this.passwordSuccess = false;
-    }
-  }
-
-  onSubmitPasswordChange() {
-    if (this.passwordForm.invalid) return;
-
-    if (!this.user || !this.user.id) {
-      this.passwordError = 'Помилка авторизації: дані користувача не знайдено.';
-      return;
-    }
-
-    this.isSubmittingPassword = true;
-    this.passwordError = null;
-    this.passwordSuccess = false;
-
-    const { oldPassword, newPassword } = this.passwordForm.value;
-
-    const userId = this.user.id;
-
-    this.authService.changePassword(userId, oldPassword, newPassword).pipe(
-      take(1),
-      finalize(() => {
-        this.isSubmittingPassword = false;
-        this.cdr.detectChanges();
-      })
-    ).subscribe({
-      next: (success) => {
-        if (success) {
-          this.passwordSuccess = true;
-          this.passwordForm.reset();
-          // Закриваємо форму через 3 секунди після успіху
-          setTimeout(() => {
-            this.togglePasswordForm();
-            this.cdr.detectChanges();
-          }, 3000);
-        }
-      },
-      error: (err) => {
-        // GraphQL повертає повідомлення про помилку в err.message
-        this.passwordError = err.message || 'Не вдалося змінити пароль. Перевірте дані.';
-      }
     });
   }
 
@@ -409,56 +341,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
   secondTabLabel(role: string | undefined): string {
     if (role === 'organization') return 'Мої запити';
     return 'Активні задачі';
-  }
-
-  onEnable2FA(userId: string) {
-    // Очищаємо попередні дані, якщо вони були
-    this.twoFaCode = '';
-    
-    this.authService.generate2FA(userId).pipe(
-      take(1)
-    ).subscribe({
-      next: (qrCode) => {
-        this.qrCodeUrl = qrCode;
-        this.isStepVerify = true;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Помилка генерації QR:', err);
-        // Можна додати toast повідомлення тут
-      }
-    });
-  }
-
-  confirm2FA(userId: string) {
-    // Валідація на довжину коду (тільки цифри)
-    if (this.twoFaCode.length !== 6 || !/^\d+$/.test(this.twoFaCode)) {
-      alert('Будь ласка, введіть коректний 6-значний код');
-      return;
-    }
-
-    this.authService.turnOn2FA(userId, this.twoFaCode).pipe(
-      take(1),
-      finalize(() => {
-        this.cdr.detectChanges();
-      })
-    ).subscribe({
-      next: (success) => {
-        if (success) {
-          // Оновлення успішне. AuthService.turnOn2FA вже оновив currentUser$
-          this.qrCodeUrl = null;
-          this.isStepVerify = false;
-          this.twoFaCode = '';
-          // Тут можна замінити alert на красивий Toast
-          alert('2FA успішно активовано!');
-        }
-      },
-      error: (err) => {
-        // Якщо код невірний, бекенд викине помилку
-        alert(err.message || 'Невірний код. Спробуйте ще раз.');
-        this.twoFaCode = ''; // Очищаємо поле для повторної спроби
-      }
-    });
   }
 
   onResendEmail(userId: string) {

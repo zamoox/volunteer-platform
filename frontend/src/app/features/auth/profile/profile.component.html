@@ -1,35 +1,14 @@
+
 <div class="min-h-screen bg-slate-50 font-sans pt-28 pb-12 px-4 md:px-8 flex flex-col items-center">
   <div *ngIf="authService.currentUser$ | async as user" 
        class="w-full max-w-[1400px] mx-auto bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 overflow-hidden border border-slate-100 min-h-[75vh]">
-    
-    <div class="bg-slate-950 p-10 text-white flex flex-col md:flex-row items-center justify-between gap-6 border-b border-white/5">
-      <div class="flex items-center gap-8">
-        <div class="w-24 h-24 bg-blue-600 rounded-3xl flex items-center justify-center text-4xl font-black shadow-xl rotate-3">
-          <span class="-rotate-3">{{ user.firstName?.[0] || user.email?.[0] | uppercase }}</span>
-        </div>
-        <div>
-          <h2 class="text-3xl font-black tracking-tight mb-2">{{ user.firstName || 'Користувач' }}</h2>
-          <div class="flex gap-2">
-             <span class="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-black uppercase tracking-widest text-blue-400">
-               {{ user.role }}
-             </span>
-             <span *ngIf="user.isEmailVerified" class="px-3 py-1 bg-emerald-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest text-emerald-400">
-               Верифіковано
-             </span>
-          </div>
-        </div>
-      </div>
 
-      
-      
-      <div class="flex gap-3">
-        <button (click)="onLogout()" class="p-4 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl transition-all group shadow-lg shadow-red-500/10">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-        </button>
-      </div>
-    </div>
+    <app-profile-header 
+      *ngIf="authService.currentUser$ | async as user"
+      [user]="user"
+      [orgStatus]="(organizationProfile$ | async)?.verificationStatus"
+      (logout)="onLogout()">
+    </app-profile-header>
 
     <div class="flex border-b border-slate-100 px-10 bg-white sticky top-0 z-20 overflow-x-auto no-scrollbar transition-all">
       <button type="button" (click)="setTab('info')" [class.active-tab]="activeTab === 'info'" class="tab-btn transition-all">Особиста інформація</button>
@@ -41,450 +20,47 @@
     <div class="p-10 transition-all">
       <div [ngSwitch]="activeTab" class="transition-all">
         
-   <div *ngSwitchCase="'info'" class="transition-all animate-in fade-in slide-in-from-bottom-4 duration-500">
-  
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
-    
-    <div class="lg:col-span-2">
-      <section>
-        <h3 class="text-xs font-black uppercase tracking-[0.3em] text-slate-400 mb-8 italic">Основний профіль</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-          <div class="space-y-2">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Ім'я та Прізвище</label>
-            <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ (user.firstName || '—') + ' ' + (user.lastName || '') }}</p>
-          </div>
-          <div class="space-y-2">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Email адреса</label>
-            <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ user.email }}</p>
-          </div>
-          <div class="space-y-2">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Місто</label>
-            <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ user.city || 'Не вказано' }}</p>
-          </div>
-          <div class="space-y-2">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Тип аккаунта</label>
-            <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">
-              {{ user.role === 'organization' ? 'Організація' : 'Фізична особа' }}
-            </p>
-          </div>
+        <div *ngSwitchCase="'info'">
+          <app-profile-info
+            [user]="user"
+            [organizationProfile$]="organizationProfile$"
+            [isSendingEmail]="isSendingEmail"
+            [cooldownSeconds]="cooldownSeconds"
+            (resendEmail)="onResendEmail($event)">
+          </app-profile-info>
         </div>
-      </section>
-    </div>
 
-    <div class="space-y-6">
-      <div class="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-  <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">Верифікація</h4>
-  
-  <div class="flex items-center gap-3 mb-8">
-    <div class="w-3 h-3 rounded-full animate-pulse shadow-[0_0_12px]" 
-         [ngClass]="user.isEmailVerified ? 'bg-emerald-500 shadow-emerald-500' : 'bg-amber-500 shadow-amber-500'">
-    </div>
-    <p class="text-sm font-black uppercase tracking-widest" [ngClass]="user.isEmailVerified ? 'text-emerald-600' : 'text-amber-600'">
-      {{ user.isEmailVerified ? 'Підтверджено' : 'Очікує дії' }}
-    </p>
-  </div>
-
-  <button 
-    *ngIf="!user.isEmailVerified"
-    (click)="onResendEmail(user.id)"
-    [disabled]="isSendingEmail || cooldownSeconds > 0"
-    class="w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border border-slate-200"
-    [ngClass]="cooldownSeconds > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-white text-slate-900 hover:bg-slate-900 hover:text-white'">
-    
-    <div class="flex items-center justify-center gap-2">
-      <svg *ngIf="isSendingEmail" class="animate-spin h-4 w-4" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-      </svg>
-
-      @if (isSendingEmail) {
-        <span>Відправка...</span>
-      } @else if (cooldownSeconds > 0) {
-        <span class="flex items-center gap-2">
-          📩 Надіслано ({{ cooldownSeconds }}с)
-        </span>
-      } @else {
-        <span>Надіслати лист знову</span>
-      }
-    </div>
-  </button>
-  
-  <p *ngIf="!user.isEmailVerified && cooldownSeconds === 0" class="mt-4 text-[9px] text-slate-400 text-center font-medium leading-relaxed">
-    Перевірте папку "Спам", якщо лист не надійшов
-  </p>
-</div>
-    </div>
-  </div>
-
-  @if (user.role === 'organization') {
-    <div class="mt-12 pt-12 border-t border-slate-100 animate-in slide-in-from-bottom-6 duration-700">
-      <h3 class="text-xs font-black uppercase tracking-[0.3em] text-slate-400 mb-8 italic">Публічний профіль організації</h3>
-
-      @if (organizationProfile$ | async; as org) {
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-          <div class="space-y-2">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Назва</label>
-            <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ org.name }}</p>
-          </div>
-          <div class="space-y-2">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">ЄДРПОУ</label>
-            <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2 tracking-widest">{{ org.edrpou }}</p>
-          </div>
-          <div class="space-y-2">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Телефон</label>
-            <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ org.phone || '—' }}</p>
-          </div>
-          <div class="space-y-2">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Веб-сайт</label>
-            <p class="text-xl font-bold text-blue-600 border-b border-slate-100 pb-2">
-              @if (org.website) {
-                <a [href]="org.website.startsWith('http') ? org.website : 'https://' + org.website" target="_blank" class="hover:text-blue-700 transition-colors lowercase italic truncate block">
-                  {{ org.website }}
-                </a>
-              } @else { <span class="text-slate-400 font-medium">—</span> }
-            </p>
-          </div>
-          <div class="md:col-span-2 lg:col-span-4 space-y-4">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Опис діяльності</label>
-            <div class="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-               <p class="text-base leading-relaxed text-slate-600 italic">
-                 {{ org.description || 'Організація ще не додала детальний опис своєї діяльності.' }}
-               </p>
-            </div>
-          </div>
+        <div *ngSwitchCase="'requests'">
+          <app-profile-requests
+            [user]="user"
+            [requests]="requests$ | async"
+            [volunteerTasks]="volunteerActiveTasks()"
+            [volunteerLoading]="volunteerDashboardLoading"
+            [volunteerError]="volunteerDashboardError"
+            [canUpdateFn]="canUpdate.bind(this)"
+            [canDeleteFn]="canDelete.bind(this)"
+            [volunteerNameFn]="volunteerRequestVolunteerName.bind(this)"
+            [volunteerInitialFn]="volunteerRequestVolunteerInitial.bind(this)"
+            [orgPhoneFn]="organizationPhoneForVolunteerTask.bind(this)"
+            (editRequest)="onEditRequest($event)"
+            (deleteRequest)="onDeleteRequest($event)"
+            (cancelHelp)="onCancelVolunteerHelp($event)"
+            (completeReview)="openCompleteReview($event)"
+            (openOnMap)="openRequestOnMap($event)">
+          </app-profile-requests>
         </div>
-      } @else {
-        <div class="p-16 text-center bg-blue-50/50 rounded-[3rem] border-2 border-dashed border-blue-100">
-           <div class="text-5xl mb-4">🏢</div>
-           <p class="text-blue-600 font-black uppercase tracking-[0.2em] mb-6">Профіль організації не налаштовано</p>
-           <button routerLink="/organization/setup" class="inline-flex items-center justify-center px-10 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95">
-             Заповнити дані зараз
-           </button>
+
+        <div *ngSwitchCase="'reviews'">
+          <app-profile-reviews 
+            [user]="user"
+            [reviews]="volunteerReviews()"
+            [isLoading]="volunteerDashboardLoading">
+          </app-profile-reviews>
         </div>
-      }
-    </div>
-  }
-</div>
 
-        
-
-<div *ngSwitchCase="'requests'" class="space-y-6 transition-all animate-in fade-in zoom-in duration-500">
-
-  @if (user.role === 'organization') {
-    @if ((requests$ | async); as requests) {
-
-      @if (requests.length === 0) {
-        <div class="text-center py-32 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 transition-all">
-          <div class="text-6xl mb-6 opacity-40">📦</div>
-          <h3 class="text-xl font-black text-slate-400 uppercase tracking-widest">
-            Немає запитів
-          </h3>
-          <p class="text-sm text-slate-400 mt-2">
-            Організація ще не створювала запити або вони не завантажилися
-          </p>
+        <div *ngSwitchCase="'settings'" class="w-full">
+          <app-profile-settings [user]="user"></app-profile-settings>
         </div>
-      }
-
-      @else {
-        <ul class="flex flex-col gap-4 transition-all">
-          @for (req of requests; track req.id) {
-            <li class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-slate-200">
-              <div class="flex flex-wrap items-start justify-between gap-4">
-                <div class="min-w-0 flex-1">
-                  <span
-                    class="inline-block rounded-xl border px-3 py-1 text-[10px] font-black uppercase tracking-widest"
-                    [ngClass]="{
-                      'border-emerald-100 bg-emerald-50 text-emerald-700': req?.status === 'open',
-                      'border-blue-100 bg-blue-50 text-blue-700': req?.status === 'in_progress',
-                      'border-slate-100 bg-slate-50 text-slate-500': req?.status === 'cancelled',
-                      'border-slate-200 bg-slate-100 text-slate-800': req?.status === 'completed'
-                    }"
-                  >
-                    {{ req?.status }}
-                  </span>
-                  <p class="mt-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{{ req?.category }}</p>
-                  <h4 class="mt-1 text-xl font-black tracking-tight text-slate-900">{{ req?.title }}</h4>
-                  <p class="mt-2 line-clamp-2 text-sm text-slate-500">{{ req?.description }}</p>
-                  <p class="mt-3 text-[11px] font-bold text-slate-400">
-                    {{ req?.location?.address }} · {{ req?.createdAt | date: 'dd.MM.yyyy' }}
-                  </p>
-                </div>
-              </div>
-
-              @if (req?.status === 'in_progress' && req?.volunteer) {
-                <div
-                  class="mt-5 flex flex-wrap items-center gap-4 rounded-3xl border border-blue-100 bg-blue-50/80 p-4 transition-all"
-                >
-                  <div
-                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-lg font-black text-white shadow-md transition-all"
-                  >
-                    {{ volunteerRequestVolunteerInitial(req) }}
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <p class="text-[10px] font-black uppercase tracking-widest text-blue-700">Волонтер</p>
-                    <p class="text-sm font-black text-slate-900">{{ volunteerRequestVolunteerName(req) }}</p>
-                    @if (req.volunteer?.user?.phone) {
-                      <a
-                        [href]="'tel:' + req.volunteer?.user?.phone"
-                        class="mt-1 inline-block text-sm font-black text-blue-600 transition-all hover:text-blue-500"
-                      >
-                        {{ req.volunteer?.user?.phone }}
-                      </a>
-                    }
-                  </div>
-                </div>
-              }
-
-              <div class="mt-5 flex flex-wrap gap-3 border-t border-slate-100 pt-5 transition-all">
-                @if (canUpdate(req)) {
-                  <button
-                    (click)="onEditRequest(req)"
-                    class="rounded-3xl bg-slate-900 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all hover:bg-slate-800"
-                  >
-                    Редагувати
-                  </button>
-                }
-
-                @if (req?.status === 'in_progress') {
-                  <button
-                    type="button"
-                    (click)="onCancelVolunteerHelp(req)"
-                    class="rounded-3xl border border-slate-200 bg-white px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 transition-all hover:bg-slate-900 hover:text-white"
-                  >
-                    Скасувати допомогу
-                  </button>
-                }
-
-                @if (req?.status === 'open' && canDelete(req)) {
-                  <button
-                    type="button"
-                    (click)="onDeleteRequest(req.id)"
-                    class="rounded-3xl border border-red-100 bg-red-50 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-red-600 transition-all hover:bg-red-500 hover:text-white"
-                  >
-                    Видалити
-                  </button>
-                }
-
-                @if (req?.status === 'in_progress' && !req?.review) {
-                  <button
-                    (click)="openCompleteReview(req)"
-                    class="rounded-3xl bg-emerald-600 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-emerald-500"
-                    title="Завершити запит і залишити відгук"
-                  >
-                    Завершити з відгуком
-                  </button>
-                }
-              </div>
-            </li>
-          }
-        </ul>
-      }
-    }
-  }
-
-  @if (user.role === 'volunteer') {
-    @if (volunteerDashboardLoading) {
-      <div class="rounded-3xl border border-slate-100 bg-white p-16 text-center text-sm font-bold text-slate-400 transition-all">
-        Завантаження…
-      </div>
-    } @else if (volunteerDashboardError) {
-      <div class="rounded-3xl border border-amber-100 bg-amber-50 p-10 text-center transition-all">
-        <p class="text-sm font-black text-amber-800">Не вдалося завантажити активні задачі</p>
-      </div>
-    } @else if (volunteerActiveTasks().length === 0) {
-      <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center transition-all">
-        <p class="text-sm font-bold text-slate-500">
-          У вас поки немає активних задач. Знайдіть запит на карті, щоб допомогти!
-        </p>
-        <a
-          routerLink="/map"
-          class="mt-6 inline-flex rounded-3xl bg-slate-900 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-slate-800"
-        >
-          Відкрити карту
-        </a>
-      </div>
-    } @else {
-      <ul class="flex flex-col gap-4 transition-all">
-        @for (req of volunteerActiveTasks(); track req.id) {
-          <li class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-slate-200">
-            <div class="flex flex-wrap items-start justify-between gap-4">
-              <div class="min-w-0 flex-1">
-                <span
-                  class="inline-block rounded-xl border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700"
-                >
-                  {{ req.status }}
-                </span>
-                <p class="mt-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{{ req.category }}</p>
-                <h4 class="mt-1 text-xl font-black tracking-tight text-slate-900">{{ req.title }}</h4>
-                <p class="mt-2 line-clamp-2 text-sm text-slate-600">{{ req.description }}</p>
-                <p class="mt-3 text-[11px] font-bold text-slate-400">
-                  {{ req.organization?.name }} · {{ req.location.address }} · {{ req.createdAt | date: 'dd.MM.yyyy' }}
-                </p>
-              </div>
-            </div>
-            <div class="mt-5 flex flex-wrap gap-3 border-t border-slate-100 pt-5 transition-all">
-              @let phone = organizationPhoneForVolunteerTask(req);
-              @if (phone) {
-                <a
-                  [href]="'tel:' + phone"
-                  class="rounded-3xl bg-blue-600 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-blue-500"
-                >
-                  Зв'язатись
-                </a>
-              } @else {
-                <span
-                  class="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400"
-                  title="Телефон організації не вказано"
-                >
-                  Зв'язатись
-                </span>
-              }
-              <button
-                type="button"
-                (click)="openRequestOnMap(req)"
-                class="rounded-3xl border border-slate-200 bg-white px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 transition-all hover:bg-slate-900 hover:text-white"
-              >
-                Деталі
-              </button>
-            </div>
-          </li>
-        }
-      </ul>
-    }
-  }
-
-  @if (user.role !== 'organization' && user.role !== 'volunteer') {
-    <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center transition-all">
-      <p class="text-sm font-bold text-slate-500">Цей розділ недоступний для вашого типу облікового запису.</p>
-    </div>
-  }
-</div>
-
-<div *ngSwitchCase="'reviews'" class="space-y-6 transition-all animate-in fade-in duration-500">
-  @if (user.role === 'volunteer') {
-    @if (volunteerDashboardLoading) {
-      <div class="rounded-3xl border border-slate-100 bg-white p-16 text-center text-sm font-bold text-slate-400 transition-all">
-        Завантаження…
-      </div>
-    } @else if (volunteerReviews().length === 0) {
-      <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center transition-all">
-        <p class="text-sm font-bold text-slate-500">
-          Відгуків поки немає. Завершуйте задачі, щоб отримувати оцінки від організацій
-        </p>
-      </div>
-      <div class="text-center py-32 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 transition-all">
-        <div class="text-6xl mb-6 opacity-40">💬</div>
-        <h3 class="text-xl font-black text-slate-400 uppercase tracking-widest">
-          Відгуків поки немає. Завершуйте задачі, щоб отримувати оцінки від організацій
-        </h3>
-      </div>
-    } @else {
-      <ul class="flex flex-col gap-4 transition-all">
-        @for (rev of volunteerReviews(); track rev.id) {
-          <li class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-slate-200">
-            <div class="flex gap-0.5 text-lg leading-none text-amber-400" aria-hidden="true">
-              @for (i of starIndexes; track i) {
-                <span [class.opacity-25]="i > (rev.rating || 0)">★</span>
-              }
-            </div>
-            <p class="mt-3 text-sm font-black text-slate-900">{{ rev.organization?.name || 'Організація' }}</p>
-            @if (rev.comment) {
-              <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ rev.comment }}</p>
-            }
-            <p class="mt-3 text-xs text-slate-400">{{ rev.createdAt | date: 'dd.MM.yyyy HH:mm' }}</p>
-          </li>
-        }
-      </ul>
-    }
-  } @else {
-    <div class="text-center py-32 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 transition-all">
-      <div class="text-6xl mb-6 opacity-40">💬</div>
-      <h3 class="text-xl font-black text-slate-400 uppercase tracking-widest">
-        Немає відгуків
-      </h3>
-      <p class="text-sm text-slate-400 mt-2">
-        Розділ «Відгуки» у цьому профілі призначений для волонтерів.
-      </p>
-    </div>
-  }
-</div>
-
-<div *ngSwitchCase="'settings'" class="w-full space-y-6 transition-all animate-in fade-in slide-in-from-top-4 duration-500">
-  
-  <div class="w-full p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-md">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6" [class.mb-8]="isChangingPasswordMode">
-      <div class="flex items-center gap-5">
-        <div class="w-12 h-12 bg-slate-950 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-slate-200">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-        </div>
-        <div>
-          <h4 class="font-black text-slate-900 text-xl tracking-tight">Пароль</h4>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Керування доступом до акаунта</p>
-        </div>
-      </div>
-      <button *ngIf="!isChangingPasswordMode" (click)="togglePasswordForm()" 
-              class="px-6 py-3 bg-slate-50 hover:bg-slate-950 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
-        Змінити
-      </button>
-    </div>
-
-    <form *ngIf="isChangingPasswordMode" [formGroup]="passwordForm" (ngSubmit)="onSubmitPasswordChange()" class="space-y-6 animate-in fade-in duration-300">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <input formControlName="oldPassword" type="password" placeholder="Поточний пароль" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:border-slate-900 outline-none transition-all placeholder:text-slate-300">
-        <input formControlName="newPassword" type="password" placeholder="Новий пароль" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:border-slate-900 outline-none transition-all placeholder:text-slate-300">
-        <input formControlName="confirmPassword" type="password" placeholder="Підтвердження" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:border-slate-900 outline-none transition-all placeholder:text-slate-300">
-      </div>
-      <div class="flex gap-3">
-        <button type="button" (click)="togglePasswordForm()" class="flex-1 py-4 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest">Скасувати</button>
-        <button type="submit" [disabled]="passwordForm.invalid" class="flex-1 py-4 bg-slate-950 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-30">Оновити</button>
-      </div>
-    </form>
-  </div>
-
-  <div class="w-full p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-md">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6" [class.mb-8]="isStepVerify">
-      <div class="flex items-center gap-5">
-        <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-100">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-        </div>
-        <div>
-          <h4 class="font-black text-slate-900 text-xl tracking-tight">Двофакторна аутентифікація</h4>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Додатковий захист через застосунок</p>
-        </div>
-      </div>
-      
-      <button *ngIf="!user.isTwoFactorAuthenticationEnabled && !isStepVerify" (click)="onEnable2FA(user.id)" 
-              class="px-6 py-3 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
-        Активувати
-      </button>
-
-      <div *ngIf="user.isTwoFactorAuthenticationEnabled" class="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase border border-emerald-100">
-        ✅ Активно
-      </div>
-    </div>
-
-    <div *ngIf="isStepVerify" class="flex flex-col md:flex-row items-center gap-10 animate-in zoom-in duration-300 border-t border-slate-50 pt-8">
-      <div class="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm shrink-0">
-        <img [src]="qrCodeUrl" class="w-32 h-32 rounded-lg">
-      </div>
-      <div class="w-full max-w-sm space-y-4">
-        <div class="space-y-1">
-          <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Введіть 6-значний код</label>
-          <input [(ngModel)]="twoFaCode" maxlength="6" placeholder="000 000" 
-                 class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-center text-2xl font-black tracking-[0.3em] outline-none focus:border-blue-600 focus:bg-white transition-all">
-        </div>
-        <div class="flex gap-3">
-          <button (click)="isStepVerify = false" class="flex-1 py-4 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest">Скасувати</button>
-          <button (click)="confirm2FA(user.id)" [disabled]="twoFaCode.length !== 6"
-                  class="flex-[2] py-4 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-30 transition-all">
-            Підтвердити
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
       </div>
     </div>
   </div>
@@ -493,8 +69,8 @@
 @if (isEditModalOpen && selectedRequest) {
   <app-request-form 
     [requestToEdit]="selectedRequest"
-    [lat]="selectedRequest.location.lat"
-    [lng]="selectedRequest.location.lng"
+    [lat]="selectedRequest.coords.lat"
+    [lng]="selectedRequest.coords.lng"
     (closed)="closeEditModal()"
     (submitted)="onEditSubmitted()">
   </app-request-form>

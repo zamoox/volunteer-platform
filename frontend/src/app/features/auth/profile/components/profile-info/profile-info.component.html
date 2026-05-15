@@ -1,0 +1,161 @@
+<div class="transition-all animate-in fade-in slide-in-from-bottom-4 duration-500">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+    
+    <div class="lg:col-span-2 space-y-12">
+      
+      <section>
+        <h3 class="text-xs font-black uppercase tracking-[0.3em] text-slate-400 mb-8 italic">Основний профіль</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div class="space-y-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Ім'я та Прізвище</label>
+            <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">
+              {{ (user.firstName || '—') + ' ' + (user.lastName || '') }}
+            </p>
+          </div>
+          <div class="space-y-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Email адреса</label>
+            <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ user.email }}</p>
+          </div>
+          <div class="space-y-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Місто</label>
+            <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ user.city || 'Не вказано' }}</p>
+          </div>
+          <div class="space-y-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Тип аккаунта</label>
+            <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ accountTypeLabel }}</p>
+          </div>
+        </div>
+      </section>
+
+      <section *ngIf="user.role === 'organization'" class="pt-12 border-t border-slate-100 animate-in fade-in duration-500">
+        <h3 class="text-xs font-black uppercase tracking-[0.3em] text-slate-400 mb-8 italic">Публічний профіль організації</h3>
+
+        <div *ngIf="organizationProfile$ | async as org; else noProfile">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+            <div class="space-y-2">
+              <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Назва</label>
+              <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ org.name }}</p>
+            </div>
+            <div class="space-y-2">
+              <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">ЄДРПОУ</label>
+              <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2 tracking-widest">{{ org.edrpou }}</p>
+            </div>
+            <div class="space-y-2">
+              <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Телефон</label>
+              <p class="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">{{ org.phone || '—' }}</p>
+            </div>
+            <div class="space-y-2">
+              <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Веб-сайт</label>
+              <p class="text-xl font-bold text-blue-600 border-b border-slate-100 pb-2">
+                <a *ngIf="org.website" [href]="org.website.startsWith('http') ? org.website : 'https://' + org.website" target="_blank" class="hover:text-blue-700 transition-colors lowercase italic truncate block">
+                  {{ org.website }}
+                </a>
+                <span *ngIf="!org.website" class="text-slate-400 font-medium">—</span>
+              </p>
+            </div>
+            <div class="md:col-span-2 lg:col-span-4 space-y-4">
+              <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Опис діяльності</label>
+              <div class="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+                <p class="text-base leading-relaxed text-slate-600 italic">
+                  {{ org.description || 'Організація ще не додала детальний опис своєї діяльності.' }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #noProfile>
+          <div class="p-16 text-center bg-blue-50/50 rounded-[3rem] border-2 border-dashed border-blue-100">
+            <div class="text-5xl mb-4">🏢</div>
+            <p class="text-blue-600 font-black uppercase tracking-[0.2em] mb-6">Профіль організації не налаштовано</p>
+            <button routerLink="/organization/setup" class="inline-flex items-center justify-center px-10 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95">
+              Заповнити дані зараз
+            </button>
+          </div>
+        </ng-template>
+      </section>
+    </div>
+
+    <div class="lg:col-span-1">
+      <div class="sticky top-24 space-y-6">
+        
+        <div *ngIf="user.role === 'organization'" class="p-8 bg-slate-900 rounded-[2.5rem] text-white shadow-2xl shadow-slate-200 relative overflow-hidden group">
+          <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-600/10 rounded-full blur-3xl group-hover:bg-blue-600/20 transition-all"></div>
+          
+          <div class="flex justify-between items-center mb-6 relative z-10">
+            <h4 class="text-[10px] font-black uppercase tracking-widest text-blue-400">Офіційна верифікація</h4>
+            <span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-bold border border-blue-500/20">Рівень 2</span>
+          </div>
+
+          <div *ngIf="organizationProfile$ | async as org; else needDocButton">
+            <div class="flex items-center gap-4 mb-6 relative z-10">
+              <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl bg-white/10 backdrop-blur-sm border border-white/10 shadow-inner">
+                {{ org.isVerified ? '🛡️' : '⏳' }}
+              </div>
+              <div>
+                <p class="text-base font-black tracking-tight">{{ org.isVerified ? 'Верифіковано' : 'На розгляді' }}</p>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Системний статус</p>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-400 leading-relaxed mb-8 italic opacity-80">
+              {{ org.isVerified 
+                  ? 'Ваша організація отримала повну довіру системи та пріоритет у видачі запитів.' 
+                  : 'Документи завантажені. Наш модератор перевірить їх протягом 24 годин.' }}
+            </p>
+
+            <div class="space-y-2 relative z-10">
+              <div class="flex justify-between text-[9px] font-black uppercase tracking-tighter text-slate-500">
+                <span>Прогрес перевірки</span>
+                <span>{{ org.isVerified ? '100%' : '40%' }}</span>
+              </div>
+              <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5 p-[1px]">
+                <div class="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(37,99,235,0.5)]" 
+                     [style.width]="org.isVerified ? '100%' : '40%'"></div>
+              </div>
+            </div>
+          </div>
+
+          <ng-template #needDocButton>
+            <div class="text-center relative z-10 py-4">
+              <div class="mb-6 opacity-40 grayscale">📄</div>
+              <p class="text-xs text-slate-400 mb-6 italic leading-relaxed font-medium">Для отримання статусу "Верифіковано" потрібно завантажити установчі документи.</p>
+              <button routerLink="/organization/setup" 
+                      class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-900/20 transition-all active:scale-95">
+                Подати документи
+              </button>
+            </div>
+          </ng-template>
+        </div>
+
+        <div class="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 transition-all hover:shadow-md">
+          <div class="flex justify-between items-center mb-6">
+            <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-400">Технічний статус</h4>
+            <span class="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-bold">Рівень 1</span>
+          </div>
+          
+          <div class="flex items-center gap-3 mb-8">
+            <div class="w-3 h-3 rounded-full animate-pulse shadow-[0_0_12px]" 
+                 [ngClass]="user.isEmailVerified ? 'bg-emerald-500 shadow-emerald-500' : 'bg-amber-500 shadow-amber-500'">
+            </div>
+            <p class="text-sm font-black uppercase tracking-widest" [ngClass]="user.isEmailVerified ? 'text-emerald-600' : 'text-amber-600'">
+              {{ user.isEmailVerified ? 'Пошта підтверджена' : 'Потребує підтвердження' }}
+            </p>
+          </div>
+
+          <button 
+            *ngIf="!user.isEmailVerified"
+            (click)="resendEmail.emit(user.id)"
+            [disabled]="isSendingEmail || cooldownSeconds > 0"
+            class="w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-slate-200 bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50">
+            <span *ngIf="isSendingEmail">Відправка...</span>
+            <span *ngIf="!isSendingEmail && cooldownSeconds > 0">Зачекайте ({{ cooldownSeconds }}с)</span>
+            <span *ngIf="!isSendingEmail && cooldownSeconds === 0">Надіслати лист знову</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>

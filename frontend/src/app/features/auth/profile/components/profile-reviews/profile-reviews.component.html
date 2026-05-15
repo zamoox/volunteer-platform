@@ -1,0 +1,58 @@
+<div class="space-y-6 transition-all animate-in fade-in duration-500">
+  
+  <ng-container *ngIf="user.role === 'volunteer'">
+    
+    <div *ngIf="isLoading" class="rounded-3xl border border-slate-100 bg-white p-16 text-center text-sm font-bold text-slate-400 transition-all">
+      Завантаження відгуків…
+    </div>
+
+    <div *ngIf="!isLoading && reviews.length === 0" 
+         class="text-center py-32 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 transition-all">
+      <div class="text-6xl mb-6 opacity-40">💬</div>
+      <h3 class="text-xl font-black text-slate-400 uppercase tracking-widest">
+        Відгуків поки немає
+      </h3>
+      <p class="text-sm text-slate-400 mt-2 max-w-xs mx-auto font-medium">
+        Завершуйте задачі, щоб отримувати оцінки та подяки від організацій.
+      </p>
+    </div>
+
+    <ul *ngIf="!isLoading && reviews.length > 0" class="flex flex-col gap-4 transition-all">
+      @for (rev of reviews; track rev.id) {
+        <li class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-slate-200">
+          
+          <div class="flex gap-0.5 text-lg leading-none text-amber-400" aria-hidden="true">
+            @for (i of starIndexes; track i) {
+              <span [class.opacity-25]="i > (rev.rating || 0)">★</span>
+            }
+          </div>
+          
+          <p class="mt-3 text-sm font-black text-slate-900">
+            {{ rev.organization?.name || 'Організація' }}
+          </p>
+          
+          <p *ngIf="rev.comment" class="mt-2 text-sm leading-relaxed text-slate-600 italic">
+            "{{ rev.comment }}"
+          </p>
+          
+          <p class="mt-3 text-xs text-slate-400 font-medium">
+            {{ rev.createdAt | date: 'dd.MM.yyyy HH:mm' }}
+          </p>
+        </li>
+      }
+    </ul>
+  </ng-container>
+
+  <ng-container *ngIf="user.role !== 'volunteer'">
+    <div class="text-center py-32 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 transition-all">
+      <div class="text-6xl mb-6 opacity-40">💬</div>
+      <h3 class="text-xl font-black text-slate-400 uppercase tracking-widest">
+        Немає відгуків
+      </h3>
+      <p class="text-sm text-slate-400 mt-2 max-w-xs mx-auto font-medium">
+        Розділ «Відгуки» у цьому профілі призначений для відображення оцінок волонтерів.
+      </p>
+    </div>
+  </ng-container>
+
+</div>
