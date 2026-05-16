@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, EnvironmentInjector, EventEmitter, Input, NgZone, OnChanges, Output, SimpleChanges, ViewChild, createComponent, inject } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EnvironmentInjector, EventEmitter, Input, NgZone, OnChanges, Output, SimpleChanges, ViewChild, createComponent, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
 import 'leaflet.markercluster';
@@ -17,15 +17,20 @@ export type MapCreateRequestPayload = { lat: number; lng: number; address: strin
 export class MapViewComponent implements AfterViewInit, OnChanges {
   private zone = inject(NgZone);
   private injector = inject(EnvironmentInjector);
-  @Input() currentUserId?: string;
+  private cdr = inject(ChangeDetectorRef);
 
+  @Input() currentUserId?: string;
   @ViewChild('mapEl', { static: true }) private mapEl!: ElementRef<HTMLDivElement>;
 
   @Input({ required: true }) requests: any[] = [];
   @Input() categories: any[] = [];
+  
   @Output() requestSelected = new EventEmitter<any>();
   @Output() createRequestRequested = new EventEmitter<{ lat: number; lng: number }>();
   @Output() createRequestConfirmed = new EventEmitter<MapCreateRequestPayload>();
+  
+  // 🗺️ Додаємо вихідний емітер для зв'язку з PostGIS
+  @Output() boundsChanged = new EventEmitter<{ lat: number; lng: number; radius: number }>();
 
   private map?: L.Map;
   private temporaryMarker?: L.Marker;
@@ -37,72 +42,127 @@ export class MapViewComponent implements AfterViewInit, OnChanges {
 
   ngAfterViewInit(): void {
     this.initMap();
-    setTimeout(() => this.map?.invalidateSize(), 200);
-    this.renderMarkers(this.requests);
+    setTimeout(() => {
+      this.map?.invalidateSize();
+      // Емітимо стартові межі, щоб завантажити перші маркери під час ініціалізації
+      this.emitCurrentBounds();
+    }, 200);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['requests']) {
+    // Якщо прийшли нові реквести з PostGIS і мапа вже готова — рендеримо
+    if (changes['requests'] && this.map) {
       this.renderMarkers(this.requests);
     }
   }
 
-private renderMarkers(requests: any[]): void {
-  if (!this.map) return;
-  this.markersClusterGroup.clearLayers();
-  if (!requests?.length) return;
+  private renderMarkers(requests: any[]): void {
+    if (!this.map) return;
+    
+    // Очищаємо кластери перед новим рендером
+    this.markersClusterGroup.clearLayers();
+    if (!requests || requests.length === 0) return;
 
-  const newMarkers = requests.map((req) => {
-    const category = this.categories?.find((c) => c.id === req.category);
+    const newMarkers: L.Marker[] = [];
 
-    // 1. Визначаємо, чи запит "мій" (як і раніше)
-    const isMine = !!(this.currentUserId && (
-      req.organization?.userId === this.currentUserId || 
-      req.volunteerId === this.currentUserId
-    ));
+    requests.forEach((req) => {
+      // 🛡️ Захист від відсутності координат у моделі
+      if (!req.coords || typeof req.coords.lat !== 'number' || typeof req.coords.lng !== 'number') {
+        return;
+      }
 
-    // const isOpen = req.status === 'open';
-    const isInProgress = req.status === 'in_progress';
+      const category = this.categories?.find((c) => c.id === req.category);
+      const isMine = !!(this.currentUserId && (
+        req.organization?.userId === this.currentUserId || 
+        req.volunteerId === this.currentUserId
+      ));
 
-    let borderColor = '#ffffff'; // дефолтний білий
-    let animationClass = '';
+      const isInProgress = req.status === 'in_progress';
+      let borderColor = '#ffffff'; 
+      let animationClass = '';
 
-    if (isInProgress) {
-      borderColor = '#2563eb'; // синій (Tailwind primary)
-      animationClass = 'marker-pulse-blue';
+      if (isInProgress) {
+        borderColor = '#2563eb'; 
+        animationClass = 'marker-pulse-blue';
+      }
+
+      const customIcon = L.divIcon({
+        className: 'custom-marker-wrapper',
+        html: `
+          <div class="${animationClass}" style="
+            background-color: ${category?.color || '#6b7280'}; 
+            width: 30px; height: 30px; 
+            border-radius: 50% 50% 50% 0; 
+            transform: rotate(-45deg); 
+            display: flex; align-items: center; justify-content: center; 
+            border: 3px solid ${borderColor};
+            box-shadow: ${isMine ? '0 0 10px rgba(0,0,0,0.3)' : 'none'};
+          ">
+            <span style="transform: rotate(45deg); font-size: 14px;">
+              ${ category?.label ? category.label.split(' ')[0] : '📌' }
+            </span>
+          </div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+      });
+
+      const marker = L.marker([req.coords.lat, req.coords.lng], { 
+        icon: customIcon,
+        zIndexOffset: isInProgress ? 1000 : 0 
+      });
+
+      marker.on('click', () => this.zone.run(() => this.openRequestPopup(req)));
+      newMarkers.push(marker);
+    });
+
+    if (newMarkers.length > 0) {
+      this.markersClusterGroup.addLayers(newMarkers);
     }
+    this.cdr.markForCheck();
+  }
 
-    const customIcon = L.divIcon({
-      className: 'custom-marker-wrapper',
-      html: `
-        <div class="${animationClass}" style="
-          background-color: ${category?.color || '#6b7280'}; 
-          width: 30px; height: 30px; 
-          border-radius: 50% 50% 50% 0; 
-          transform: rotate(-45deg); 
-          display: flex; align-items: center; justify-content: center; 
-          border: 3px solid ${borderColor};
-          box-shadow: ${isMine ? '0 0 10px rgba(0,0,0,0.3)' : 'none'};
-        ">
-          <span style="transform: rotate(45deg); font-size: 14px;">
-            ${ category?.label.split(' ')[0] }
-          </span>
-        </div>`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 30],
+  // Метод обчислення радіуса видимості та відправки івенту в PostGIS
+  private emitCurrentBounds(): void {
+    if (!this.map) return;
+    
+    const center = this.map.getCenter();
+    const zoom = this.map.getZoom();
+    
+    // Округляємо до цілого числа метрів, щоб уникнути дробових значень у GraphQL
+    const radiusCalculated = Math.round(Math.max(500, (20000000 / Math.pow(2, zoom))));
+
+    console.log('🗺️ [MapView] Карта змістилася. Емітимо наверх:', { lat: center.lat, lng: center.lng, radius: radiusCalculated });
+
+    this.zone.run(() => {
+      this.boundsChanged.emit({
+        lat: center.lat,
+        lng: center.lng,
+        radius: radiusCalculated
+      });
     });
+  }
 
-    const marker = L.marker([req.location.lat, req.location.lng], { 
-      icon: customIcon,
-      zIndexOffset: isInProgress ? 1000 : 0 // Пріоритет на карті для активних задач
+  private initMap(): void {
+    this.map = L.map(this.mapEl.nativeElement, { zoomControl: false }).setView([50.45, 30.52], 12);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+    }).addTo(this.map);
+
+    L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+    this.map.addLayer(this.markersClusterGroup);
+
+    // 🔄 Зв'язуємо івенти руху карти з PostGIS сервісом
+    this.map.on('moveend', () => this.emitCurrentBounds());
+    this.map.on('zoomend', () => this.emitCurrentBounds());
+
+    this.map.on('click', (e: L.LeafletMouseEvent) => {
+      const { lat, lng } = e.latlng;
+      this.zone.run(() => {
+        this.createRequestRequested.emit({ lat, lng });
+      });
     });
-
-    marker.on('click', () => this.zone.run(() => this.openRequestPopup(req)));
-    return marker;
-  });
-
-  this.markersClusterGroup.addLayers(newMarkers);
-}
+  }
 
   getCenter(): L.LatLng | null {
     return this.map ? this.map.getCenter() : null;
@@ -133,7 +193,7 @@ private renderMarkers(requests: any[]): void {
     this.map?.closePopup();
   }
 
-openRequestPopup(request: any): void {
+  openRequestPopup(request: any): void {
     const componentRef = createComponent(RequestPopupComponent, {
       environmentInjector: this.injector
     });
@@ -141,23 +201,20 @@ openRequestPopup(request: any): void {
     componentRef.instance.request = request;
     componentRef.instance.category = this.categories?.find(c => c.id === request.category);
     
-    // Обробка кліку на "ДЕТАЛІ"
     componentRef.instance.showDetails.subscribe((req) => {
-        this.zone.run(() => {
-          this.requestSelected.emit(req); // Відправляємо в MapComponent
-          this.map?.closePopup();         // ЗАКРИВАЄМО ПОПАП, коли з'являються деталі
-        });
+      this.zone.run(() => {
+        this.requestSelected.emit(req);
+        this.map?.closePopup();         
       });
+    });
 
     componentRef.changeDetectorRef.detectChanges();
     
     L.popup({ offset: [0, -20], className: 'custom-leaflet-popup' })
-      .setLatLng([request.location.lat, request.location.lng])
+      .setLatLng([request.coords.lat, request.coords.lng])
       .setContent(componentRef.location.nativeElement)
       .openOn(this.map!);
   }
-
-  
 
   showCreatePopupAt(lat: number, lng: number, address: string): void {
     if (!this.map) return;
@@ -189,26 +246,4 @@ openRequestPopup(request: any): void {
 
     this.temporaryMarker?.bindPopup(div).openPopup();
   }
-
-  private initMap(): void {
-    this.map = L.map(this.mapEl.nativeElement, { zoomControl: false }).setView([50.45, 30.52], 12);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap',
-    }).addTo(this.map);
-
-    L.control.zoom({ position: 'bottomright' }).addTo(this.map);
-    this.map.addLayer(this.markersClusterGroup);
-
-    this.map.on('click', (e: L.LeafletMouseEvent) => {
-      const { lat, lng } = e.latlng;
-
-      this.zone.run(() => {
-        this.createRequestRequested.emit({ lat, lng });
-      });
-    });
-  }
-
-
 }
-

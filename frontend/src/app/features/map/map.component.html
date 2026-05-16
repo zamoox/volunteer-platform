@@ -23,6 +23,7 @@
       (requestSelected)="onRequestSelectedFromMap($event)"
       (createRequestRequested)="onMapClickRequested($event.lat, $event.lng)"
       (createRequestConfirmed)="onMapCreateConfirmed($event)"
+      (boundsChanged)="onMapBoundsChanged($event)"
       [currentUserId]="(user$ | async)?.id">
     </app-map-view>
 
