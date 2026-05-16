@@ -1,14 +1,14 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Float } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { VolunteerRequest } from './request.entity';
 import { RequestsService } from './requests.service';
-import { CreateVolunteerRequestInput } from './dto/create-request.input';
+import { CreateRequestInput } from './dto/create-request.input';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../enums/user-role.enum';
 import { JwtUser } from '../common/interfaces/jwt-user.interface';
 import { PoliciesGuard } from 'src/casl/guards/policies.guards';
-import { UpdateVolunteerRequestInput } from './dto/update-request.input';
+import { UpdateRequestInput } from './dto/update-request.input';
 import { CompleteRequestWithReviewInput } from './dto/complete-request-with-review.input';
 
 @Resolver(() => VolunteerRequest)
@@ -27,7 +27,7 @@ export class RequestsResolver {
   @UseGuards(JwtAuthGuard, PoliciesGuard)
   async createRequest(
     @CurrentUser() user: JwtUser,
-    @Args('input') input: CreateVolunteerRequestInput,
+    @Args('input') input: CreateRequestInput,
   ): Promise<VolunteerRequest> {
     return this.requestsService.create(user.id, input);
   }
@@ -36,7 +36,7 @@ export class RequestsResolver {
   @UseGuards(JwtAuthGuard, PoliciesGuard)
   async updateRequest(
     @CurrentUser() user: JwtUser,
-    @Args('input') input: UpdateVolunteerRequestInput,
+    @Args('input') input: UpdateRequestInput,
   ): Promise<VolunteerRequest> {
     return this.requestsService.update(input.id, input, user);
   }
@@ -84,5 +84,14 @@ export class RequestsResolver {
     @Args('id') id: string,
   ) {
     return this.requestsService.deleteRequest(id, user);
+  }
+
+  @Query(() => [VolunteerRequest])
+  async getNearbyRequests(
+    @Args('lat', { type: () => Float }) lat: number,
+    @Args('lng', { type: () => Float }) lng: number,
+    @Args('radius', { type: () => Float, defaultValue: 5000 }) radius: number, 
+  ): Promise<VolunteerRequest[]> {
+    return this.requestsService.getNearbyRequests(lat, lng, radius);
   }
 }

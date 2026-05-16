@@ -7,15 +7,16 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, QueryFailedError, Repository } from 'typeorm';
-import { VolunteerRequest, RequestStatus } from './request.entity';
+import { VolunteerRequest } from './request.entity';
+import { RequestStatus } from './enums/request-status.enum';
 import { UserRole } from '../enums/user-role.enum';
 import { OrganizationProfileService } from '../organizations/organization-profile.service';
-import { CreateVolunteerRequestInput } from './dto/create-request.input';
+import { CreateRequestInput } from './dto/create-request.input';
 import { JwtUser } from 'src/common/interfaces/jwt-user.interface';
 import { User } from 'src/users/user.entity';
 import { AbilityFactory } from 'src/casl/factories/ability.factory';
 import { Action } from 'src/casl/enums/actions.enum';
-import { UpdateVolunteerRequestInput } from './dto/update-request.input';
+import { UpdateRequestInput } from './dto/update-request.input';
 import { VolunteerProfile } from 'src/volunteers/volunteer-profile.entity';
 import { Review } from 'src/reviews/review.entity';
 import { CompleteRequestWithReviewInput } from './dto/complete-request-with-review.input';
@@ -42,7 +43,7 @@ export class RequestsService {
     private readonly caslAbilityFactory: AbilityFactory,
   ) {}
 
-  async create(userId: string, input: CreateVolunteerRequestInput): Promise<VolunteerRequest> {
+  async create(userId: string, input: CreateRequestInput): Promise<VolunteerRequest> {
     const org = await this.orgsService.findByUserId(userId);
     if (!org) {
       throw new ForbiddenException(
@@ -64,10 +65,17 @@ export class RequestsService {
       org.user = orgWithUser.user;
     }
 
+    const { coords, ...restInput } = input;
+
     const request = this.requestRepository.create({
-      ...input,
+      ...restInput,
       organizationId: org.id,
-      status: RequestStatus.OPEN,
+      status: input.status || RequestStatus.OPEN,
+      // Формуємо валідний GeoJSON Point для бази даних
+      location: {
+        type: 'Point',
+        coordinates: [coords.lng, coords.lat], 
+      },
     });
 
     const savedRequest = await this.requestRepository.save(request);
@@ -76,7 +84,7 @@ export class RequestsService {
     return this.findOneById(savedRequest.id);
   }
 
-  async update(id: string, input: UpdateVolunteerRequestInput, currentUser: JwtUser): Promise<VolunteerRequest> {
+  async update(id: string, input: UpdateRequestInput, currentUser: JwtUser): Promise<VolunteerRequest> {
     const request = await this.requestRepository.findOne({ 
       where: { id },
       relations: ['organization', 'organization.user'] 
@@ -90,13 +98,24 @@ export class RequestsService {
 
     const ability = this.caslAbilityFactory.createForUser(userEntity);
 
-    // Перевірка права на редагування
     if (ability.cannot(Action.Update, request)) {
       throw new ForbiddenException('Ви можете редагувати тільки власні запити');
     }
 
-    // Оновлюємо тільки дозволені поля
-    Object.assign(request, input);
+    // Деструктуризуємо інпут, щоб окремо обробити зміну гео-координат
+    const { coords, ...restInput } = input;
+
+    // Оновлюємо плоскі поля
+    Object.assign(request, restInput);
+
+    // Якщо фронтенд передав нові координати, оновлюємо структуру PostGIS
+    if (coords) {
+      request.location = {
+        type: 'Point',
+        coordinates: [coords.lng, coords.lat],
+      };
+    }
+
     return this.requestRepository.save(request);
   }
 
@@ -120,7 +139,6 @@ export class RequestsService {
     return request;
   }
 
-  /** Запити, які волонтер узяв у роботу (для профілю). volunteerId у БД = userId волонтера. */
   async findInProgressForVolunteer(volunteerUserId: string): Promise<VolunteerRequest[]> {
     return this.requestRepository.find({
       where: { volunteerId: volunteerUserId, status: RequestStatus.IN_PROGRESS },
@@ -198,8 +216,6 @@ export class RequestsService {
     }
 
     return await this.requestRepository.manager.transaction(async (em) => {
-      // VolunteerRequest має eager organization + volunteer (nullable) — без
-      // loadEagerRelations: false Postgres отримує LEFT JOIN + FOR UPDATE і падає.
       const reqBase = await em.findOne(VolunteerRequest, {
         where: { id: input.requestId },
         lock: { mode: 'pessimistic_write' },
@@ -253,8 +269,6 @@ export class RequestsService {
         throw e;
       }
 
-      // Тільки колонка статусу: em.save(fullReq) з inverse OneToOne `review` у пам’яті
-      // без прив’язаного Review змусить TypeORM оновити reviews і занулити volunteerRequestId.
       await em.update(VolunteerRequest, { id: fullReq.id }, { status: RequestStatus.COMPLETED });
 
       await this.refreshVolunteerStatsAfterReview(em, fullReq.volunteer.id);
@@ -295,8 +309,7 @@ export class RequestsService {
       .where('r.volunteerProfileId = :id', { id: volunteerProfileId })
       .getRawOne<{ avg: string; cnt: string }>();
 
-    const avg =
-      raw?.avg != null ? Math.round(Number(raw.avg) * 100) / 100 : 0;
+    const avg = raw?.avg != null ? Math.round(Number(raw.avg) * 100) / 100 : 0;
     const completedCnt = raw?.cnt != null ? parseInt(raw.cnt, 10) : 0;
 
     await em.getRepository(VolunteerProfile).update(volunteerProfileId, {
@@ -327,12 +340,27 @@ export class RequestsService {
 
     const ability = this.caslAbilityFactory.createForUser(userEntity);
 
-    // ПЕРЕВІРКА CASL
     if (ability.cannot(Action.Delete, request)) {
       throw new ForbiddenException('Ви не можете видалити чужий запит');
     }
 
     await this.requestRepository.remove(request);
     return true;
+  }
+
+  async getNearbyRequests(lat: number, lng: number, radius: number) {
+    return this.requestRepository
+      .createQueryBuilder('request')
+      .where(
+        'ST_DWithin(request.location::geography, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius)',
+        { lat, lng, radius },
+      )
+      .leftJoinAndSelect('request.organization', 'organization')
+      .leftJoinAndSelect('organization.user', 'organizationUser')
+      .leftJoinAndSelect('request.volunteer', 'volunteer')
+      .leftJoinAndSelect('volunteer.user', 'volunteerUser') 
+      .leftJoinAndSelect('request.review', 'review')
+      .orderBy('request.createdAt', 'DESC')
+      .getMany();
   }
 }
