@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Apollo } from 'apollo-angular';
-import type { FetchResult } from '@apollo/client/core';
+import type { FetchResult, Observable } from '@apollo/client/core';
 import { map } from 'rxjs/operators';
-import { GET_ALL_REQUESTS, GET_MY_REQUESTS } from '../graphql/requests.queries';
+import { GET_ALL_REQUESTS, GET_MY_REQUESTS, GET_NEARBY_REQUESTS } from '../graphql/requests.queries';
 import {
   CREATE_REQUEST,
   UPDATE_REQUEST,
@@ -23,7 +23,7 @@ import type {
 export type VolunteerRequestUpdatePayload = Partial<
   Pick<
     VolunteerRequest,
-    'title' | 'description' | 'category' | 'status' | 'location'
+    'title' | 'description' | 'category' | 'status' | 'coords' | 'address'
   >
 >;
 
@@ -61,7 +61,7 @@ export class VolunteerRequestService {
     return this.apollo.mutate<CreateRequestMutationData>({
       mutation: CREATE_REQUEST,
       variables: {
-        input: { title, description, category, location: { lat, lng, address } },
+        input: { title, description, category, coords: { lat, lng }, address },
       },
       update: (cache, result: FetchResult<CreateRequestMutationData>) => {
         const newRequest = result.data?.createRequest;
@@ -97,6 +97,16 @@ export class VolunteerRequestService {
           return Array.isArray(list) ? (list as VolunteerRequest[]) : [];
         }),
       );
+  }
+
+  getNearbyRequests(lat: number, lng: number, radius: number): Observable<VolunteerRequest[]> {
+    return this.apollo.query<{ getNearbyRequests: VolunteerRequest[] }>({
+      query: GET_NEARBY_REQUESTS,
+      variables: { lat, lng, radius },
+      fetchPolicy: 'network-only' // Для мапи завжди беремо актуальні дані з мережі
+    }).pipe(
+      map(result => result.data?.getNearbyRequests ?? [])
+    ); 
   }
 
   updateRequest(id: string, updates: VolunteerRequestUpdatePayload) {

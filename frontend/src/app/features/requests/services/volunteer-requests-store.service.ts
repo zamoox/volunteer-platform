@@ -32,6 +32,22 @@ export class VolunteerRequestsStore {
     });
   }
 
+  loadNearby(params: { lat: number; lng: number; radius: number }): void {
+    this.api.getNearbyRequests(params.lat, params.lng, params.radius)
+      .subscribe(newData => {
+        this._requests.update(existingData => {
+          // Створюємо Map для швидкої перевірки унікальності по ID
+          const registry = new Map(existingData.map(item => [item.id, item]));
+          
+          // Додаємо або оновлюємо елементи, які прийшли з бази даних
+          newData.forEach(item => registry.set(item.id, item));
+          
+          // Повертаємо об'єднаний унікальний масив
+          return Array.from(registry.values());
+        });
+      });
+  }
+
   select(id: string | null) {
     this._selectedRequestId.set(id);
   }
