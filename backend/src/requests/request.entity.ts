@@ -7,10 +7,13 @@ import {
   ManyToOne,
   JoinColumn,
   OneToOne,
+  Index,
 } from 'typeorm';
 import { OrganizationProfile } from 'src/organizations/organization-profile.entity';
 import { VolunteerProfile } from 'src/volunteers/volunteer-profile.entity';
 import { Review } from 'src/reviews/review.entity';
+import { RequestStatus } from './enums/request-status.enum';
+import type { Point } from 'typeorm';
 
 @ObjectType()
 export class Location {
@@ -22,13 +25,6 @@ export class Location {
 
   @Field({ nullable: true })
   address?: string;
-}
-
-export enum RequestStatus {
-  OPEN = 'open',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
 }
 
 @ObjectType()
@@ -54,9 +50,27 @@ export class VolunteerRequest {
   @Column({ type: 'enum', enum: RequestStatus, default: RequestStatus.OPEN })
   status!: RequestStatus;
 
-  @Field(() => Location)
-  @Column('jsonb')
-  location!: Location;
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'text', nullable: true })
+  address?: string;
+
+  @Index({ spatial: true }) // ГІС-індекс для миттєвого пошуку поруч
+  @Column({
+    type: 'geography',
+    spatialFeatureType: 'Point',
+    srid: 4326, // Стандартна система координат WGS84
+    nullable: true,
+  })
+  location!: Point;
+
+  @Field(() => Location, { nullable: true })
+  get coords(): Location | null {
+    if (!this.location || !this.location.coordinates) return null;
+    return {
+      lng: this.location.coordinates[0],
+      lat: this.location.coordinates[1]
+    };
+  }
 
   @Field()
   @CreateDateColumn()
