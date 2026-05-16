@@ -145,14 +145,14 @@
     <div class="space-y-3">
       <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Локація</label>
 
-      <div *ngIf="request.location.address" class="flex items-start gap-3 mt-1">
+      <div *ngIf="request.address" class="flex items-start gap-3 mt-1">
         <span class="text-xl">📍</span>
-        <p class="text-sm text-slate-700 font-medium leading-snug">{{ request.location.address }}</p>
+        <p class="text-sm text-slate-700 font-medium leading-snug">{{ request.address }}</p>
       </div>
 
       <div class="flex items-center gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
         <span class="text-xs font-mono text-blue-600">
-          {{ request.location.lat | number: '1.4-4' }}, {{ request.location.lng | number: '1.4-4' }}
+          {{ request.coords.lat | number: '1.4-4' }}, {{ request.coords.lng | number: '1.4-4' }}
         </span>
       </div>
     </div>

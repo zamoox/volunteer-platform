@@ -119,17 +119,17 @@ ngOnChanges(changes: SimpleChanges): void {
     const req = changes['requestToEdit'].currentValue as VolunteerRequest;
     
     // Заповнюємо координати в змінні класу (щоб вони відображалися в UI)
-    this.lat = req.location.lat;
-    this.lng = req.location.lng;
+    this.lat = req.coords.lat;
+    this.lng = req.coords.lng;
 
     // Заповнюємо поля форми
     this.requestForm.patchValue({
       title: req.title,
       category: req.category as RequestCategory,
       description: req.description,
-      address: req.location.address,
+      address: req.address,
       // Якщо в адресі є місто, можеш спробувати його витягти
-      city: req.location.address.split(',')[0] || 'Київ' 
+      city: req.address.split(',')[0] || 'Київ' 
     }, { emitEvent: false }); // emitEvent: false, щоб не тригерити пошук Nominatim відразу
   }
 
@@ -219,10 +219,10 @@ ngOnChanges(changes: SimpleChanges): void {
         title: val.title!,
         description: val.description!,
         category: val.category!,
-        location: {
+        address: `${val.city}, ${val.address}`,
+        coords: {
           lat: this.lat,   // Передаємо актуальні лат
-          lng: this.lng,   // і лонг
-          address: `${val.city}, ${val.address}` // Оновлена адреса
+          lng: this.lng,   // і лонг // Оновлена адреса
         }
       })
       .pipe(takeUntil(this.destroy$))

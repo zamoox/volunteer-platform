@@ -5,7 +5,6 @@ import { HomeComponent } from './features/home/home.component';
 import { VerifyComponent } from './features/auth/verify/verify.component';
 import { VolunteerProfileComponent } from './features/auth/profile/components/volunteer-profile/volunteer-profile.component';
 import { OrganizationDashboardComponent } from './features/auth/profile/components/organization-dashboard/organization-dashboard.component';
-import { AdminPanelComponent } from './features/auth/profile/components/admin-panel/admin-panel.component';
 import { roleGuard } from './core/guards/role.guard';
 import { adminGuard } from '@core/guards/admin.guard';
 
@@ -43,7 +42,6 @@ export const routes: Routes = [
       { path: 'organization', component: OrganizationDashboardComponent },
     ]
   },
-  { path: 'fadmin', component: AdminPanelComponent },
   {
     path: 'admin',
     canActivate: [authGuard, adminGuard],

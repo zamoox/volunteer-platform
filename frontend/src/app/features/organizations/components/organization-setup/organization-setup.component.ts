@@ -1,10 +1,15 @@
-// src/app/features/organization/setup/organization-setup.component.ts
 import { Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { OrganizationService } from '../../services/organization.service';
 import { ToastService } from '@core/services/toast.service';
+import { PhoneMaskDirective } from '@core/directives/phone-mask.directive';
+
+interface OrgDocuments {
+  registration: File | null;
+  statute: File | null;
+}
 
 @Component({
   selector: 'app-organization-setup',
@@ -19,20 +24,31 @@ export class OrganizationSetupComponent implements OnInit {
   private toast = inject(ToastService);
 
   isLoading = false;
+  currentStep = 1; // 1: Info, 2: Documents
 
-  readonly steps = [
-    { icon: '✉️', label: 'Реєстрація акаунта',       done: true },
-    { icon: '🏢', label: 'Дані організації',           done: false },
-    { icon: '✅', label: 'Верифікація адміністратором', done: false },
-  ];
+  // Динамічні кроки
+  get steps() {
+    return [
+      { icon: '✉️', label: 'Акаунт створено', done: true, active: false },
+      { icon: '🏢', label: 'Дані організації', done: this.currentStep > 1, active: this.currentStep === 1 },
+      { icon: '📄', label: 'Завантаження документів', done: false, active: this.currentStep === 2 },
+      { icon: '✅', label: 'Верифікація', done: false, active: false },
+    ];
+  }
 
   form = this.fb.group({
-    name:        ['', [Validators.required, Validators.minLength(3)]],
-    edrpou:      ['', [Validators.required, Validators.minLength(8), Validators.maxLength(8), Validators.pattern(/^\d+$/)]],
+    name: ['', [Validators.required, Validators.minLength(3)]],
+    edrpou: ['', [Validators.required, Validators.pattern(/^\d{8}$/)]],
     description: [''],
-    website:     [''],
-    phone:       ['',[Validators.required, Validators.pattern(/^\+380 \d{2} \d{3} \d{2} \d{2}$/)]]
+    website: [''],
+    // Номер телефону прибрано, бо він є в профілі користувача
   });
+
+  // Файли для завантаження
+  public docs: OrgDocuments = {
+    registration: null as File | null,
+    statute: null as File | null
+  };
 
   ngOnInit(): void {
     this.checkExistingProfile();
@@ -42,17 +58,55 @@ export class OrganizationSetupComponent implements OnInit {
     this.isLoading = true;
     this.orgService.getMyOrganization().subscribe({
       next: (profile) => {
-        if (profile) {
-          // Якщо профіль знайдено, не даємо заповнювати форму знову
-          this.router.navigate(['/organization']);
-        }
+        if (profile) this.router.navigate(['/organization']);
         this.isLoading = false;
       },
-      error: () => {
-        this.isLoading = false; 
-        // Якщо профілю немає (помилка 404), залишаємо користувача на формі
+      error: () => this.isLoading = false
+    });
+  }
+
+  nextStep() {
+    if (this.form.valid) this.currentStep = 2;
+    else this.form.markAllAsTouched();
+  }
+
+  onFileSelected(event: any, type: 'registration' | 'statute') {
+    const file = event.target.files[0];
+    if (file) this.docs[type] = file;
+  }
+
+  submitApplication() {
+    if (!this.docs.registration || !this.docs.statute) {
+      this.toast.warning('Увага', 'Завантажте обидва документи');
+      return;
+    }
+
+    this.isLoading = true;
+    
+    // Тут логіка: спочатку створюємо профіль, потім надсилаємо запит на верифікацію (залежить від твого API)
+    this.orgService.createProfile(this.form.value as any).subscribe({
+      next: () => {
+        this.toast.success('Заявку подано', 'Адміністратор перевірить ваші дані');
+        this.router.navigate(['/profile']);
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.toast.error('Помилка', err.message);
       }
     });
+  }
+
+  getError(field: string): string {
+    const control = this.form.get(field);
+    if (!control || !control.errors) return '';
+
+    if (control.errors['required']) return "Це поле є обов'язковим";
+    if (control.errors['minlength']) return `Мінімум ${control.errors['minlength'].requiredLength} символів`;
+    if (control.errors['pattern']) {
+      if (field === 'edrpou') return 'Код ЄДРПОУ має складатися рівно з 8 цифр';
+      if (field === 'website') return 'Введіть коректну адресу сайту';
+    }
+    return 'Некоректне значення';
   }
 
   isInvalid(field: string): boolean {
@@ -60,93 +114,7 @@ export class OrganizationSetupComponent implements OnInit {
     return !!(c?.invalid && c?.touched);
   }
 
-  getError(field: string): string {
-    const errors = this.form.get(field)?.errors;
-
-    if (!errors) return '';
-
-    if (errors['required']) {
-      return "Обов'язкове поле";
-    }
-
-    if (errors['minlength']) {
-      return `Мінімум ${errors['minlength'].requiredLength} символів`;
-    }
-
-    if (errors['maxlength']) {
-      return `Максимум ${errors['maxlength'].requiredLength} символів`;
-    }
-
-    if (errors['pattern']) {
-      if (field === 'phone') {
-        return 'Некоректний номер телефону';
-      }
-
-      if (field === 'edrpou') {
-        return 'ЄДРПОУ повинен містити тільки цифри';
-      }
-    }
-
-    return 'Помилка';
-  }
-
-  formatPhone(event: Event): void {
-    const input = event.target as HTMLInputElement;
-
-    // Тільки цифри
-    let digits = input.value.replace(/\D/g, '');
-
-    // Прибираємо 380 якщо юзер вставив
-    if (digits.startsWith('380')) {
-      digits = digits.substring(3);
-    }
-
-    // Максимум 9 цифр після +380
-    digits = digits.substring(0, 9);
-
-    let formatted = '+380';
-
-    if (digits.length > 0) {
-      formatted += ' ' + digits.substring(0, 2);
-    }
-
-    if (digits.length >= 3) {
-      formatted += ' ' + digits.substring(2, 5);
-    }
-
-    if (digits.length >= 6) {
-      formatted += ' ' + digits.substring(5, 7);
-    }
-
-    if (digits.length >= 8) {
-      formatted += ' ' + digits.substring(7, 9);
-    }
-
-    this.form.patchValue(
-      {
-        phone: formatted,
-      },
-      { emitEvent: false }
-    );
-  }
-
-  submit() {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-    this.isLoading = true;
-
-    this.orgService.createProfile(this.form.value as any).subscribe({
-      next: () => {
-        this.toast.success('Профіль створено', 'Тепер ви можете публікувати запити');
-        this.router.navigate(['/profile']);
-      },
-      error: (err) => {
-        this.isLoading = false;
-        const msg = err.graphQLErrors?.[0]?.message ?? err.message;
-        this.toast.error('Помилка', msg);
-      },
-    });
+  removeFile(type: keyof OrgDocuments) {
+    this.docs[type] = null;
   }
 }

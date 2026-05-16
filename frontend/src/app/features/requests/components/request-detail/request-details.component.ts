@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   EventEmitter,
@@ -20,6 +21,7 @@ import { CompleteReviewModalComponent } from '../complete-review-modal/complete-
 
 @Component({
   selector: 'app-request-details',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, CompleteReviewModalComponent],
   templateUrl: './request-details.component.html',

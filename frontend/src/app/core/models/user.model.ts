@@ -5,5 +5,6 @@ export interface User {
   firstName?: string; // Додамо ці поля в сутність пізніше
   lastName?: string;
   city?: string;
-  isEmailVerified: boolean
+  isEmailVerified: boolean;
+  isTwoFactorEnabled: boolean;
 }
