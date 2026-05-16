@@ -20,7 +20,7 @@ export const GET_ALL_REQUESTS = gql`
       review {
         ...RequestReviewFields
       }
-      location {
+      coords {
         ...LocationFields
       }
     }
@@ -45,7 +45,32 @@ export const GET_MY_REQUESTS = gql`
       review {
         ...RequestReviewFields
       }
-      location {
+      coords {
+        ...LocationFields
+      }
+    }
+  }
+  ${REQUEST_CORE_FIELDS}
+  ${REQUEST_ORGANIZATION_FIELDS}
+  ${REQUEST_VOLUNTEER_FIELDS}
+  ${REQUEST_REVIEW_FIELDS}
+  ${REQUEST_LOCATION_FIELDS}
+`;
+
+export const GET_NEARBY_REQUESTS = gql`
+  query GetNearbyRequests($lat: Float!, $lng: Float!, $radius: Float!) {
+    getNearbyRequests(lat: $lat, lng: $lng, radius: $radius) {
+      ...RequestCoreFields
+      organization {
+        ...RequestOrganizationFields
+      }
+      volunteer {
+        ...RequestVolunteerFields
+      }
+      review {
+        ...RequestReviewFields
+      }
+      coords {
         ...LocationFields
       }
     }

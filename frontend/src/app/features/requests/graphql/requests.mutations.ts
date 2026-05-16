@@ -8,10 +8,10 @@ import {
 } from './requests.fragments';
 
 export const CREATE_REQUEST = gql`
-  mutation CreateRequest($input: CreateVolunteerRequestInput!) {
+  mutation CreateRequest($input: CreateRequestInput!) {
     createRequest(input: $input) {
       ...RequestCoreFields
-      location {
+      coords {
         ...LocationFields
       }
       organization {
@@ -33,10 +33,10 @@ export const CREATE_REQUEST = gql`
 `;
 
 export const UPDATE_REQUEST = gql`
-  mutation UpdateRequest($input: UpdateVolunteerRequestInput!) {
+  mutation UpdateRequest($input: UpdateRequestInput!) {
     updateRequest(input: $input) {
       ...RequestCoreFields
-      location {
+      coords {
         ...LocationFields
       }
       organization {
@@ -76,7 +76,7 @@ export const ACCEPT_REQUEST = gql`
   mutation AcceptRequest($requestId: String!) {
     acceptRequest(requestId: $requestId) {
       ...RequestCoreFields
-      location {
+      coords {
         ...LocationFields
       }
       organization {
@@ -101,7 +101,7 @@ export const COMPLETE_REQUEST_WITH_REVIEW = gql`
   mutation CompleteRequestWithReview($input: CompleteRequestWithReviewInput!) {
     completeRequestWithReview(input: $input) {
       ...RequestCoreFields
-      location {
+      coords {
         ...LocationFields
       }
       organization {

@@ -14,11 +14,11 @@ export interface VolunteerRequest {
   category: string;
   status: 'open' | 'in_progress' | 'completed' | 'cancelled';
   createdAt: string;
+  address: string;
 
-  location: {
+  coords: {
     lat: number;
     lng: number;
-    address: string;
     __typename?: 'Location';
   };
 

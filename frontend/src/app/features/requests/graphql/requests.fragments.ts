@@ -4,7 +4,6 @@ export const REQUEST_LOCATION_FIELDS = gql`
   fragment LocationFields on Location {
     lat
     lng
-    address
   }
 `;
 
@@ -15,6 +14,7 @@ export const REQUEST_CORE_FIELDS = gql`
     description
     category
     status
+    address
     createdAt
   }
 `;
