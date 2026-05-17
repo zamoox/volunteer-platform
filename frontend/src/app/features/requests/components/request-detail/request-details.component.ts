@@ -15,7 +15,7 @@ import { CaslService } from '@core/casl/services/casl.service';
 import { AuthService } from '@core/services';
 import { ToastService } from '@core/services/toast.service';
 import { VolunteerRequest, VolunteerRequestService } from '@features/requests';
-import { REQUEST_CATEGORIES } from '@features/requests/constants/categories.constant';
+import { getPriorityGradation, REQUEST_CATEGORIES, REQUEST_SUBCATEGORIES_LABELS, SUBCATEGORY_TO_CATEGORY_MAP } from '@features/requests/constants/request-categories.constant';
 import { VolunteerRequestsStore } from '../../services/volunteer-requests-store.service';
 import { CompleteReviewModalComponent } from '../complete-review-modal/complete-review-modal.component';
 
@@ -90,16 +90,21 @@ export class RequestDetailsComponent implements OnChanges {
     );
   });
 
-  public categoryData = computed(() => {
-    const req = this.requestSignal();
-    return req
-      ? REQUEST_CATEGORIES[req.category] || {
-          label: 'Запит',
-          emoji: '📍',
-          color: 'bg-slate-500',
-        }
-      : null;
-  });
+    public categoryData = computed(() => {
+      const req = this.requestSignal();
+      if (!req) return null;
+
+      const mainCatId = SUBCATEGORY_TO_CATEGORY_MAP[req.subcategory] || 'OTHER';
+      const mainCategory = REQUEST_CATEGORIES[mainCatId];
+      const subcatLabel = REQUEST_SUBCATEGORIES_LABELS[req.subcategory] || 'Загальний запит';
+
+      return {
+        mainLabel: mainCategory?.label || 'Інше',
+        subLabel: subcatLabel,
+        emoji: mainCategory?.emoji || '📍',
+        color: mainCategory?.color || 'bg-slate-500'
+      };
+    });
 
   public volunteerDisplayName = computed(() => {
     const v = this.requestSignal()?.volunteer;
@@ -193,4 +198,37 @@ onRespond(): void {
   onClose(): void {
     this.closed.emit();
   }
+
+  public priorityDetails = computed(() => {
+    const req = this.requestSignal();
+    if (!req) return null;
+    return getPriorityGradation(req.priorityScore);
+  });
+
+  /** 🛡️ ЛЮДСЬКА НАЗВА ЗОНИ РИЗИКУ НА ОСНОВІ КОЕФІЦІЄНТА r_z */
+  public zoneRiskDetails = computed(() => {
+    const req = this.requestSignal();
+    if (!req || req.zoneRiskCoefficient === undefined || req.zoneRiskCoefficient === null) return null;
+    
+    const rz = req.zoneRiskCoefficient;
+    if (rz >= 1.0) {
+      return {
+        label: 'Зона активних бойових дій / ТОТ (Максимальний ризик)',
+        badgeClass: 'bg-red-50 text-red-700 border-red-200'
+      };
+    }
+    if (rz >= 0.5) {
+      return {
+        label: 'Прифронтова / деокупована зона (Підвищений ризик)',
+        badgeClass: 'bg-amber-50 text-amber-700 border-amber-200'
+      };
+    }
+    return {
+      label: 'Безпечний регіон (Стандартні умови доступності інфраструктури)',
+      badgeClass: 'bg-slate-100 text-slate-700 border-slate-200'
+    };
+  });
+
+  /** 🛡️ ОНОВЛЕНИЙ ГЕТТЕР КАТЕГОРІЇ: підтримує підкатегорію та велику категорію */
+
 }

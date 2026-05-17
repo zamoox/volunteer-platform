@@ -20,10 +20,11 @@ import type {
   GetMyRequestsQueryData,
 } from '../graphql/requests.mutation-types';
 
+// 🛡️ Оновлюємо тип пейлоаду для редагування — додаємо 'subcategory'
 export type VolunteerRequestUpdatePayload = Partial<
   Pick<
     VolunteerRequest,
-    'title' | 'description' | 'category' | 'status' | 'coords' | 'address'
+    'title' | 'description' | 'category' | 'subcategory' | 'status' | 'coords' | 'address'
   >
 >;
 
@@ -50,6 +51,9 @@ export class VolunteerRequestService {
       );
   }
 
+  /**
+   * 🛡️ ОНОВЛЕНИЙ МЕТОД СТВОРЕННЯ: тепер офіційно приймає subcategory як 7-й параметр
+   */
   createRequest(
     title: string,
     description: string,
@@ -57,11 +61,13 @@ export class VolunteerRequestService {
     lng: number,
     address: string,
     category: string,
+    subcategory: string, // ← Додано аргумент підкатегорії
   ) {
     return this.apollo.mutate<CreateRequestMutationData>({
       mutation: CREATE_REQUEST,
       variables: {
-        input: { title, description, category, coords: { lat, lng }, address },
+        // Додаємо subcategory в об'єкт input, який летить на GraphQL бекенд
+        input: { title, description, category, subcategory, coords: { lat, lng }, address },
       },
       update: (cache, result: FetchResult<CreateRequestMutationData>) => {
         const newRequest = result.data?.createRequest;
@@ -103,7 +109,7 @@ export class VolunteerRequestService {
     return this.apollo.query<{ getNearbyRequests: VolunteerRequest[] }>({
       query: GET_NEARBY_REQUESTS,
       variables: { lat, lng, radius },
-      fetchPolicy: 'network-only' // Для мапи завжди беремо актуальні дані з мережі
+      fetchPolicy: 'network-only'
     }).pipe(
       map(result => result.data?.getNearbyRequests ?? [])
     ); 
@@ -115,7 +121,6 @@ export class VolunteerRequestService {
       variables: {
         input: { id, ...updates }
       },
-      // Оновлюємо кеш, щоб зміни миттєво з'явилися в списку
       refetchQueries: [
         { query: GET_MY_REQUESTS },
         { query: GET_ALL_REQUESTS, variables: { category: null } },
@@ -123,12 +128,10 @@ export class VolunteerRequestService {
     });
   }
 
-  // 3. Видалення запиту
   deleteRequest(id: string) {
     return this.apollo.mutate({
       mutation: DELETE_REQUEST,
       variables: { id },
-      // Після видалення просимо Apollo перепитати список "Мої запити"
       refetchQueries: [
         { query: GET_MY_REQUESTS },
         { query: GET_ALL_REQUESTS, variables: { category: null } },
@@ -136,7 +139,6 @@ export class VolunteerRequestService {
     });
   }
 
-  // 4. Відгук волонтера (Accept)
   acceptRequest(requestId: string) {
     return this.apollo.mutate({
       mutation: ACCEPT_REQUEST,
@@ -163,7 +165,6 @@ export class VolunteerRequestService {
     });
   }
 
-  // Твій існуючий метод для зміни статусу (для Організації/Адміна)
   updateStatus(id: string, status: string) {
     return this.apollo.mutate({
       mutation: UPDATE_REQUEST_STATUS,
@@ -175,13 +176,18 @@ export class VolunteerRequestService {
     });
   }
 
+  /**
+   * 🛡️ ОНОВЛЕНО: Синхронізуємо старий метод категорій з новими кластерами ООН
+   */
   getCategories() {
     return [
-      { id: 'FOOD', label: '🍎 Продукти', color: '#ef4444' },
-      { id: 'MEDICINE', label: '💊 Ліки', color: '#10b981' },
-      { id: 'TRANSPORT', label: '🚗 Транспорт', color: '#3b82f6' },
-      { id: 'SHELTER', label: '🏠 Житло', color: '#f59e0b' },
-      { id: 'OTHER', label: '📦 Інше', color: '#6b7280' }
+      { id: 'MEDICAL', label: '❤️ Медична допомога', color: '#ef4444' },
+      { id: 'TRANSPORT', label: '📦 Транспорт та логістика', color: '#f59e0b' },
+      { id: 'FOOD', label: '🍏 Продовольча безпека', color: '#10b981' },
+      { id: 'SHELTER', label: '🏠 Житло та відновлення', color: '#8b5cf6' },
+      { id: 'PSYCHOSOCIAL', label: '🧠 Психосоціальна підтримка', color: '#ec4899' },
+      { id: 'EDUCATION', label: '🎓 Освіта', color: '#06b6d4' },
+      { id: 'OTHER', label: '🤝 Інші потреби', color: '#64748b' }
     ];
   }
 }

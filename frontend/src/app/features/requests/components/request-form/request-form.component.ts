@@ -7,7 +7,12 @@ import { VolunteerRequest, VolunteerRequestService } from '@features/requests';
 import { GeoService, NominatimSearchResult } from '@features/geo/services/geo.service';
 import { ToastService } from '@core/services/toast.service';
 
-export type RequestCategory = 'MEDICINE' | 'FOOD' | 'TRANSPORT' | 'SHELTER' | 'OTHER';
+// 🛡️ ІМПОРТУЄМО НАШУ НОВУ ДВОВЕКТОРНУ АРХІТЕКТУРУ
+import { 
+  REQUEST_CATEGORIES, 
+  REQUEST_SUBCATEGORIES_LABELS, 
+  SUBCATEGORY_TO_CATEGORY_MAP 
+} from '@features/requests/constants/request-categories.constant'; 
 
 @Component({
   selector: 'app-request-form',
@@ -20,7 +25,7 @@ export type RequestCategory = 'MEDICINE' | 'FOOD' | 'TRANSPORT' | 'SHELTER' | 'O
 export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
   
   @Output() submitted = new EventEmitter<VolunteerRequest | void>();
-  @Input() requestToEdit: VolunteerRequest | null = null; // Запит для редагування
+  @Input() requestToEdit: VolunteerRequest | null = null; 
   @Output() closed = new EventEmitter<void>();
 
   @Input() lat!: number;
@@ -43,21 +48,24 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
 
   readonly popularCities = ['Київ', 'Харків', 'Одеса', 'Дніпро', 'Запоріжжя', 'Львів', 'Вінниця', 'Полтава', 'Чернігів', 'Черкаси'];
 
-  readonly categories = [
-    { value: 'MEDICINE', label: 'Медицина',  icon: '💊' },
-    { value: 'FOOD',     label: 'Продукти',  icon: '🥫' },
-    { value: 'TRANSPORT',label: 'Транспорт', icon: '🚗' },
-    { value: 'SHELTER',  label: 'Притулок',  icon: '🏠' },
-    { value: 'OTHER',    label: 'Інше',      icon: '📋' },
-  ];
+  /**
+   * 🛡️ ДИНАМІЧНО ГЕНЕРУЄМО СПИСОК ДЛЯ СЕЛЕКТУ НА ФОРМІ
+   * Беремо людські назви підкатегорій та мапимо їх разом з емодзі батьківського кластера ООН
+   */
+  readonly formSubcategories = Object.keys(REQUEST_SUBCATEGORIES_LABELS).map(key => {
+    const mainCategoryId = SUBCATEGORY_TO_CATEGORY_MAP[key] || 'OTHER';
+    const mainCategory = REQUEST_CATEGORIES[mainCategoryId];
+    return {
+      value: key,
+      label: REQUEST_SUBCATEGORIES_LABELS[key],
+      icon: mainCategory?.emoji || '📋'
+    };
+  });
 
-
-  
-  
-
+  // 🛡️ ОНОВЛЕНА СТРУКТУРА ФОРМИ: замість category тепер керує subcategory
   requestForm = new FormGroup({
     title:       new FormControl('', [Validators.required, Validators.minLength(5)]),
-    category:    new FormControl<RequestCategory>('MEDICINE', [Validators.required]),
+    subcategory: new FormControl<string>('MEDICATIONS', [Validators.required]), // за замовчуванням доставка ліків
     description: new FormControl('', [Validators.required, Validators.minLength(10)]),
     city:        new FormControl('Київ', [Validators.required]),
     address:     new FormControl('', [Validators.required]),
@@ -91,7 +99,6 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
       switchMap((query): Observable<string[]> => {
         const clean = (query ?? '').trim();
         if (clean.length < 2) {
-          // When user hasn't typed yet, keep popular cities (shown on focus)
           if (this.cityInputFocused) this.citySuggestions = this.popularCities;
           else this.citySuggestions = [];
           return of([]);
@@ -113,33 +120,30 @@ export class RequestFormComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
-ngOnChanges(changes: SimpleChanges): void {
-  // 1. Якщо прийшов об'єкт для редагування (найважливіше)
-  if (changes['requestToEdit']?.currentValue) {
-    const req = changes['requestToEdit'].currentValue as VolunteerRequest;
-    
-    // Заповнюємо координати в змінні класу (щоб вони відображалися в UI)
-    this.lat = req.coords.lat;
-    this.lng = req.coords.lng;
+  ngOnChanges(changes: SimpleChanges): void {
+    // 1. Режим Редагування: розгортаємо дані з бази у форму
+    if (changes['requestToEdit']?.currentValue) {
+      const req = changes['requestToEdit'].currentValue as VolunteerRequest;
+      
+      this.lat = req.coords?.lat ?? this.lat;
+      this.lng = req.coords?.lng ?? this.lng;
 
-    // Заповнюємо поля форми
-    this.requestForm.patchValue({
-      title: req.title,
-      category: req.category as RequestCategory,
-      description: req.description,
-      address: req.address,
-      // Якщо в адресі є місто, можеш спробувати його витягти
-      city: req.address.split(',')[0] || 'Київ' 
-    }, { emitEvent: false }); // emitEvent: false, щоб не тригерити пошук Nominatim відразу
-  }
+      this.requestForm.patchValue({
+        title: req.title,
+        subcategory: req.subcategory || 'UNCATEGORIZED', // Заповнюємо підкатегорію
+        description: req.description,
+        address: req.address,
+        city: req.address ? req.address.split(',')[0] : 'Київ' 
+      }, { emitEvent: false });
+    }
 
-  // 2. Якщо адреса прийшла окремо (наприклад, з карти)
-  if (changes['address']?.currentValue && !this.requestToEdit) {
-    this.requestForm.patchValue({ 
-      address: changes['address'].currentValue 
-    }, { emitEvent: false });
+    // 2. Якщо адреса прийшла окремо з карти
+    if (changes['address']?.currentValue && !this.requestToEdit) {
+      this.requestForm.patchValue({ 
+        address: changes['address'].currentValue 
+      }, { emitEvent: false });
+    }
   }
-}
 
   ngOnDestroy(): void {
     this.destroy$.next();
@@ -160,11 +164,9 @@ ngOnChanges(changes: SimpleChanges): void {
   }
 
   formatNominatimDisplay(r: NominatimSearchResult): string {
-    // Nominatim already returns a localized display_name; keep it short-ish for dropdown
     return r.display_name || '';
   }
 
-  // --- Інші методи (selectCity, onCityFocus, onSubmit і т.д.) залишаються без змін ---
   selectCity(city: string): void {
     this.requestForm.patchValue({ city, address: '' }, { emitEvent: false });
     this.citySuggestions = [];
@@ -174,7 +176,6 @@ ngOnChanges(changes: SimpleChanges): void {
 
   onCityFocus(): void {
     this.cityInputFocused = true;
-    // Show popular cities immediately on focus
     this.citySuggestions = this.popularCities;
     this.cdr.markForCheck();
   }
@@ -213,17 +214,19 @@ ngOnChanges(changes: SimpleChanges): void {
     this.isSubmitting = true;
     const val = this.requestForm.value;
 
+    // Автоматично вираховуємо батьківську велику категорію перед відправкою на бекенд
+    const chosenSubcategory = val.subcategory || 'UNCATEGORIZED';
+    const computedCategory = SUBCATEGORY_TO_CATEGORY_MAP[chosenSubcategory] || 'OTHER';
+
     if (this.isEditMode && this.requestToEdit) {
-      // РЕЖИМ РЕДАГУВАННЯ
+      // ── РЕЖИМ РЕДАГУВАННЯ ───────────────────────────────────────────────
       this.requestService.updateRequest(this.requestToEdit.id, {
         title: val.title!,
         description: val.description!,
-        category: val.category!,
+        category: computedCategory,          // Велика категорія (Енум)
+        subcategory: chosenSubcategory,      // Підкатегорія (Енум)
         address: `${val.city}, ${val.address}`,
-        coords: {
-          lat: this.lat,   // Передаємо актуальні лат
-          lng: this.lng,   // і лонг // Оновлена адреса
-        }
+        coords: { lat: this.lat, lng: this.lng }
       })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -237,10 +240,16 @@ ngOnChanges(changes: SimpleChanges): void {
       });
 
     } else {
-      // РЕЖИМ СТВОРЕННЯ (твій існуючий код)
+      // ── РЕЖИМ СТВОРЕННЯ ─────────────────────────────────────────────────
+      // Передаємо нові параметри у твій сервіс (додано computedCategory та chosenSubcategory)
       this.requestService.createRequest(
-        val.title!, val.description!, this.lat, this.lng, 
-        `${val.city}, ${val.address}`, val.category!
+        val.title!, 
+        val.description!, 
+        this.lat, 
+        this.lng, 
+        `${val.city}, ${val.address}`, 
+        computedCategory,
+        chosenSubcategory
       )
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -259,6 +268,5 @@ ngOnChanges(changes: SimpleChanges): void {
 
   get isEditMode(): boolean {
     return !!this.requestToEdit;
-}
-
+  }
 }

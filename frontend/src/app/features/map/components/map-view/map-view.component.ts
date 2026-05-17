@@ -10,7 +10,7 @@ import * as L from 'leaflet';
 import 'leaflet.markercluster';
 import { VolunteerRequest } from '@features/requests/models/volunteer-request.model';
 import { NearbyVolunteer } from '@features/volunteers/models/volunteer.model';
-import { REQUEST_CATEGORIES } from '@features/requests/constants/categories.constant';
+import { REQUEST_CATEGORIES } from '@features/requests/constants/request-categories.constant';
 
 @Component({
   selector: 'app-map-view',

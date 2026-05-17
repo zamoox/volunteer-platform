@@ -1,13 +1,12 @@
-<div class="flex flex-col h-full bg-white">
+<div class="flex flex-col h-full bg-white select-none">
 
-  <div class="p-4 space-y-4 border-b border-slate-100 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
-    <!-- Поле пошуку -->
+  <div class="p-3 space-y-3 border-b border-slate-100 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
     <div class="relative group">
       <input 
         [ngModel]="searchTerm$ | async"
         (ngModelChange)="onSearch($event)"
         type="text" 
-        placeholder="Пошук потреби..."
+        placeholder="Пошук потреби або підкатегорії..."
         class="w-full pl-10 pr-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
       >
       <svg class="w-4 h-4 absolute left-3 top-3 text-slate-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,75 +14,104 @@
       </svg>
     </div>
 
-    <!-- Кнопки сортування -->
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1.5">
+      <button 
+        (click)="onSort('priority')"
+        [class.bg-blue-600]="(sortBy$ | async) === 'priority'"
+        [class.text-white]="(sortBy$ | async) === 'priority'"
+        [class.border-transparent]="(sortBy$ | async) === 'priority'"
+        class="flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-slate-200 transition-all shadow-sm"
+      >
+        🔥 Пріоритет
+      </button>
       <button 
         (click)="onSort('date')"
         [class.bg-slate-900]="(sortBy$ | async) === 'date'"
         [class.text-white]="(sortBy$ | async) === 'date'"
-        class="flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter border border-slate-200 transition-all"
+        class="flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-slate-200 transition-all"
       >
-        📅 Спочатку нові
+        📅 Нові
       </button>
       <button 
         (click)="onSort('title')"
         [class.bg-slate-900]="(sortBy$ | async) === 'title'"
         [class.text-white]="(sortBy$ | async) === 'title'"
-        class="flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter border border-slate-200 transition-all"
+        class="flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-slate-200 transition-all"
       >
-        🔤 За алфавітом
+        🔤 Назва
       </button>
     </div>
   </div>
 
-  <!-- Панель фільтрів -->
-  <div class="p-4 border-b border-slate-50">
-    <div class="flex items-center justify-between mb-3">
-      <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Фільтр</span>
+  <div class="p-3 border-b border-slate-100 bg-white">
+    <div class="flex items-center justify-between mb-1.5">
+      <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Гуманітарні Кластери</span>
       <button (click)="setCategory(null)" class="text-[10px] font-bold text-blue-600 hover:underline">Скинути</button>
     </div>
     
-    <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+    <div class="grid grid-cols-3 gap-1.5">
       <button 
         *ngFor="let cat of categories"
         (click)="setCategory(cat.id)"
-        class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap border"
-        [class.bg-blue-600]="(selectedCategory$ | async) === cat.id"
-        [class.text-white]="(selectedCategory$ | async) === cat.id"
-        [class.bg-slate-50]="(selectedCategory$ | async) !== cat.id"
-        [class.border-transparent]="(selectedCategory$ | async) !== cat.id"
+        class="px-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-tight transition-all border text-center flex flex-col items-center justify-center min-h-[58px] whitespace-normal break-words leading-tight"
+        [ngClass]="{
+          'bg-blue-600 text-white border-transparent shadow-sm': (selectedCategory$ | async) === cat.id,
+          'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100': (selectedCategory$ | async) !== cat.id
+        }"
       >
-        {{ cat.label }}
+        <span class="text-xs mb-0.5 block shrink-0">{{ cat.emoji }}</span>
+        <span class="block w-full text-center">{{ cat.label }}</span>
       </button>
     </div>
   </div>
 
-  <!-- Список запитів -->
-  <div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+  <div class="flex-1 h-full min-h-0 overflow-y-auto p-3 space-y-3 custom-scrollbar bg-slate-50/60 flex flex-col justify-start">
     <ng-container *ngIf="filteredRequests$ | async as requests">
+      
       <div *ngFor="let request of requests" 
           (click)="selectRequest(request)"
-          class="p-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors group">
-        
-        <div class="flex justify-between items-start mb-1">
-          <h3 class="font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+          class="p-4 bg-white border border-slate-100 rounded-2xl hover:border-blue-200 hover:shadow-xl hover:shadow-slate-100/50 cursor-pointer transition-all duration-300 group flex flex-col gap-2 relative overflow-hidden shrink-0"
+          [class]="request.priorityBg"
+      >
+        <div class="absolute left-0 top-0 bottom-0 w-1" [style.background-color]="request.uiHex"></div>
+
+        <div class="flex justify-between items-start gap-2 pl-1">
+          <h3 class="font-black text-slate-950 group-hover:text-blue-600 transition-colors text-sm line-clamp-1 leading-tight">
             {{ request.title }}
           </h3>
-          <span class="w-2 h-2 rounded-full mt-1.5" 
-                [ngClass]="request.status === 'open' ? 'bg-green-500' : 'bg-blue-500'">
+          
+          <div class="flex h-2 w-2 shrink-0 relative mt-1.5">
+            <span *ngIf="request.status === 'in_progress'" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2" [ngClass]="request.status === 'open' ? 'bg-emerald-500' : 'bg-blue-500'"></span>
+          </div>
+        </div>
+
+        <div class="pl-1 text-[10px] font-bold" [class]="request.priorityBadgeClass.split(' ')[1]">
+          {{ request.priorityLabel }}
+        </div>
+
+        <div class="flex items-center justify-between mt-0.5 pl-1 text-[10px] font-bold uppercase tracking-wider">
+          <span class="text-slate-400 font-medium truncate max-w-[65%]">
+            {{ request.uiLabel }}
+          </span>
+          
+          <span *ngIf="request.priorityScore !== undefined" 
+                class="px-2 py-0.5 rounded-md font-black tracking-normal text-[9px] border"
+                [class]="request.priorityBadgeClass">
+            ⚡ PS: {{ (request.priorityScore ?? 0).toFixed(2) }}
           </span>
         </div>
 
-        <div class="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-          <span>{{ getCategoryLabel(request.category) }}</span>
-          <span>•</span>
-          <span>{{ request.createdAt | date:'dd.MM HH:mm' }}</span>
+        <div class="text-[9px] text-slate-400 font-medium tracking-normal pl-1 flex items-center gap-1 mt-0.5">
+          <span>🕒 Опубліковано:</span>
+          <span>{{ request.createdAt | date:'dd.MM в HH:mm' }}</span>
         </div>
+
       </div>
 
-      <!-- Емпті стейт -->
-      <div *ngIf="requests.length === 0" class="text-center py-10">
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest italic">Нічого не знайдено 📦</p>
+      <div *ngIf="requests.length === 0" class="text-center py-12 my-auto">
+        <div class="text-3xl mb-2">📦</div>
+        <p class="text-xs font-black text-slate-400 uppercase tracking-widest italic">Нічого не знайдено</p>
       </div>
     </ng-container>
   </div>

@@ -39,18 +39,22 @@
 
         <!-- Категорія — ВИПРАВЛЕНО: підключена до forGroup через formControlName -->
         <div class="space-y-2">
-          <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Категорія</label>
+          <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Що саме потрібно?</label>
           <div class="relative">
             <select
-              formControlName="category"
+              formControlName="subcategory" 
               class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none appearance-none cursor-pointer"
+              [class.border-red-400]="isFieldInvalid('subcategory')"
             >
-              <option *ngFor="let cat of categories" [value]="cat.value">
-                {{ cat.icon }} {{ cat.label }}
+              <option *ngFor="let sub of formSubcategories" [value]="sub.value">
+                {{ sub.icon }} {{ sub.label }}
               </option>
             </select>
             <span class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▼</span>
           </div>
+          <p *ngIf="isFieldInvalid('subcategory')" class="text-xs text-red-500 ml-1">
+            Будь ласка, оберіть тип потреби
+          </p>
         </div>
 
         <!-- Координати -->
