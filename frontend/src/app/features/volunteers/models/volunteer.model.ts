@@ -1,4 +1,9 @@
-/** Відповідає GraphQL типу Volunteer (профіль волонтера) */
+
+export interface VolunteerLocation {
+  lat: number;
+  lng: number;
+}
+
 export interface VolunteerUser {
   id: string;
   phone?: string | null;
@@ -17,5 +22,22 @@ export interface Volunteer {
   averageRating: number;
   completedRequestsCount: number;
   user?: VolunteerUser | null;
+  location: VolunteerLocation;
   __typename?: 'Volunteer';
+}
+
+export interface NearbyVolunteer {
+  id: string;
+  userId: string;
+  firstName?: string;
+  lastName?: string;
+  averageRating: number;
+  completedRequestsCount: number;
+  lastActiveAt?: string;
+  coords?: { lat: number; lng: number };
+  user?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+  };
 }

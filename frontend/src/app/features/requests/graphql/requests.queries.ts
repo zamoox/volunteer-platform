@@ -8,7 +8,7 @@ import {
 } from './requests.fragments';
 
 export const GET_ALL_REQUESTS = gql`
-  query ExampleQuery($category: String) {
+  query GetAllRequests($category: String) {
     getAllRequests(category: $category) {
       ...RequestCoreFields
       organization {

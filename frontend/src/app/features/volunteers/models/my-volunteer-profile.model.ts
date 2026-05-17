@@ -1,5 +1,10 @@
 import type { VolunteerRequest } from '@features/requests/models/volunteer-request.model';
 
+export interface VolunteerLocation {
+  lat: number;
+  lng: number;
+}
+
 export interface VolunteerReviewListItem {
   id: string;
   rating: number;
@@ -24,4 +29,5 @@ export interface MyVolunteerProfile {
   } | null;
   reviews?: VolunteerReviewListItem[] | null;
   activeTasks?: VolunteerRequest[] | null;
+  location?: VolunteerLocation | null;
 }

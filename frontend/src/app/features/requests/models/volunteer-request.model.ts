@@ -7,7 +7,6 @@ export interface RequestReview {
 
 export interface VolunteerRequest {
   __typename?: 'VolunteerRequest';
-
   id: string;
   title: string;
   description: string;

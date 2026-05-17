@@ -51,7 +51,7 @@ export const REQUEST_VOLUNTEER_USER_FIELDS = gql`
 `;
 
 export const REQUEST_VOLUNTEER_FIELDS = gql`
-  fragment RequestVolunteerFields on Volunteer {
+  fragment RequestVolunteerFields on VolunteerProfile {
     id
     userId
     firstName

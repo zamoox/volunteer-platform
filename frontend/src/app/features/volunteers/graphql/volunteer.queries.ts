@@ -10,6 +10,7 @@ export const MY_VOLUNTEER_PROFILE = gql`
       averageRating
       completedRequestsCount
       user {
+        id
         phone
         firstName
         lastName
@@ -21,10 +22,10 @@ export const MY_VOLUNTEER_PROFILE = gql`
         category
         status
         createdAt
-        location {
+        address
+        coords {
           lat
           lng
-          address
         }
         organization {
           name
@@ -42,6 +43,29 @@ export const MY_VOLUNTEER_PROFILE = gql`
         organization {
           name
         }
+      }
+    }
+  }
+`;
+
+export const GET_NEARBY_VOLUNTEERS = gql`
+  query GetNearbyVolunteers($lat: Float!, $lng: Float!, $radius: Float) {
+    getNearbyVolunteers(lat: $lat, lng: $lng, radius: $radius) {
+      id
+      userId
+      firstName
+      lastName
+      averageRating
+      completedRequestsCount
+      lastActiveAt
+      coords {
+        lat
+        lng
+      }
+      user {
+        id
+        firstName
+        lastName
       }
     }
   }
