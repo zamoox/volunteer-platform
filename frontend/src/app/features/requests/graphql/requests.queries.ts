@@ -61,6 +61,7 @@ export const GET_NEARBY_REQUESTS = gql`
   query GetNearbyRequests($lat: Float!, $lng: Float!, $radius: Float!) {
     getNearbyRequests(lat: $lat, lng: $lng, radius: $radius) {
       ...RequestCoreFields
+      distance_m
       organization {
         ...RequestOrganizationFields
       }

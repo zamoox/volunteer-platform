@@ -48,6 +48,9 @@ export interface VolunteerRequest {
   /** Автоматичні теги, згенеровані VBT-алгоритмом аналізу тексту */
   autoTags?: string[] | null;
 
+  /** Відстань у метрах від поточного волонтера до запиту (обчислюється через PostGIS ST_Distance) */
+  distance_m?: number | null;
+
   status: 'open' | 'in_progress' | 'completed' | 'cancelled';
   createdAt: string;
   address: string;
