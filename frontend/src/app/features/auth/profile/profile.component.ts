@@ -17,7 +17,7 @@ import {
 import { AbilityServiceSignal } from '@casl/angular';
 import { subject } from '@casl/ability';
 import { ModalComponent } from '@shared/components/modal/modal.component';
-import { MY_VOLUNTEER_PROFILE } from '@features/volunteers/graphql/volunteer-profile.queries';
+import { MY_VOLUNTEER_PROFILE } from '@features/volunteers/graphql/volunteer.queries';
 import type { MyVolunteerProfile } from '@features/volunteers/models/my-volunteer-profile.model';
 import { OrganizationService } from '@features/organizations/services/organization.service';
 import { ProfileHeaderComponent } from './components/profile-header/profile-header.component';

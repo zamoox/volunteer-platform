@@ -3,7 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Apollo } from 'apollo-angular';
 import { take } from 'rxjs/operators';
-import { MY_VOLUNTEER_PROFILE } from '@features/volunteers/graphql/volunteer-profile.queries';
+import { MY_VOLUNTEER_PROFILE } from '@features/volunteers/graphql/volunteer.queries';
 import type { MyVolunteerProfile } from '@features/volunteers/models/my-volunteer-profile.model';
 
 @Component({
