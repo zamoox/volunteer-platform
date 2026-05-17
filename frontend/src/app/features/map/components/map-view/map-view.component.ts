@@ -1,42 +1,52 @@
 // features/map/components/map-view/map-view.component.ts
-// Повна заміна або доповнення існуючого компонента
 
 import {
   Component, Input, Output, EventEmitter,
   AfterViewInit, OnChanges, OnDestroy, SimpleChanges,
-  inject, ChangeDetectionStrategy,
+  inject, ChangeDetectionStrategy, ChangeDetectorRef
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
+import 'leaflet.heat';
 import 'leaflet.markercluster';
 import { VolunteerRequest } from '@features/requests/models/volunteer-request.model';
 import { NearbyVolunteer } from '@features/volunteers/models/volunteer.model';
-import { REQUEST_CATEGORIES } from '@features/requests/constants/request-categories.constant';
+import { REQUEST_CATEGORIES, SUBCATEGORY_TO_CATEGORY_MAP } from '@features/requests/constants/request-categories.constant';
+import { MapControlsComponent } from '../map-controls/map-controls.component';
 
 @Component({
   selector: 'app-map-view',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<div id="mapEl" style="width:100%;height:100%;"></div>`,
+  imports: [CommonModule, MapControlsComponent],
+  templateUrl: './map-view.component.html', // 🛡️ ФІКС: Перемкнули на зовнішній HTML-файл
+  styleUrl: './map-view.component.css'
 })
 export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
+
   // ── вхідні дані ──────────────────────────────────────────────────────────
   @Input() requests: VolunteerRequest[] = [];
   @Input() volunteers: NearbyVolunteer[] = [];  
   @Input() userPosition: { lat: number; lng: number } | null = null; 
-
+  
   // ── вихідні події ─────────────────────────────────────────────────────────
   @Output() requestSelected = new EventEmitter<VolunteerRequest>();
   @Output() createRequestRequested = new EventEmitter<{ lat: number; lng: number }>();
+  
+  private cdr = inject(ChangeDetectorRef);
 
   private map!: L.Map;
   private requestCluster!: L.MarkerClusterGroup;
   private volunteerLayer!: L.LayerGroup; 
   private userMarker: L.Marker | null = null; 
+  private heatLayer: any = null;
+  public isHeatmapMode = false;
 
   // ── Leaflet іконки ────────────────────────────────────────────────────────
-
-  private buildRequestIcon(category: string): L.DivIcon {
-    const cat = REQUEST_CATEGORIES[category] ?? REQUEST_CATEGORIES['OTHER'];
+  private buildRequestIcon(subcategory: string): L.DivIcon {
+    // 🛡️ ОНОВЛЕНО: Використовуємо двовекторну архітектуру (мапимо підкатегорію в головний кластер ООН)
+    const mainCatId = SUBCATEGORY_TO_CATEGORY_MAP[subcategory] || 'OTHER';
+    const cat = REQUEST_CATEGORIES[mainCatId] ?? REQUEST_CATEGORIES['OTHER'];
     return L.divIcon({
       className: '',
       html: `
@@ -55,7 +65,6 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
     });
   }
 
-  // ── НОВЕ: іконка для волонтера ────────────────────────────────────────────
   private buildVolunteerIcon(volunteer: NearbyVolunteer): L.DivIcon {
     const initials = [volunteer.firstName, volunteer.lastName]
       .filter(Boolean)
@@ -84,7 +93,6 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
     });
   }
 
-  // ── НОВЕ: іконка для поточного користувача ────────────────────────────────
   private buildUserIcon(): L.DivIcon {
     return L.divIcon({
       className: '',
@@ -101,7 +109,8 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   // ── Ініціалізація Leaflet ─────────────────────────────────────────────────
   ngAfterViewInit(): void {
-    this.map = L.map('mapEl', {
+    // 🛡️ ФІКС: Ініціалізуємо карту на ізольованому 'mapTarget', щоб Leaflet не затирав контролер!
+    this.map = L.map('mapTarget', {
       center: [50.45, 30.52],
       zoom: 12,
       zoomControl: true,
@@ -112,39 +121,105 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
       maxZoom: 19,
     }).addTo(this.map);
 
-    // Кластер для запитів
     this.requestCluster = (L as any).markerClusterGroup({
       maxClusterRadius: 60,
       spiderfyOnMaxZoom: true,
     });
     this.map.addLayer(this.requestCluster);
 
-    // Окремий шар для волонтерів
     this.volunteerLayer = L.layerGroup().addTo(this.map);
 
-    // Подвійний клік — створити запит
     this.map.on('dblclick', (e: L.LeafletMouseEvent) => {
       this.createRequestRequested.emit({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
 
     this.renderRequests();
     this.renderVolunteers();
+    this.renderHeatmap();
     if (this.userPosition) this.renderUserMarker();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!this.map) return;
 
-    if (changes['requests']) this.renderRequests();
-    if (changes['volunteers']) this.renderVolunteers();       // ← НОВЕ
-    if (changes['userPosition']) this.renderUserMarker();    // ← НОВЕ
+    if (changes['requests']) {
+      this.renderRequests();
+      this.renderHeatmap();
+    }
+    if (changes['volunteers']) this.renderVolunteers();       
+    if (changes['userPosition']) this.renderUserMarker();    
   }
 
   ngOnDestroy(): void {
+    if (this.heatLayer && this.map) {
+      this.map.removeLayer(this.heatLayer);
+    }
     this.map?.remove();
   }
 
-  // ── Рендер маркерів запитів ───────────────────────────────────────────────
+  public onToggleHeatmapModeDirectly(heatMode: boolean): void {
+    this.isHeatmapMode = heatMode;
+    console.log('ГІС контролер змінив режим теплової карти:', this.isHeatmapMode);
+
+    if (this.isHeatmapMode) {
+      if (this.requestCluster && this.map.hasLayer(this.requestCluster)) {
+        this.map.removeLayer(this.requestCluster);
+      }
+      if (this.heatLayer) {
+        this.heatLayer.addTo(this.map);
+      }
+    } else {
+      if (this.requestCluster && !this.map.hasLayer(this.requestCluster)) {
+        this.map.addLayer(this.requestCluster);
+      }
+      if (this.heatLayer && this.map.hasLayer(this.heatLayer)) {
+        this.map.removeLayer(this.heatLayer);
+      }
+    }
+
+    setTimeout(() => {
+      if (this.map) {
+        this.map.invalidateSize();
+        this.map.setZoom(this.map.getZoom());
+      }
+      this.cdr.detectChanges();
+    }, 50);
+  }
+
+  // ── РЕНДЕР ТЕПЛОВОЇ КАРТИ (МАТЕМАТИЧНА МОДЕЛЬ ЗВАЖЕНОЇ ЩІЛЬНОСТІ) ──────────
+  private renderHeatmap(): void {
+    if (!this.map) return;
+
+    if (this.heatLayer) {
+      this.map.removeLayer(this.heatLayer);
+    }
+
+    const heatPoints = this.requests
+      .filter(req => req.coords?.lat && req.coords?.lng)
+      .map(req => [
+        req.coords.lat,
+        req.coords.lng,
+        req.priorityScore ?? 0.3 
+      ]);
+
+    this.heatLayer = (L as any).heatLayer(heatPoints, {
+      radius: 40, // Злегка збільшений радіус для кращої видимості
+      blur: 18,
+      maxZoom: 16,
+      max: 1.0, 
+      gradient: {
+        0.2: '#3b82f6', 
+        0.5: '#10b981', 
+        0.75: '#f59e0b', 
+        1.0: '#ef4444'  
+      }
+    });
+
+    if (this.isHeatmapMode) {
+      this.heatLayer.addTo(this.map);
+    }
+  }
+
   private renderRequests(): void {
     if (!this.requestCluster) return;
     this.requestCluster.clearLayers();
@@ -154,7 +229,7 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
       if (!loc?.lat || !loc?.lng) return;
 
       const marker = L.marker([loc.lat, loc.lng], {
-        icon: this.buildRequestIcon(req.category),
+        icon: this.buildRequestIcon(req.subcategory), // 🛡️ Передаємо subcategory замість застарілого category
       });
 
       marker.on('click', () => this.requestSelected.emit(req));
@@ -162,7 +237,6 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
     });
   }
 
-  // ── НОВЕ: Рендер маркерів волонтерів ─────────────────────────────────────
   private renderVolunteers(): void {
     if (!this.volunteerLayer) return;
     this.volunteerLayer.clearLayers();
@@ -173,7 +247,7 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
 
       const marker = L.marker([c.lat, c.lng], {
         icon: this.buildVolunteerIcon(vol),
-        zIndexOffset: 100, // Волонтери поверх запитів
+        zIndexOffset: 100, 
       });
 
       const name = [vol.firstName, vol.lastName].filter(Boolean).join(' ') || 'Волонтер';
@@ -188,7 +262,6 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
     });
   }
 
-  // ── НОВЕ: Мітка поточного користувача ────────────────────────────────────
   private renderUserMarker(): void {
     if (!this.map || !this.userPosition) return;
 
@@ -203,7 +276,6 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
         .bindTooltip('Ваше місцезнаходження', { permanent: false });
     }
 
-    // Центруємо карту на першу позицію
     if (!this._centeredOnUser) {
       this.map.setView([this.userPosition.lat, this.userPosition.lng], 13);
       this._centeredOnUser = true;
@@ -211,7 +283,6 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
   private _centeredOnUser = false;
 
-  // ── Публічний метод для flyTo ─────────────────────────────────────────────
   flyTo(lat: number, lng: number, zoom = 15): void {
     this.map?.flyTo([lat, lng], zoom, { duration: 0.8 });
   }

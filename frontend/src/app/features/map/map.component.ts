@@ -22,6 +22,7 @@ import { VolunteerRequestService } from '@features/requests';
 import { GeoService } from '@features/geo/services/geo.service';
 import { ToastService } from '@core/services/toast.service';
 import { UiEventsService } from '@core/services/ui-events.service';
+import { MapControlsComponent } from './components/map-controls/map-controls.component';
 
 @Component({
   selector: 'app-map',
@@ -33,7 +34,7 @@ import { UiEventsService } from '@core/services/ui-events.service';
     RequestListComponent,
     RequestDetailsComponent,
     RequestFormComponent,
-    ModalComponent // 🛡️ ДОДАНО В IMPORTS (щоб не було помилки NG8001)
+    ModalComponent 
   ],
   templateUrl: './map.component.html',
 })
@@ -61,6 +62,10 @@ export class MapComponent implements OnInit, OnDestroy {
   isDeleteModalOpen = false;
   private requestIdToDelete: string | null = null;
 
+  //TO REMOVE 
+  private readonly DEFAULT_LAT = 50.4735;
+  private readonly DEFAULT_LNG = 30.4340;
+
 nearbyVolunteers = signal<NearbyVolunteer[]>([
   {
     id: 'vol-1',
@@ -84,8 +89,7 @@ nearbyVolunteers = signal<NearbyVolunteer[]>([
   
 
   // ── НОВЕ: геолокаційний стан ──────────────────────────────────────────────
-  userPosition = signal<{ lat: number; lng: number } | null>({ lat: 50.4735, lng: 30.4340 });
-  // nearbyVolunteers = signal<NearbyVolunteer[]>(this.nearVolunteers);
+  userPosition = signal<{ lat: number; lng: number } | null>({ lat: this.DEFAULT_LAT, lng: this.DEFAULT_LNG });
   isNearbyMode = signal(false);
   nearbyRequests = signal<VolunteerRequest[]>([]);
 
@@ -93,6 +97,8 @@ nearbyVolunteers = signal<NearbyVolunteer[]>([
   get isVolunteer(): boolean { return this.currentUser?.role === 'volunteer'; }
 
   ngOnInit(): void {
+
+    this.uiEvents.toggleMapMode(true)
     this.store.loadAll();
     this.initGeolocation();
 
@@ -114,6 +120,7 @@ nearbyVolunteers = signal<NearbyVolunteer[]>([
     this.subs.add(
       this.locationService.getCurrentPosition().subscribe({
         next: (pos: GeoPosition) => {
+          console.log('🛰️ Браузерна геолокація успішна:', pos);
           this.userPosition.set({ lat: pos.lat, lng: pos.lng });
           this.cdr.markForCheck();
 
@@ -121,42 +128,66 @@ nearbyVolunteers = signal<NearbyVolunteer[]>([
             this.enableNearbyMode(pos.lat, pos.lng);
           }
         },
-        error: () => console.warn('Geolocation недоступна'),
+        error: (err) => {
+          // 🛡️ КІЛЕР-ФІКС: Якщо локальний ПК заблокував GPS, вмикаємо режим емуляції
+          console.warn('⚠️ Geolocation недоступна на цьому пристрої. Активовано режим ГІС-емуляції для Києва.');
+          
+          this.userPosition.set({ lat: this.DEFAULT_LAT, lng: this.DEFAULT_LNG });
+          this.cdr.markForCheck();
+
+          if (this.isVolunteer) {
+            this.enableNearbyMode(this.DEFAULT_LAT, this.DEFAULT_LNG);
+          }
+        },
       }),
     );
 
     if (this.isVolunteer) {
       let lastSyncTime = 0;
       this.subs.add(
-        this.locationService.watchAndSyncLocation().subscribe(pos => {
-          this.userPosition.set({ lat: pos.lat, lng: pos.lng });
-          this.cdr.markForCheck();
+        this.locationService.watchAndSyncLocation().subscribe({
+          next: (pos) => {
+            this.userPosition.set({ lat: pos.lat, lng: pos.lng });
+            this.cdr.markForCheck();
 
-          const now = Date.now();
-          if (now - lastSyncTime > 120_000) { 
-            lastSyncTime = now;
-            this.locationService.pushLocation(pos.lat, pos.lng).subscribe();
-          }
+            const now = Date.now();
+            if (now - lastSyncTime > 120_000) { 
+              lastSyncTime = now;
+              this.locationService.pushLocation(pos.lat, pos.lng).subscribe();
+            }
+          },
+          error: () => console.log('Стрімінг геолокації недоступний')
         }),
       );
     }
   }
 
-  private enableNearbyMode(lat: number, lng: number): void {
+private enableNearbyMode(lat: number, lng: number): void {
     this.isNearbyMode.set(true);
     this.locationService.pushLocation(lat, lng).subscribe();
 
+    console.log(`📡 [GraphQL Тригер]: Надсилаємо getNearbyRequests для точки: [${lat}, ${lng}], радіус: 5000м`);
+
     this.subs.add(
-      this.requestService.getNearbyRequests(lat, lng, 5000).subscribe(requests => {
-        this.nearbyRequests.set(requests);
-        this.cdr.markForCheck();
+      this.requestService.getNearbyRequests(lat, lng, 5000).subscribe({
+        next: (requests) => {
+          console.log('✅ Метод getNearbyRequests успішно повернув записи з PostGIS:', requests);
+          this.nearbyRequests.set(requests);
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          console.error('❌ Помилка при виконанні getNearbyRequests:', err);
+        }
       })
     );
 
     this.subs.add(
-      this.locationService.getNearbyVolunteers(lat, lng, 10_000).subscribe(volunteers => {
-        this.nearbyVolunteers.set(volunteers);
-        this.cdr.markForCheck();
+      this.locationService.getNearbyVolunteers(lat, lng, 10_000).subscribe({
+        next: (volunteers) => {
+          this.nearbyVolunteers.set(volunteers);
+          this.cdr.markForCheck();
+        },
+        error: () => {}
       })
     );
   }
@@ -234,5 +265,6 @@ nearbyVolunteers = signal<NearbyVolunteer[]>([
 
   ngOnDestroy(): void {
     this.subs.unsubscribe();
+    this.uiEvents.toggleMapMode(false);
   }
 }

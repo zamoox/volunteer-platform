@@ -13,13 +13,14 @@ import { AbilityServiceSignal } from '@casl/angular';
   styleUrl: './header.component.css',
 })
 export class HeaderComponent {
+  @Output() createRequest = new EventEmitter<void>();
+
   private router = inject(Router);
   private uiEventsService = inject(UiEventsService);
   private casl = inject(AbilityServiceSignal);
   public authService = inject(AuthService); // Публічний для доступу з HTML
   
-  @Output() createRequest = new EventEmitter<void>();
-
+  public isMapMode$ = this.uiEventsService.isMapMode$;
   canCreateRequest = computed(() => this.casl.can('create', 'VolunteerRequest'));
 
   constructor(){}

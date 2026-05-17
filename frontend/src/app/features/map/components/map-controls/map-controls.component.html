@@ -1,0 +1,37 @@
+<div class="w-72 bg-white/90 backdrop-blur-md border border-slate-200/80 shadow-2xl rounded-3xl p-4 flex flex-col gap-4 select-none">
+      <div>
+        <h4 class="text-xs font-black uppercase tracking-widest text-slate-400">Аналітичні шари ГІС</h4>
+        <p class="text-[11px] text-slate-500 font-medium mt-0.5">Керування відображенням даних на карті</p>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <button 
+          (click)="setMode(false)"
+          [class.bg-slate-900]="!isHeatmapMode"
+          [class.text-white]="!isHeatmapMode"
+          [class.bg-slate-50]="isHeatmapMode"
+          [class.text-slate-700]="isHeatmapMode"
+          class="w-full px-4 py-3 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-transparent transition-all flex items-center gap-2.5"
+        >
+          <span>📍 Точкові запити (Кластери)</span>
+        </button>
+
+        <button 
+          (click)="setMode(true)"
+          [class.bg-blue-600]="isHeatmapMode"
+          [class.text-white]="isHeatmapMode"
+          [class.bg-slate-50]="!isHeatmapMode"
+          [class.text-slate-700]="!isHeatmapMode"
+          class="w-full px-4 py-3 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-transparent transition-all flex items-center justify-between group"
+        >
+          <div class="flex items-center gap-2.5">
+            <span>🔥 Теплова карта пріоритетів</span>
+          </div>
+          <span *ngIf="isHeatmapMode" class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+        </button>
+      </div>
+
+      <div class="pt-2.5 border-t border-slate-100 text-[9px] text-slate-400 font-medium leading-normal italic">
+        * Масштабування та щільність теплової карти автоматично зважені на інтегральний індекс пріоритетності (Priority Score).
+      </div>
+    </div>
