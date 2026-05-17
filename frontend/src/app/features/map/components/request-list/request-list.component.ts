@@ -1,10 +1,9 @@
-import { Component, EventEmitter, inject, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { VolunteerRequestService, type VolunteerRequest } from '@features/requests';
-import { BehaviorSubject, combineLatest, distinctUntilChanged, map, switchMap, tap } from 'rxjs';
+import { type VolunteerRequest } from '@features/requests';
+import { BehaviorSubject, combineLatest, map } from 'rxjs';
 
-// 🛡️ ІМПОРТУЄМО НАШУ ДВОВЕКТОРНУ АРХІТЕКТУРУ Й UI-КЛАСИ
 import { 
   REQUEST_CATEGORIES, 
   REQUEST_SUBCATEGORIES_LABELS, 
@@ -19,36 +18,47 @@ import {
   imports: [CommonModule, FormsModule],
   templateUrl: './request-list.component.html'
 })
-export class RequestListComponent {
+export class RequestListComponent implements OnChanges {
+  // 🛡️ Отримуємо динамічний масив (усі або радіусні з відстанями) від батьківського MapComponent
+  @Input() requests: VolunteerRequest[] = [];
+  
   @Output() requestsFiltered = new EventEmitter<VolunteerRequest[]>();
   @Output() requestSelected = new EventEmitter<VolunteerRequest>();
   
-  private requestService = inject(VolunteerRequestService);
-  
-  // Стріми стану
+  // Вхідний потік самого масиву перетворюємо в реактивний BehaviorSubject
+  private requests$ = new BehaviorSubject<VolunteerRequest[]>([]);
+
+  // Стріми фільтрації
   public selectedCategory$ = new BehaviorSubject<string | null>(null);
   public searchTerm$ = new BehaviorSubject<string>('');
-  
-  // 🛡️ ЗМІНЕНО: тепер за замовчуванням сортуємо за нашим математичним Priority Score!
-  public sortBy$ = new BehaviorSubject<'priority' | 'date' | 'title'>('priority');
+  public sortBy$ = new BehaviorSubject<'priority' | 'date' | 'title' | 'distance'>('priority');
 
   categories = CATEGORIES_LIST;
+
+  // Хелпер для перевірки, чи є хоч один запит із прорахованою відстанню (для UI кнопок)
+  get hasDistanceData(): boolean {
+    return this.requests.some(r => r.distance_m !== null && r.distance_m !== undefined);
+  }
   
-  // Основний потік даних
-public filteredRequests$ = combineLatest([
-    this.selectedCategory$.pipe(distinctUntilChanged()),
-    this.searchTerm$.pipe(distinctUntilChanged()),
-    this.sortBy$.pipe(distinctUntilChanged())
+  // Головний обчислений потік, який ідеально реагує на введення та кліки користувача
+  public filteredRequests$ = combineLatest([
+    this.requests$,
+    this.selectedCategory$,
+    this.searchTerm$,
+    this.sortBy$
   ]).pipe(
-    switchMap(([category, term, sort]) => 
-      this.requestService.getAllRequests(category).pipe(
-        map(requests => ({ requests, term, sort }))
-      )
-    ),
-    map(({ requests, term, sort }) => {
+    map(([requests, category, term, sort]) => {
       let list = [...requests];
 
-      // Пошук
+      // 1. Фільтрація за великими гуманітарними кластерами ООН
+      if (category) {
+        list = list.filter(r => {
+          const mainCatId = SUBCATEGORY_TO_CATEGORY_MAP[r.subcategory] || 'OTHER';
+          return mainCatId === category;
+        });
+      }
+
+      // 2. Повнотекстовий пошук (назва, опис, підкатегорія)
       if (term) {
         const lowerTerm = term.toLowerCase();
         list = list.filter((r) => {
@@ -61,10 +71,14 @@ public filteredRequests$ = combineLatest([
         });
       }
 
-      // Сортування
+      // 3. Комбіноване інтелектуальне сортування
       list.sort((a, b) => {
         if (sort === 'priority') {
           return (b.priorityScore ?? 0) - (a.priorityScore ?? 0);
+        }
+        if (sort === 'distance') {
+          // 🛡️ НОВЕ: Сортування за метрами PostGIS (від найближчого)
+          return (a.distance_m ?? Infinity) - (b.distance_m ?? Infinity);
         }
         if (sort === 'date') {
           return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
@@ -72,7 +86,7 @@ public filteredRequests$ = combineLatest([
         return (a.title ?? '').localeCompare(b.title ?? '');
       });
 
-      // 🛡️ ФІКС НЕСКІНЧЕННОГО ЦИКЛУ: Готуємо статичні дані для UI заздалегідь тут!
+      // 4. Runtime-мапінг статичних стилів під UI-картки
       return list.map(req => {
         const mainCatId = SUBCATEGORY_TO_CATEGORY_MAP[req.subcategory] || 'OTHER';
         const priorityInfo = getPriorityGradation(req.priorityScore);
@@ -85,20 +99,19 @@ public filteredRequests$ = combineLatest([
           priorityBg: priorityInfo.bgClass
         };
       });
-    }),
-    tap(filtered => this.requestsFiltered.emit(filtered as any))
+    })
   );
 
-  /**
-   * 🛡️ Нові хелпери для гарного відображення в HTML-картці
-   */
-  getSubcategoryLabel(subcat: string): string {
-    return REQUEST_SUBCATEGORIES_LABELS[subcat] || 'Волонтерський запит';
-  }
-
-  getCategoryColorHex(subcat: string): string {
-    const mainCatId = SUBCATEGORY_TO_CATEGORY_MAP[subcat] || 'OTHER';
-    return REQUEST_CATEGORIES[mainCatId]?.hex || '#64748b';
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['requests']) {
+      this.requests$.next(this.requests);
+      
+      // Автоматичний фолбек: якщо увімкнули ГІС-режим, але сортування стояло на "title", 
+      // ми можемо залишити його, але якщо дані про відстань пропали — скидаємо на пріоритет
+      if (!this.hasDistanceData && this.sortBy$.value === 'distance') {
+        this.sortBy$.next('priority');
+      }
+    }
   }
 
   setCategory(id: string | null) {
@@ -109,7 +122,7 @@ public filteredRequests$ = combineLatest([
     this.searchTerm$.next(term);
   }
 
-  onSort(type: 'priority' | 'date' | 'title') {
+  onSort(type: 'priority' | 'date' | 'title' | 'distance') {
     this.sortBy$.next(type);
   }
 

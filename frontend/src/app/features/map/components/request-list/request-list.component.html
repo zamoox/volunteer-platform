@@ -24,6 +24,18 @@
       >
         🔥 Пріоритет
       </button>
+
+      <button 
+        *ngIf="hasDistanceData"
+        (click)="onSort('distance')"
+        [class.bg-emerald-600]="(sortBy$ | async) === 'distance'"
+        [class.text-white]="(sortBy$ | async) === 'distance'"
+        [class.border-transparent]="(sortBy$ | async) === 'distance'"
+        class="flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-slate-200 transition-all shadow-sm"
+      >
+        📍 Ближчі
+      </button>
+
       <button 
         (click)="onSort('date')"
         [class.bg-slate-900]="(sortBy$ | async) === 'date'"
@@ -32,6 +44,7 @@
       >
         📅 Нові
       </button>
+
       <button 
         (click)="onSort('title')"
         [class.bg-slate-900]="(sortBy$ | async) === 'title'"
@@ -105,6 +118,17 @@
         <div class="text-[9px] text-slate-400 font-medium tracking-normal pl-1 flex items-center gap-1 mt-0.5">
           <span>🕒 Опубліковано:</span>
           <span>{{ request.createdAt | date:'dd.MM в HH:mm' }}</span>
+        </div>
+
+        <div *ngIf="request.distance_m !== null && request.distance_m !== undefined" 
+             class="pl-1 flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-600 bg-emerald-50/70 border border-emerald-100/60 px-2 py-1 rounded-xl w-fit mt-0.5">
+          <span>📍</span>
+          <span>
+            {{ request.distance_m < 1000 
+                ? (request.distance_m | number:'1.0-0') + ' м' 
+                : ((request.distance_m / 1000) | number:'1.1-1') + ' км' 
+            }} від вас
+          </span>
         </div>
 
       </div>
