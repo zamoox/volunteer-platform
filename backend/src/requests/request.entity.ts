@@ -135,5 +135,8 @@ export class VolunteerRequest {
   @Field(() => Review, { nullable: true })
   @OneToOne(() => Review, (review) => review.volunteerRequest)
   review?: Review;
+
+  @Field(() => Float, { nullable: true })
+  distance_m?: number;
 }
 
