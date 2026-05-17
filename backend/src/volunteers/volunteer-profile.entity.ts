@@ -13,11 +13,23 @@ import {
   OneToOne,
   OneToMany,
   JoinColumn,
+  Index,
 } from 'typeorm';
+import type { Point } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Review } from '../reviews/review.entity';
+import { VolunteerRequest } from 'src/requests/request.entity';
 
-@ObjectType('Volunteer')
+@ObjectType()
+export class VolunteerCoords {
+  @Field(() => Float)
+  lat!: number;
+
+  @Field(() => Float)
+  lng!: number;
+}
+
+@ObjectType()
 @Entity('volunteer_profiles')
 export class VolunteerProfile {
   @Field(() => ID)
@@ -61,7 +73,34 @@ export class VolunteerProfile {
   @Column()
   userId!: string;
 
-  @Field(() => [Review])
+  @Field(() => [Review], { nullable: true })
   @OneToMany(() => Review, (review) => review.volunteer)
-  reviews!: Review[];
+  reviews?: Review[];
+
+  @Field(() => [VolunteerRequest], { nullable: 'itemsAndList' })
+  activeTasks?: VolunteerRequest[];
+
+  @Index({ spatial: true })
+  @Column({
+    type: 'geography',
+    spatialFeatureType: 'Point',
+    srid: 4326,
+    nullable: true,
+  })
+  location?: Point;
+
+  @Field(() => VolunteerCoords, { nullable: true })
+  get coords(): VolunteerCoords | null {
+    if (!this.location?.coordinates) return null;
+
+    return {
+      lng: this.location.coordinates[0],
+      lat: this.location.coordinates[1],
+    };
+  }
+  
+  @Field({ nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
+  lastActiveAt?: Date;
+
 }
