@@ -1,7 +1,7 @@
 import { Resolver, Query, Mutation, Args, Float } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { VolunteerRequest } from './request.entity';
-import { RequestsService } from './requests.service';
+import { RequestsService } from './services/requests.service';
 import { CreateRequestInput } from './dto/create-request.input';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';

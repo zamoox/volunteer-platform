@@ -5,7 +5,7 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { JwtUser } from 'src/common/interfaces/jwt-user.interface';
 import { VolunteerProfile } from './volunteer-profile.entity';
 import { VolunteerProfileService } from './volunteer-profile.service';
-import { RequestsService } from 'src/requests/requests.service';
+import { RequestsService } from 'src/requests/services/requests.service';
 import { VolunteerRequest } from 'src/requests/request.entity';
 
 @Resolver(() => VolunteerProfile)
