@@ -1,249 +1,218 @@
-import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EnvironmentInjector, EventEmitter, Input, NgZone, OnChanges, Output, SimpleChanges, ViewChild, createComponent, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+// features/map/components/map-view/map-view.component.ts
+// Повна заміна або доповнення існуючого компонента
+
+import {
+  Component, Input, Output, EventEmitter,
+  AfterViewInit, OnChanges, OnDestroy, SimpleChanges,
+  inject, ChangeDetectionStrategy,
+} from '@angular/core';
 import * as L from 'leaflet';
 import 'leaflet.markercluster';
-import { RequestPopupComponent } from '../request-popup/request-popup.component';
-
-export type MapCreateRequestPayload = { lat: number; lng: number; address: string };
+import { VolunteerRequest } from '@features/requests/models/volunteer-request.model';
+import { NearbyVolunteer } from '@features/volunteers/models/volunteer.model';
+import { REQUEST_CATEGORIES } from '@features/requests/constants/categories.constant';
 
 @Component({
   selector: 'app-map-view',
   standalone: true,
-  imports: [CommonModule],
-  templateUrl: './map-view.component.html',
-  styleUrl: './map-view.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `<div id="mapEl" style="width:100%;height:100%;"></div>`,
 })
-export class MapViewComponent implements AfterViewInit, OnChanges {
-  private zone = inject(NgZone);
-  private injector = inject(EnvironmentInjector);
-  private cdr = inject(ChangeDetectorRef);
+export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
+  // ── вхідні дані ──────────────────────────────────────────────────────────
+  @Input() requests: VolunteerRequest[] = [];
+  @Input() volunteers: NearbyVolunteer[] = [];  
+  @Input() userPosition: { lat: number; lng: number } | null = null; 
 
-  @Input() currentUserId?: string;
-  @ViewChild('mapEl', { static: true }) private mapEl!: ElementRef<HTMLDivElement>;
-
-  @Input({ required: true }) requests: any[] = [];
-  @Input() categories: any[] = [];
-  
-  @Output() requestSelected = new EventEmitter<any>();
+  // ── вихідні події ─────────────────────────────────────────────────────────
+  @Output() requestSelected = new EventEmitter<VolunteerRequest>();
   @Output() createRequestRequested = new EventEmitter<{ lat: number; lng: number }>();
-  @Output() createRequestConfirmed = new EventEmitter<MapCreateRequestPayload>();
-  
-  // 🗺️ Додаємо вихідний емітер для зв'язку з PostGIS
-  @Output() boundsChanged = new EventEmitter<{ lat: number; lng: number; radius: number }>();
 
-  private map?: L.Map;
-  private temporaryMarker?: L.Marker;
-  private markersClusterGroup = L.markerClusterGroup({
-    showCoverageOnHover: false,
-    spiderfyOnMaxZoom: true,
-    chunkedLoading: true,
-  });
+  private map!: L.Map;
+  private requestCluster!: L.MarkerClusterGroup;
+  private volunteerLayer!: L.LayerGroup; 
+  private userMarker: L.Marker | null = null; 
 
+  // ── Leaflet іконки ────────────────────────────────────────────────────────
+
+  private buildRequestIcon(category: string): L.DivIcon {
+    const cat = REQUEST_CATEGORIES[category] ?? REQUEST_CATEGORIES['OTHER'];
+    return L.divIcon({
+      className: '',
+      html: `
+        <div style="
+          background:${cat.hex};
+          width:36px;height:36px;border-radius:50% 50% 50% 0;
+          transform:rotate(-45deg);
+          display:flex;align-items:center;justify-content:center;
+          border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.35);
+        ">
+          <span style="transform:rotate(45deg);font-size:16px">${cat.emoji}</span>
+        </div>`,
+      iconSize: [36, 36],
+      iconAnchor: [18, 36],
+      popupAnchor: [0, -38],
+    });
+  }
+
+  // ── НОВЕ: іконка для волонтера ────────────────────────────────────────────
+  private buildVolunteerIcon(volunteer: NearbyVolunteer): L.DivIcon {
+    const initials = [volunteer.firstName, volunteer.lastName]
+      .filter(Boolean)
+      .map(n => n![0])
+      .join('')
+      .toUpperCase() || 'V';
+
+    const rating = Math.round(volunteer.averageRating || 0);
+    const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+
+    return L.divIcon({
+      className: '',
+      html: `
+        <div style="
+          background:#1D9E75;
+          width:40px;height:40px;border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,.4);
+          font-size:14px;font-weight:600;color:white;
+          font-family:sans-serif;
+        " title="${volunteer.firstName || ''} ${volunteer.lastName || ''}\n${stars}">
+          ${initials}
+        </div>`,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+    });
+  }
+
+  // ── НОВЕ: іконка для поточного користувача ────────────────────────────────
+  private buildUserIcon(): L.DivIcon {
+    return L.divIcon({
+      className: '',
+      html: `
+        <div style="
+          width:16px;height:16px;border-radius:50%;
+          background:#185FA5;border:3px solid white;
+          box-shadow:0 0 0 3px rgba(24,95,165,.35);
+        "></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    });
+  }
+
+  // ── Ініціалізація Leaflet ─────────────────────────────────────────────────
   ngAfterViewInit(): void {
-    this.initMap();
-    setTimeout(() => {
-      this.map?.invalidateSize();
-      // Емітимо стартові межі, щоб завантажити перші маркери під час ініціалізації
-      this.emitCurrentBounds();
-    }, 200);
+    this.map = L.map('mapEl', {
+      center: [50.45, 30.52],
+      zoom: 12,
+      zoomControl: true,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(this.map);
+
+    // Кластер для запитів
+    this.requestCluster = (L as any).markerClusterGroup({
+      maxClusterRadius: 60,
+      spiderfyOnMaxZoom: true,
+    });
+    this.map.addLayer(this.requestCluster);
+
+    // Окремий шар для волонтерів
+    this.volunteerLayer = L.layerGroup().addTo(this.map);
+
+    // Подвійний клік — створити запит
+    this.map.on('dblclick', (e: L.LeafletMouseEvent) => {
+      this.createRequestRequested.emit({ lat: e.latlng.lat, lng: e.latlng.lng });
+    });
+
+    this.renderRequests();
+    this.renderVolunteers();
+    if (this.userPosition) this.renderUserMarker();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    // Якщо прийшли нові реквести з PostGIS і мапа вже готова — рендеримо
-    if (changes['requests'] && this.map) {
-      this.renderMarkers(this.requests);
+    if (!this.map) return;
+
+    if (changes['requests']) this.renderRequests();
+    if (changes['volunteers']) this.renderVolunteers();       // ← НОВЕ
+    if (changes['userPosition']) this.renderUserMarker();    // ← НОВЕ
+  }
+
+  ngOnDestroy(): void {
+    this.map?.remove();
+  }
+
+  // ── Рендер маркерів запитів ───────────────────────────────────────────────
+  private renderRequests(): void {
+    if (!this.requestCluster) return;
+    this.requestCluster.clearLayers();
+
+    this.requests.forEach(req => {
+      const loc = req.coords;
+      if (!loc?.lat || !loc?.lng) return;
+
+      const marker = L.marker([loc.lat, loc.lng], {
+        icon: this.buildRequestIcon(req.category),
+      });
+
+      marker.on('click', () => this.requestSelected.emit(req));
+      this.requestCluster.addLayer(marker);
+    });
+  }
+
+  // ── НОВЕ: Рендер маркерів волонтерів ─────────────────────────────────────
+  private renderVolunteers(): void {
+    if (!this.volunteerLayer) return;
+    this.volunteerLayer.clearLayers();
+
+    this.volunteers.forEach(vol => {
+      const c = vol.coords;
+      if (!c?.lat || !c?.lng) return;
+
+      const marker = L.marker([c.lat, c.lng], {
+        icon: this.buildVolunteerIcon(vol),
+        zIndexOffset: 100, // Волонтери поверх запитів
+      });
+
+      const name = [vol.firstName, vol.lastName].filter(Boolean).join(' ') || 'Волонтер';
+      const rating = vol.averageRating?.toFixed(1) ?? '—';
+
+      marker.bindTooltip(
+        `<b>${name}</b><br>⭐ ${rating} · ✅ ${vol.completedRequestsCount} виконань`,
+        { direction: 'top', offset: [0, -22] },
+      );
+
+      this.volunteerLayer.addLayer(marker);
+    });
+  }
+
+  // ── НОВЕ: Мітка поточного користувача ────────────────────────────────────
+  private renderUserMarker(): void {
+    if (!this.map || !this.userPosition) return;
+
+    if (this.userMarker) {
+      this.userMarker.setLatLng([this.userPosition.lat, this.userPosition.lng]);
+    } else {
+      this.userMarker = L.marker(
+        [this.userPosition.lat, this.userPosition.lng],
+        { icon: this.buildUserIcon(), zIndexOffset: 1000 },
+      )
+        .addTo(this.map)
+        .bindTooltip('Ваше місцезнаходження', { permanent: false });
+    }
+
+    // Центруємо карту на першу позицію
+    if (!this._centeredOnUser) {
+      this.map.setView([this.userPosition.lat, this.userPosition.lng], 13);
+      this._centeredOnUser = true;
     }
   }
+  private _centeredOnUser = false;
 
-  private renderMarkers(requests: any[]): void {
-    if (!this.map) return;
-    
-    // Очищаємо кластери перед новим рендером
-    this.markersClusterGroup.clearLayers();
-    if (!requests || requests.length === 0) return;
-
-    const newMarkers: L.Marker[] = [];
-
-    requests.forEach((req) => {
-      // 🛡️ Захист від відсутності координат у моделі
-      if (!req.coords || typeof req.coords.lat !== 'number' || typeof req.coords.lng !== 'number') {
-        return;
-      }
-
-      const category = this.categories?.find((c) => c.id === req.category);
-      const isMine = !!(this.currentUserId && (
-        req.organization?.userId === this.currentUserId || 
-        req.volunteerId === this.currentUserId
-      ));
-
-      const isInProgress = req.status === 'in_progress';
-      let borderColor = '#ffffff'; 
-      let animationClass = '';
-
-      if (isInProgress) {
-        borderColor = '#2563eb'; 
-        animationClass = 'marker-pulse-blue';
-      }
-
-      const customIcon = L.divIcon({
-        className: 'custom-marker-wrapper',
-        html: `
-          <div class="${animationClass}" style="
-            background-color: ${category?.color || '#6b7280'}; 
-            width: 30px; height: 30px; 
-            border-radius: 50% 50% 50% 0; 
-            transform: rotate(-45deg); 
-            display: flex; align-items: center; justify-content: center; 
-            border: 3px solid ${borderColor};
-            box-shadow: ${isMine ? '0 0 10px rgba(0,0,0,0.3)' : 'none'};
-          ">
-            <span style="transform: rotate(45deg); font-size: 14px;">
-              ${ category?.label ? category.label.split(' ')[0] : '📌' }
-            </span>
-          </div>`,
-        iconSize: [30, 30],
-        iconAnchor: [15, 30],
-      });
-
-      const marker = L.marker([req.coords.lat, req.coords.lng], { 
-        icon: customIcon,
-        zIndexOffset: isInProgress ? 1000 : 0 
-      });
-
-      marker.on('click', () => this.zone.run(() => this.openRequestPopup(req)));
-      newMarkers.push(marker);
-    });
-
-    if (newMarkers.length > 0) {
-      this.markersClusterGroup.addLayers(newMarkers);
-    }
-    this.cdr.markForCheck();
-  }
-
-  // Метод обчислення радіуса видимості та відправки івенту в PostGIS
-  private emitCurrentBounds(): void {
-    if (!this.map) return;
-    
-    const center = this.map.getCenter();
-    const zoom = this.map.getZoom();
-    
-    // Округляємо до цілого числа метрів, щоб уникнути дробових значень у GraphQL
-    const radiusCalculated = Math.round(Math.max(500, (20000000 / Math.pow(2, zoom))));
-
-    console.log('🗺️ [MapView] Карта змістилася. Емітимо наверх:', { lat: center.lat, lng: center.lng, radius: radiusCalculated });
-
-    this.zone.run(() => {
-      this.boundsChanged.emit({
-        lat: center.lat,
-        lng: center.lng,
-        radius: radiusCalculated
-      });
-    });
-  }
-
-  private initMap(): void {
-    this.map = L.map(this.mapEl.nativeElement, { zoomControl: false }).setView([50.45, 30.52], 12);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap',
-    }).addTo(this.map);
-
-    L.control.zoom({ position: 'bottomright' }).addTo(this.map);
-    this.map.addLayer(this.markersClusterGroup);
-
-    // 🔄 Зв'язуємо івенти руху карти з PostGIS сервісом
-    this.map.on('moveend', () => this.emitCurrentBounds());
-    this.map.on('zoomend', () => this.emitCurrentBounds());
-
-    this.map.on('click', (e: L.LeafletMouseEvent) => {
-      const { lat, lng } = e.latlng;
-      this.zone.run(() => {
-        this.createRequestRequested.emit({ lat, lng });
-      });
-    });
-  }
-
-  getCenter(): L.LatLng | null {
-    return this.map ? this.map.getCenter() : null;
-  }
-
-  flyTo(lat: number, lng: number, zoom = 16): void {
-    if (!this.map) return;
-    this.map.flyTo([lat, lng], zoom);
-  }
-
-  closePopup(): void {
-    this.map?.closePopup();
-  }
-
-  clearTemporaryMarker(): void {
-    if (!this.map) return;
-    if (this.temporaryMarker) {
-      this.map.removeLayer(this.temporaryMarker);
-      this.temporaryMarker = undefined;
-    }
-  }
-
-  getCurrentZoom(): number {
-    return this.map?.getZoom() || 13;
-  }
-
-  closeAllPopups(): void {
-    this.map?.closePopup();
-  }
-
-  openRequestPopup(request: any): void {
-    const componentRef = createComponent(RequestPopupComponent, {
-      environmentInjector: this.injector
-    });
-
-    componentRef.instance.request = request;
-    componentRef.instance.category = this.categories?.find(c => c.id === request.category);
-    
-    componentRef.instance.showDetails.subscribe((req) => {
-      this.zone.run(() => {
-        this.requestSelected.emit(req);
-        this.map?.closePopup();         
-      });
-    });
-
-    componentRef.changeDetectorRef.detectChanges();
-    
-    L.popup({ offset: [0, -20], className: 'custom-leaflet-popup' })
-      .setLatLng([request.coords.lat, request.coords.lng])
-      .setContent(componentRef.location.nativeElement)
-      .openOn(this.map!);
-  }
-
-  showCreatePopupAt(lat: number, lng: number, address: string): void {
-    if (!this.map) return;
-
-    this.clearTemporaryMarker();
-    this.temporaryMarker = L.marker([lat, lng], {
-      icon: L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-      }),
-    }).addTo(this.map);
-
-    const div = document.createElement('div');
-    div.innerHTML = `
-      <div style="text-align: center; min-width: 150px;">
-        <p style="margin-bottom: 8px; font-size: 13px;">${address}</p>
-        <button id="add-btn" style="background:#2563eb; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; width:100%">Додати запит</button>
-      </div>
-    `;
-
-    div.querySelector('#add-btn')?.addEventListener('click', () => {
-      this.zone.run(() => {
-        this.createRequestConfirmed.emit({ lat, lng, address });
-        this.map?.closePopup();
-      });
-    });
-
-    this.temporaryMarker?.bindPopup(div).openPopup();
+  // ── Публічний метод для flyTo ─────────────────────────────────────────────
+  flyTo(lat: number, lng: number, zoom = 15): void {
+    this.map?.flyTo([lat, lng], zoom, { duration: 0.8 });
   }
 }
