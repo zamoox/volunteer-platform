@@ -1,7 +1,8 @@
 import { InputType, Field, Float } from '@nestjs/graphql';
-import { IsString, IsNotEmpty, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, ValidateNested, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RequestStatus } from '../enums/request-status.enum';
+import { RequestSubcategory } from '../enums/request-category.enum';
 
 @InputType()
 export class LocationInput {
@@ -31,6 +32,11 @@ export class CreateRequestInput {
   @IsString()
   @IsNotEmpty()
   category!: string;
+
+  @Field(() => RequestSubcategory)
+  @IsEnum(RequestSubcategory)
+  @IsNotEmpty()
+  subcategory!: RequestSubcategory;
 
   @Field({ nullable: true })
   address?: string;

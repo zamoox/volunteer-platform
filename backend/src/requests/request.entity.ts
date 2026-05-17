@@ -14,6 +14,7 @@ import { VolunteerProfile } from 'src/volunteers/volunteer-profile.entity';
 import { Review } from 'src/reviews/review.entity';
 import { RequestStatus } from './enums/request-status.enum';
 import type { Point } from 'typeorm';
+import { RequestSubcategory } from './enums/request-category.enum';
 
 @ObjectType()
 export class Location {
@@ -75,6 +76,37 @@ export class VolunteerRequest {
   @Field()
   @CreateDateColumn()
   createdAt!: Date;
+
+  @Field(() => RequestSubcategory, { nullable: true })
+  @Column({
+    type: 'enum',
+    enum: RequestSubcategory,
+    nullable: true,
+  })
+  subcategory?: RequestSubcategory;
+
+  @Field(() => Float, { nullable: true })
+  @Column({
+    type: 'float',
+    nullable: true,
+  })
+  priorityScore?: number;
+
+  @Field(() => Float, { nullable: true })
+  @Column({
+    type: 'float',
+    nullable: true,
+  })
+  zoneRiskCoefficient?: number;
+
+  @Field(() => [String], { nullable: true })
+  @Column({
+    type: 'text',
+    array: true,
+    nullable: true,
+    comment: 'Автотеги від VBT-алгоритму',
+  })
+  autoTags?: string[];
 
   // --- Зв'язки ---
   

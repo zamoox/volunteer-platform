@@ -16,6 +16,10 @@ export const REQUEST_CORE_FIELDS = gql`
     status
     address
     createdAt
+    subcategory
+    priorityScore
+    zoneRiskCoefficient
+    autoTags
   }
 `;
 
