@@ -58,6 +58,15 @@ export const routes: Routes = [
   { path: 'verify', 
     component: VerifyComponent
   },
+  {
+    path: 'about',
+    loadComponent: () => import('./features/static/components/about/about.component').then(m => m.AboutComponent)
+    // (Якщо обрав Варіант 2, то шлях буде: './shared/components/about/about.component')
+  },
+  {
+    path: 'how-to-help',
+    loadComponent: () => import('./features/static/components/how-to-help/how-to-help.component').then(m => m.HowToHelpComponent)
+  },
   // Редірект для будь-яких невідомих шляхів на головну сторінку
   {
     path: '**',
