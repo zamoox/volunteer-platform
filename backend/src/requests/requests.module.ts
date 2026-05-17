@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { VolunteerRequest } from './request.entity';
 import { RequestsService } from './requests.service';
@@ -11,8 +11,8 @@ import { Review } from 'src/reviews/review.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([VolunteerRequest, VolunteerProfile, Review]),
-    OrganizationProfileModule,
-    CaslModule 
+    CaslModule,
+    OrganizationProfileModule
   ],
   providers: [RequestsService, RequestsResolver],
   exports: [RequestsService],

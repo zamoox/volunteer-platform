@@ -348,19 +348,40 @@ export class RequestsService {
     return true;
   }
 
-  async getNearbyRequests(lat: number, lng: number, radius: number) {
+  async getNearbyRequests(
+    lat: number,
+    lng: number,
+    radius: number,
+  ): Promise<VolunteerRequest[]> {
     return this.requestRepository
       .createQueryBuilder('request')
-      .where(
-        'ST_DWithin(request.location::geography, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius)',
+      .where('request.location IS NOT NULL')
+      // Фільтр за відстанню через PostGIS ST_DWithin
+      .andWhere(
+        `ST_DWithin(
+          request.location::geography,
+          ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+          :radius
+        )`,
         { lat, lng, radius },
       )
+      // Лише відкриті запити для волонтерів
+      .andWhere('request.status = :status', { status: 'open' })
       .leftJoinAndSelect('request.organization', 'organization')
       .leftJoinAndSelect('organization.user', 'organizationUser')
       .leftJoinAndSelect('request.volunteer', 'volunteer')
-      .leftJoinAndSelect('volunteer.user', 'volunteerUser') 
+      .leftJoinAndSelect('volunteer.user', 'volunteerUser')
       .leftJoinAndSelect('request.review', 'review')
-      .orderBy('request.createdAt', 'DESC')
+      // Сортуємо від найближчого до найдальшого — ключова наукова новизна
+      .addSelect(
+        `ST_Distance(
+          request.location::geography,
+          ST_SetSRID(ST_MakePoint(:lng2, :lat2), 4326)::geography
+        )`,
+        'distance_m',
+      )
+      .setParameters({ lat2: lat, lng2: lng })
+      .orderBy('distance_m', 'ASC')
       .getMany();
   }
 }
