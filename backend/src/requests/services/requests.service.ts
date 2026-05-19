@@ -123,7 +123,7 @@ export class RequestsService {
     return finalResult;
   } 
 
-  async update(id: string, input: UpdateRequestInput, currentUser: JwtUser): Promise<VolunteerRequest> {
+async update(id: string, input: UpdateRequestInput, currentUser: JwtUser): Promise<VolunteerRequest> {
     const request = await this.requestRepository.findOne({ 
       where: { id },
       relations: ['organization', 'organization.user'] 
@@ -141,13 +141,11 @@ export class RequestsService {
       throw new ForbiddenException('Ви можете редагувати тільки власні запити');
     }
 
-    // Деструктуризуємо інпут, щоб окремо обробити зміну гео-координат
     const { coords, ...restInput } = input;
 
     // Оновлюємо плоскі поля
     Object.assign(request, restInput);
 
-    // Якщо фронтенд передав нові координати, оновлюємо структуру PostGIS
     if (coords) {
       request.location = {
         type: 'Point',
@@ -155,7 +153,29 @@ export class RequestsService {
       };
     }
 
-    return this.requestRepository.save(request);
+    // Зберігаємо базові зміни координат у базу даних
+    const savedRequest = await this.requestRepository.save(request);
+
+    // Перераховуємо ГІС-метрики через інтегрований computeAndSave
+    if (coords) {
+      const currentSubcategory = input.subcategory || savedRequest.subcategory;
+      
+      const { priorityScore, riskCoefficient } = await this.priorityService.computeAndSave(
+        savedRequest.id,
+        currentSubcategory as any, // приведення до типу RequestSubcategory
+        coords.lat,
+        coords.lng,
+        savedRequest.createdAt,
+      );
+
+      // Примусово насильно мапимо об'єкт для GraphQL-відповіді в Playground
+      savedRequest.priorityScore = priorityScore;
+      savedRequest.zoneRiskCoefficient = riskCoefficient;
+    }
+
+    if (input.subcategory) savedRequest.subcategory = input.subcategory;
+
+    return savedRequest;
   }
 
   async findAll(category?: string): Promise<VolunteerRequest[]> {
