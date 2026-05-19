@@ -13,6 +13,7 @@ import { VolunteerRequest } from '@features/requests/models/volunteer-request.mo
 import { NearbyVolunteer } from '@features/volunteers/models/volunteer.model';
 import { REQUEST_CATEGORIES, SUBCATEGORY_TO_CATEGORY_MAP } from '@features/requests/constants/request-categories.constant';
 import { MapControlsComponent } from '../map-controls/map-controls.component';
+import { RISK_ZONES_CONFIG, RiskLevel } from '@features/map/interfaces/risk-zone.interface';
 
 @Component({
   selector: 'app-map-view',
@@ -41,6 +42,56 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
   private userMarker: L.Marker | null = null; 
   private heatLayer: any = null;
   public isHeatmapMode = false;
+
+    // ── Ініціалізація Leaflet ─────────────────────────────────────────────────
+  ngAfterViewInit(): void {
+    // 🛡️ ФІКС: Ініціалізуємо карту на ізольованому 'mapTarget', щоб Leaflet не затирав контролер!
+    this.map = L.map('mapTarget', {
+      center: [50.45, 30.52],
+      zoom: 12,
+      zoomControl: true,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(this.map);
+
+    this.requestCluster = (L as any).markerClusterGroup({
+      maxClusterRadius: 60,
+      spiderfyOnMaxZoom: true,
+    });
+    this.map.addLayer(this.requestCluster);
+
+    this.volunteerLayer = L.layerGroup().addTo(this.map);
+
+    this.map.on('dblclick', (e: L.LeafletMouseEvent) => {
+      this.createRequestRequested.emit({ lat: e.latlng.lat, lng: e.latlng.lng });
+    });
+    this.initRiskZonesLayer();
+    this.renderRequests();
+    this.renderVolunteers();
+    this.renderHeatmap();
+    if (this.userPosition) this.renderUserMarker();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!this.map) return;
+
+    if (changes['requests']) {
+      this.renderRequests();
+      this.renderHeatmap();
+    }
+    if (changes['volunteers']) this.renderVolunteers();       
+    if (changes['userPosition']) this.renderUserMarker();    
+  }
+
+  ngOnDestroy(): void {
+    if (this.heatLayer && this.map) {
+      this.map.removeLayer(this.heatLayer);
+    }
+    this.map?.remove();
+  }
 
   // ── Leaflet іконки ────────────────────────────────────────────────────────
   private buildRequestIcon(subcategory: string): L.DivIcon {
@@ -107,55 +158,7 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
     });
   }
 
-  // ── Ініціалізація Leaflet ─────────────────────────────────────────────────
-  ngAfterViewInit(): void {
-    // 🛡️ ФІКС: Ініціалізуємо карту на ізольованому 'mapTarget', щоб Leaflet не затирав контролер!
-    this.map = L.map('mapTarget', {
-      center: [50.45, 30.52],
-      zoom: 12,
-      zoomControl: true,
-    });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(this.map);
-
-    this.requestCluster = (L as any).markerClusterGroup({
-      maxClusterRadius: 60,
-      spiderfyOnMaxZoom: true,
-    });
-    this.map.addLayer(this.requestCluster);
-
-    this.volunteerLayer = L.layerGroup().addTo(this.map);
-
-    this.map.on('dblclick', (e: L.LeafletMouseEvent) => {
-      this.createRequestRequested.emit({ lat: e.latlng.lat, lng: e.latlng.lng });
-    });
-
-    this.renderRequests();
-    this.renderVolunteers();
-    this.renderHeatmap();
-    if (this.userPosition) this.renderUserMarker();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (!this.map) return;
-
-    if (changes['requests']) {
-      this.renderRequests();
-      this.renderHeatmap();
-    }
-    if (changes['volunteers']) this.renderVolunteers();       
-    if (changes['userPosition']) this.renderUserMarker();    
-  }
-
-  ngOnDestroy(): void {
-    if (this.heatLayer && this.map) {
-      this.map.removeLayer(this.heatLayer);
-    }
-    this.map?.remove();
-  }
 
   public onToggleHeatmapModeDirectly(heatMode: boolean): void {
     this.isHeatmapMode = heatMode;
@@ -285,5 +288,45 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   flyTo(lat: number, lng: number, zoom = 15): void {
     this.map?.flyTo([lat, lng], zoom, { duration: 0.8 });
+  }
+
+  private initRiskZonesLayer(): void {
+    RISK_ZONES_CONFIG.forEach(zone => {
+      const styles = this.getZoneVisualStyles(zone.level);
+      
+      // Створюємо просторове коло відповідно до ГІС-радіусу PostGIS
+      const riskCircle = L.circle([zone.lat, zone.lng], {
+        radius: zone.radiusMeters,
+        color: styles.color,
+        fillColor: styles.fillColor,
+        fillOpacity: styles.fillOpacity,
+        weight: 2,
+        dashArray: '6, 9' // Елегантний ГІС-пунктир для відображення меж
+      });
+
+      // Інтерактивна підказка (Tooltip) при наведенні курсора миші
+      riskCircle.bindTooltip(`
+        <div class="p-1 font-sans">
+          <strong class="text-gray-900 block border-b pb-1 mb-1">${zone.name}</strong>
+          <span class="text-sm text-gray-700">Коефіцієнт ризику ООН: <strong>х${zone.weight}</strong></span>
+        </div>
+      `, { sticky: true });
+
+      riskCircle.addTo(this.map);
+    });
+  }
+
+  // Обчислення палітри кольорів відповідно до ступеня небезпеки (Наказ № 309)
+  private getZoneVisualStyles(level: RiskLevel) {
+    switch (level) {
+      case RiskLevel.OCCUPIED:
+        return { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.24 }; // Суворий червоний (Tailwind red-500)
+      case RiskLevel.ACTIVE:
+        return { color: '#f97316', fillColor: '#f97316', fillOpacity: 0.20 }; // Помаранчевий (Tailwind orange-500)
+      case RiskLevel.POSSIBLE:
+        return { color: '#eab308', fillColor: '#eab308', fillOpacity: 0.15 }; // Жовтий (Tailwind yellow-500)
+      default:
+        return { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.08 }; // Безпечний тил (Tailwind green-500)
+    }
   }
 }
