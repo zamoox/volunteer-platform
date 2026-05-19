@@ -1,0 +1,27 @@
+
+config:
+  target: "http://localhost:3000/graphql" # Твій локальний бекенд NestJS
+  phases:
+    - duration: 60
+      arrivalRate: 15 # Стабільний потік: 15 нових волонтерів кожну секунду
+      rampTo: 50      # Пікове навантаження: розгін до 50 нових волонтерів на секунду під кінець хвилини
+      name: "Кризовий наплив волонтерів (Peak Load)"
+scenarios:
+  - name: "Запит радіусних потреб волонтером поруч"
+    flow:
+      - post:
+          url: "/"
+          json:
+            query: |
+              query GetNearbyRequests($lat: Float!, $lng: Float!, $radius: Float!) {
+                getNearbyRequests(lat: $lat, lng: $lng, radius: $radius) {
+                  id
+                  title
+                  priorityScore
+                  distance_m
+                }
+              }
+            variables:
+              lat: 50.4735
+              lng: 30.4340
+              radius: 5000
