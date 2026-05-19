@@ -13,7 +13,8 @@ import {
   RESEND_VERIFICATION_EMAIL,
   TURN_ON_2FA_MUTATION,
   GENERATE_2FA_MUTATION,
-  CHANGE_PASSWORD_MUTATION
+  CHANGE_PASSWORD_MUTATION,
+  FORGOT_PASSWORD_MUTATION
  } from '@features/auth/graphql/auth.mutations';
  import { GET_PROFILE } from '@features/auth/graphql/auth.queries';
 
@@ -270,5 +271,12 @@ private saveSessionData(user: User, rules: any[]): void {
   this.caslService.updateAbility(rules);
   this.currentUserSubject.next(user);
 }
+
+forgotPassword(email: string) {
+    return this.apollo.mutate({
+      mutation: FORGOT_PASSWORD_MUTATION,
+      variables: { email }
+    });
+  }
  
 }

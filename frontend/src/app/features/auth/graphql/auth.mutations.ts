@@ -83,4 +83,16 @@ export const CHANGE_PASSWORD_MUTATION = gql`
   mutation ChangePassword($userId: String!, $oldPassword: String!, $newPassword: String!) {
     changePassword(userId: $userId, oldPassword: $oldPassword, newPassword: $newPassword)
   }
+`
+
+export const FORGOT_PASSWORD_MUTATION = gql`
+  mutation ForgotPassword($email: String!) {
+    forgotPassword(email: $email)
+  }
+`;
+
+export const RESET_PASSWORD_MUTATION = gql`
+  mutation ResetPassword($token: String!, $newPassword: String!) {
+    resetPassword(token: $token, newPassword: $newPassword)
+  }
 `;
