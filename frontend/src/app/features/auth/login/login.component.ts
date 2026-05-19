@@ -6,6 +6,7 @@ import { AuthService } from '@core/services/auth.service';
 import { LoadingService } from '@core/services/loading.service';
 import { SpinnerComponent } from '@shared/components';
 import { filter, take } from 'rxjs';
+import { ToastService } from '@core/services';
 
 @Component({
   selector: 'app-login',
@@ -19,12 +20,17 @@ export class LoginComponent implements OnInit {
   public loadingService = inject(LoadingService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private toastService = inject(ToastService);
 
   showPassword = false;
   loginError = false;
   is2FAStep = false;
   userIdFor2FA = '';
   twoFaCode = '';
+
+  isForgotPasswordStep = false;
+  isResetEmailSent = false;
+  forgotPasswordEmail = new FormControl('', [Validators.required, Validators.email]);
 
   loginForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
@@ -55,19 +61,40 @@ export class LoginComponent implements OnInit {
       
       this.authService.login(email, password).subscribe({
             next: (data) => {
+              this.isLoading = false;
               // Якщо бекенд просить 2FA
               if (data.require2FA) {
                 this.is2FAStep = true; // Перемикаємо UI на форму введення коду
                 this.userIdFor2FA = data.userId; // Зберігаємо ID для наступного запиту
               } 
               // Якщо звичайний логін (2FA вимкнено)
-              else if (data.access_token) {
+              else if (data.access_token && data?.user) {
                 if (data?.access_token && data?.user) {
                   this.navigateToDashboard(data.user.role);
                 }
               }
             },
             error: (err) => {
+              this.isLoading = false;
+              
+              // 🛡️ ГІС-ФІКС ДЛЯ GRAPHQL GRAPHQL_ERROR_PARSING
+              // Перевіряємо внутрішній код помилки Apollo (UNAUTHENTICATED) або HTTP статус
+              const isUnauthenticated = 
+                err.status === 401 || 
+                err.message?.includes('Unauthorized') ||
+                (err.graphQLErrors as any[])?.some(gErr => gErr.extensions?.['code'] === 'UNAUTHENTICATED') ||
+                err.message?.includes('Невірний email або пароль');
+
+              if (isUnauthenticated) {
+                this.loginError = true; // Активуємо локальну shake-анімацію на формі
+              } else {
+                // Якщо сервер дійсно ліг (Network Error / 500)
+                this.toastService.show(
+                  'Помилка підключення', 
+                  'Сервер координації не відповідає або відсутній зв’язок із базою даних.', 
+                  'error'
+                );
+              }
               console.error('Помилка логіну:', err);
             }
           });
@@ -90,7 +117,7 @@ export class LoginComponent implements OnInit {
         this.navigateToDashboard(user.role);
       },
       error: () => {
-        // Якщо щось пішло не так, AuthGuard все одно викине на логін
+        this.toastService.show('Помилка авторизації Google', 'Не вдалося імпортувати профіль.', 'error');
         this.router.navigate(['/login']);
       }
     });
@@ -116,9 +143,10 @@ export class LoginComponent implements OnInit {
         this.navigateToDashboard(data.user.role);
       }
       },
-      error: () => {
+      error: (err) => {
         this.loginError = true;
         this.twoFaCode = '';
+        this.toastService.show('Помилка перевірки', 'Введено некоректний або застарілий код 2FA.', 'warning');
       }
     });
   }
@@ -134,6 +162,38 @@ export class LoginComponent implements OnInit {
   togglePassword() {
     this.showPassword = !this.showPassword;
   } 
+
+  toggleForgotPassword() {
+    this.isForgotPasswordStep = !this.isForgotPasswordStep;
+    this.is2FAStep = false;
+    this.loginError = false;
+    this.isResetEmailSent = false;
+    this.forgotPasswordEmail.reset();
+  }
+
+  sendPasswordResetLink() {
+    if (this.forgotPasswordEmail.invalid) {
+      this.forgotPasswordEmail.markAsTouched();
+      return;
+    }
+
+    this.isLoading = true;
+    const email = this.forgotPasswordEmail.value!;
+
+    this.authService.forgotPassword(email).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.isResetEmailSent = true;
+        this.toastService.show('Готово', 'Інструкції з відновлення надіслано на вашу пошту.', 'success');
+      },
+      error: (err) => {
+        this.isLoading = false;
+        // З міркувань безпеки ми не кажемо, чи існує такий email, просто показуємо успіх або загальну помилку
+        this.toastService.show('Готово', 'Якщо email існує в базі, ви отримаєте лист.', 'info');
+        this.isResetEmailSent = true; 
+      }
+    });
+  }
 
 
 }

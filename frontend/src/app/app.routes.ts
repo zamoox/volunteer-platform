@@ -67,7 +67,10 @@ export const routes: Routes = [
     path: 'how-to-help',
     loadComponent: () => import('./features/static/components/how-to-help/how-to-help.component').then(m => m.HowToHelpComponent)
   },
-  // Редірект для будь-яких невідомих шляхів на головну сторінку
+  {
+    path: 'reset-password',
+    loadComponent: () => import('./features/auth/reset-password/reset-password.component').then(c => c.ResetPasswordComponent)
+  },
   {
     path: '**',
     redirectTo: ''
