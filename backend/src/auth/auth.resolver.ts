@@ -98,6 +98,19 @@ export class AuthResolver {
     return this.authService.changePassword(userId, oldPassword, newPassword);
   }
 
+  @Mutation(() => Boolean)
+  async forgotPassword(@Args('email') email: string): Promise<boolean> {
+    return this.authService.forgotPassword(email);
+  }
+
+  @Mutation(() => Boolean)
+  async resetPassword(
+    @Args('token') token: string,
+    @Args('newPassword') newPassword: string,
+  ): Promise<boolean> {
+    return this.authService.resetPassword(token, newPassword);
+  }
+
   @Mutation(() => String)
   async generate2FA(
     @Args('userId', { type: () => String }) userId: string // 👈 Явно вказуємо тип для GraphQL та TS

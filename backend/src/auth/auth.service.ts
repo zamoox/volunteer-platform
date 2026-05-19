@@ -152,22 +152,14 @@ async loginWith2FactorAuthentication(userId: string, code: string): Promise<Auth
     const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:4200';
     const verificationLink = `${baseUrl}/verify?token=${user.verificationToken}`;
 
-    await this.mailerService.sendMail({
+    await this.mailerService.sendMail({      
       to: user.email,
       subject: 'Підтвердження реєстрації — Volunteer Platform',
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto;">
-          <h2 style="color: #10b981;">Вітаємо, ${user.firstName}! 🎉</h2>
-          <p>Дякуємо за реєстрацію на нашій платформі. Щоб почати допомагати, підтвердіть, будь ласка, свій Email:</p>
-          <a href="${verificationLink}" 
-             style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
-            Підтвердити пошту
-          </a>
-          <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-            Якщо ви не створювали цей акаунт, просто ігноруйте цей лист.
-          </p>
-        </div>
-      `,
+      template: './verify-email', // 👈 Підключаємо файл .hbs
+      context: {                  // 👈 Передаємо змінні
+        firstName: user.firstName,
+        url: verificationLink,
+      },
     });
   }
 
@@ -293,5 +285,51 @@ async validateGoogleUser(googleUser: any): Promise<AuthResponse> {
     message: 'Успішний вхід через Google'
   };
 }
+  async forgotPassword(email: string): Promise<boolean> {
+    try {
+      const user = await this.usersService.findOneByEmail(email);
+      if (!user) return true; 
+
+      const resetToken = this.jwtService.sign(
+        { sub: user.id, purpose: 'reset-password' },
+        { expiresIn: '1h' }
+      );
+
+      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:4200';
+      const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
+
+      await this.mailerService.sendMail({
+        to: user.email,
+        subject: 'Відновлення доступу — Volunteer Platform',
+        template: './reset-password', // 👈 Підключаємо файл .hbs
+        context: {                    // 👈 Передаємо змінну url
+          url: resetLink,
+        },
+      });
+      return true;
+    } catch (error) {
+      return true;
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<boolean> {
+    try {
+      // Розшифровуємо токен
+      const decoded = this.jwtService.verify(token);
+      
+      // Перевіряємо, чи це дійсно токен для скидання пароля
+      if (decoded.purpose !== 'reset-password') {
+        throw new BadRequestException('Некоректний токен');
+      }
+
+      const userId = decoded.sub;
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      
+      await this.usersService.updatePassword(userId, hashedNewPassword);
+      return true;
+    } catch (error) {
+      throw new BadRequestException('Токен недійсний або його час дії вичерпано');
+    }
+  }
 
 }
