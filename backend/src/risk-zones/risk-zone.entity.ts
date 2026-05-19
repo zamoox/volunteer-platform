@@ -7,7 +7,11 @@ import {
 export enum RiskLevel {
   SAFE        = 0,    // r_z = 0.0  — безпечна зона
   FRONTLINE   = 0.5,  // r_z = 0.5  — прифронтова / деокупована
-  ACTIVE_WAR  = 1.0,  // r_z = 1.0  — активні бойові дії / окупація
+  ACTIVE_WAR  = 1.0,
+  OCCUPIED,
+  ACTIVE,
+  POSSIBLE,
+  GREEN,  // r_z = 1.0  — активні бойові дії / окупація
 }
 
 @ObjectType()
