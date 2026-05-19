@@ -24,6 +24,5 @@
     "noImplicitAny": false,                 // Дозволяємо не писати типи там, де ліньки
     "strictPropertyInitialization": false,  // Прибирає помилки в Entity (ті самі "has no initializer")
     "ignoreDeprecations": "5.0",
-    "types": ["node", "jest"]
   }
 }

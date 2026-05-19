@@ -23,7 +23,7 @@
     "@apollo/server": "^5.5.0",
     "@as-integrations/express5": "^1.1.2",
     "@casl/ability": "^6.8.1",
-    "@nestjs-modules/mailer": "^2.3.4",
+    "@nestjs-modules/mailer": "^2.3.6",
     "@nestjs/apollo": "^13.2.5",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
@@ -40,6 +40,8 @@
     "class-validator": "^0.15.1",
     "graphql": "^16.13.2",
     "graphql-type-json": "^0.3.2",
+    "handlebars": "^4.7.9",
+    "hbs": "^4.2.1",
     "nodemailer": "^8.0.7",
     "otplib": "^13.4.0",
     "passport": "^0.7.0",
@@ -62,7 +64,7 @@
     "@types/express": "^5.0.0",
     "@types/geojson": "^7946.0.16",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.0.0",
+    "@types/node": "^24.12.4",
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^7.0.0",
@@ -100,7 +102,7 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-       "^src/(.*)$": "<rootDir>/$1"
-      }
+      "^src/(.*)$": "<rootDir>/$1"
+    }
   }
 }

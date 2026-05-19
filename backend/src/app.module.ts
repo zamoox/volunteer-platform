@@ -9,8 +9,8 @@ import { VolunteerRequest } from './requests/request.entity';
 import { User } from './users/user.entity';
 import { AuthModule } from './auth/auth.module';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter'
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthController } from './auth/auth.controller';
 import { OrganizationProfileModule } from './organizations/organization-profile.module';
 import { OrganizationProfile } from './organizations/organization-profile.entity';
 import { VolunteerProfile } from './volunteers/volunteer-profile.entity';
@@ -60,6 +60,7 @@ import { AdminModule } from './admin/admin.module';
         transport: {
           host: configService.get<string>('MAIL_HOST'),
           port: configService.get<number>('MAIL_PORT'),
+          secure: true,
           auth: {
             user: configService.get<string>('MAIL_USER'),
             pass: configService.get<string>('MAIL_PASS'),
@@ -67,6 +68,13 @@ import { AdminModule } from './admin/admin.module';
         },
         defaults: {
           from: configService.get<string>('MAIL_FROM'),
+        },
+        template: {
+          dir: join(__dirname, 'mail/templates'), // Вказуємо шлях до папки
+          adapter: new HandlebarsAdapter(), // Підключаємо рушій
+          options: {
+            strict: true,
+          },
         },
       }),
       inject: [ConfigService],
