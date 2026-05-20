@@ -15,7 +15,7 @@ export class AdminDashboardResponse {
   totalUsers: number;
 
   @Field(() => Int)
-  pendingOrganizations: number; // К-ть організацій зі статусом isVerified: false
+  pendingOrganizations: number; 
 
   @Field(() => Int)
   totalRequests: number;

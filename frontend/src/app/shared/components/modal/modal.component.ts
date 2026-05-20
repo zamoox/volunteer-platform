@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ModalService } from '@core/services/modal.service';
 
 @Component({
   selector: 'app-modal',
@@ -13,8 +14,9 @@ export class ModalComponent {
   // Додаємо Output для події закриття
   @Output() closed = new EventEmitter<void>();
 
-  // Додаємо метод close(), щоб помилка (click)="close()" зникла
+  constructor(private modalService: ModalService) {}
+
   close() {
-    this.closed.emit();
+    this.modalService.close(); // Сервіс тепер сам знищить компонент
   }
 }

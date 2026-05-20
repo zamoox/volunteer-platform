@@ -5,6 +5,7 @@ import { VolunteerRequest } from "src/requests/request.entity";
 import { AdminDashboardResponse, ChartDataPoint } from "../dto/admin-dashboard.response";
 import { UsersService } from "src/users/users.service";
 import { Repository, MoreThanOrEqual } from "typeorm";
+import { OrganizationStatus } from "src/organizations/enums/organization-status.enum";
 
 @Injectable()
 export class AdminDashboardService {
@@ -17,7 +18,7 @@ export class AdminDashboardService {
   async getStats(): Promise<AdminDashboardResponse> {
     const [totalUsers, pendingOrgs, totalRequests] = await Promise.all([
       this.usersService.countByRole(),
-      this.orgRepo.count({ where: { isVerified: false } }),
+      this.orgRepo.count({ where: { status: OrganizationStatus.PENDING } }),
       this.requestRepo.count(),
     ]);
 

@@ -37,10 +37,11 @@ export const GET_ADMIN_ORGS = gql`
       id
       name
       edrpou
-      isVerified
+      status
       website
       description
       createdAt
+      documents
       user {      
         id
         email
@@ -58,8 +59,10 @@ export const GET_ADMIN_REQUESTS = gql`
       description
       status
       createdAt
-      location {
-        address
+      address
+      coords {
+        lat
+        lng
       }
       organization {
         name

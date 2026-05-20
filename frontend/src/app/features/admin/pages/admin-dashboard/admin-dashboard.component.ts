@@ -10,6 +10,8 @@ import { AdminUsersTableComponent } from '@features/admin/components/admin-users
 import { AdminOrgsTableComponent } from '@features/admin/components/admin-orgs-table/admin-orgs-table.component';
 import { AdminRequestsTableComponent } from '@features/admin/components/admin-requests-table/admin-requests-table.component';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { ModalService } from '@core/services/modal.service';
+import { ReasonModalComponent } from '@features/admin/components/reason-modal/reason-modal.component';
 
 export type AdminTab = 'users' | 'organizations' | 'requests';
 
@@ -29,6 +31,7 @@ export type AdminTab = 'users' | 'organizations' | 'requests';
 export class AdminDashboardComponent  {
 
   private adminService = inject(AdminService);
+  private modalService = inject(ModalService);
 
   stats = toSignal(this.adminService.getDashboardStats());
   users = toSignal(this.adminService.getAllUsers(), { initialValue: [] });
@@ -56,9 +59,18 @@ export class AdminDashboardComponent  {
   }
 
   handleDeleteRequest(id: string) {
-    const reason = prompt('Вкажіть причину видалення запиту:');
-    if (reason) {
-      this.adminService.deleteRequest(id, reason).subscribe();
-    }
+    const modal = this.modalService.open(ReasonModalComponent, {
+      data: { title: 'Видалити запит' }
+    });
+
+    // Використовуй .take(1) або destroy, щоб підписка жила лише до першого кліку
+    const sub = modal.confirmAction.subscribe((reason: string) => {
+      if (reason.trim()) {
+        this.adminService.deleteRequest(id, reason).subscribe(() => {
+          this.modalService.close();
+          sub.unsubscribe(); // Очищаємо підписку
+        });
+      }
+    });
   }
 }

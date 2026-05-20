@@ -15,4 +15,11 @@ export class AdminOrgsTableComponent {
   toggleRow(id: string) {
     this.expandedElementId = this.expandedElementId === id ? null : id;
   }
+
+  getFileName(path: string): string {
+    // Навіть якщо в базі лежить повний шлях (наприклад: /Users/zamoox/.../uploads/reg_123.png)
+    // цей метод візьме тільки останню частину (reg_123.png)
+    return path.split(/[\\/]/).pop() || '';
+  }
+
 }

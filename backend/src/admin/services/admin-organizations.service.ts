@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { OrganizationProfile } from 'src/organizations/organization-profile.entity';
 import { AdminLog } from '../entities/admin-log.entity';
 import { ModerationAction } from '../entities/moderation-action.enum';
+import { OrganizationStatus } from 'src/organizations/enums/organization-status.enum';
 
 @Injectable()
 export class AdminOrganizationsService {
@@ -23,7 +24,7 @@ export class AdminOrganizationsService {
     const org = await this.orgRepo.findOne({ where: { id: orgId } });
     if (!org) throw new NotFoundException('Організацію не знайдено');
 
-    org.isVerified = true;
+    org.status = OrganizationStatus.VERIFIED;
     await this.orgRepo.save(org);
 
     await this.logRepo.save({
