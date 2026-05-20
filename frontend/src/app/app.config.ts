@@ -1,9 +1,9 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { inject } from '@angular/core';
 import { provideApollo } from 'apollo-angular';
-import { HttpLink } from 'apollo-angular/http';
-import { InMemoryCache } from '@apollo/client/core';
+import { ApolloLink, InMemoryCache } from '@apollo/client/core';
+import UploadHttpLink from "apollo-upload-client/UploadHttpLink.mjs";
+import { SetContextLink } from '@apollo/client/link/context';
 
 import { routes } from './app.routes';
 import { provideRouter } from '@angular/router';
@@ -13,10 +13,31 @@ import { abilityProvider } from '@core/casl/providers/ability.provider';
 
 export const appConfig: ApplicationConfig = {
 providers: [
-    provideApollo(() => {
-      const httpLink = inject(HttpLink);
+   provideApollo(() => {
+      const uploadLink = new UploadHttpLink({ 
+        uri: 'http://localhost:3000/graphql' 
+      });
+
+      // Використовуємо новий клас SetContextLink
+      const authLink = new SetContextLink((prevContext, operation) => {
+      const token = localStorage.getItem('auth_token');
+
+      console.log('--- Apollo Auth Debug ---');
+      console.log('Token found:', !!token);
+      console.log('Full Context:', prevContext);
+        
       return {
-        link: httpLink.create({ uri: 'http://localhost:3000/graphql' }),
+          ...prevContext,
+          headers: {
+            // Використовуємо ['headers'] і кастинг для TypeScript
+            ...(prevContext['headers'] as Record<string, string>),
+            Authorization: token ? `Bearer ${token}` : '',
+          }
+        };
+      });
+
+      return {
+        link: ApolloLink.from([authLink, uploadLink]),
         cache: new InMemoryCache(),
       };
     }),
