@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { OrganizationService } from '../../services/organization.service';
 import { ToastService } from '@core/services/toast.service';
 import { PhoneMaskDirective } from '@core/directives/phone-mask.directive';
+import { UPLOAD_DOCS_MUTATION } from '@features/organizations/graphql/organizations.mutations';
 
 interface OrgDocuments {
   registration: File | null;
@@ -76,25 +77,34 @@ export class OrganizationSetupComponent implements OnInit {
   }
 
   submitApplication() {
-    if (!this.docs.registration || !this.docs.statute) {
-      this.toast.warning('Увага', 'Завантажте обидва документи');
-      return;
-    }
+    if (!this.docs.registration || !this.docs.statute) return;
 
     this.isLoading = true;
-    
-    // Тут логіка: спочатку створюємо профіль, потім надсилаємо запит на верифікацію (залежить від твого API)
+
+    // 1. Спочатку створюємо профіль організації (твій існуючий метод)
     this.orgService.createProfile(this.form.value as any).subscribe({
       next: () => {
-        this.toast.success('Заявку подано', 'Адміністратор перевірить ваші дані');
-        this.router.navigate(['/profile']);
+        // 2. Якщо профіль створено успішно, завантажуємо документи
+        this.orgService.uploadDocuments(this.docs).subscribe({
+          next: () => {
+            this.isLoading = false;
+            this.toast.success('Успіх', 'Документи надіслано на верифікацію');
+            this.router.navigate(['/profile']);
+          },
+          error: (err) => {
+            this.isLoading = false;
+            this.toast.error('Помилка', 'Не вдалося завантажити документи');
+            console.error(err);
+          }
+        });
       },
       error: (err) => {
         this.isLoading = false;
-        this.toast.error('Помилка', err.message);
+        this.toast.error('Помилка створення профілю', err.message);
       }
     });
   }
+
 
   getError(field: string): string {
     const control = this.form.get(field);

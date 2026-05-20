@@ -5,7 +5,8 @@ import { map, tap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 import { Organization, CreateOrganizationInput, UpdateOrganizationInput } from '@features/organizations/types/organization.types';
 import { MY_ORGANIZATION } from '@features/organizations/graphql/organizations.queries';
-import { CREATE_ORGANIZATION_PROFILE, UPDATE_ORGANIZATION_PROFILE } from '@features/organizations/graphql/organizations.mutations';
+import { CREATE_ORGANIZATION_PROFILE, UPDATE_ORGANIZATION_PROFILE, UPLOAD_DOCS_MUTATION } from '@features/organizations/graphql/organizations.mutations';
+import { OrgDocuments } from '../models/organization-documents.model';
 
 @Injectable({ providedIn: 'root' })
 export class OrganizationService {
@@ -49,5 +50,17 @@ export class OrganizationService {
     return this.getMyOrganization().pipe(
       map(profile => !!profile)
     );
+  }
+  
+  uploadDocuments(docs: OrgDocuments) {
+    return this.apollo.mutate({
+      mutation: UPLOAD_DOCS_MUTATION,
+      variables: {
+        input: {
+          registration: docs.registration,
+          statute: docs.statute
+        }
+      },
+    });
   }
 }

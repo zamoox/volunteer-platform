@@ -18,3 +18,9 @@ export const UPDATE_ORGANIZATION_PROFILE = gql`
   }
   ${ORGANIZATION_FIELDS}
 `;
+
+export const UPLOAD_DOCS_MUTATION = gql`
+  mutation UploadDocs($input: UploadDocumentsInput!) {
+    uploadOrganizationDocs(input: $input)
+  }
+`;

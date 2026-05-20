@@ -8,7 +8,7 @@ export const ORGANIZATION_FIELDS = gql`
     description
     website
     phone
-    isVerified
+    status
     userId
     createdAt
   }

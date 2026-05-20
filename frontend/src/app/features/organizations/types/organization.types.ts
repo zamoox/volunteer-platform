@@ -6,7 +6,7 @@ export interface Organization {
   website?: string;
   phone?: string;
   logoUrl?: string;
-  isVerified: boolean;
+  status: string;
   userId: string;
   createdAt?: string;
   requests?: any[];
