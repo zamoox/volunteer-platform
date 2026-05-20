@@ -11,6 +11,7 @@ export class CreateOrganizationInput {
   @Field({ nullable: true })
   @IsOptional()
   @IsString()
+  @Length(8, 10) // ЄДРПОУ зазвичай 8 або 10 символів
   edrpou?: string;
 
   @Field({ nullable: true })

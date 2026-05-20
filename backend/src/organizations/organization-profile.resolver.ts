@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../enums/user-role.enum';
 import { JwtUser } from '../common/interfaces/jwt-user.interface';
+import { UploadDocumentsInput } from './dto/upload-documents.input';
 
 @Resolver(() => OrganizationProfile)
 export class OrganizationProfileResolver {
@@ -28,5 +29,23 @@ export class OrganizationProfileResolver {
     @CurrentUser() user: JwtUser,
   ): Promise<OrganizationProfile | null> {
     return this.service.findByUserId(user.id);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(JwtAuthGuard)
+  async uploadOrganizationDocs(
+    @Args('input') input: UploadDocumentsInput,
+    @CurrentUser() user: JwtUser
+  ) {
+    const hasProfile = await this.service.hasProfile(user.id);
+
+    if (!hasProfile) {
+      throw new Error('Спочатку створіть профіль організації');
+    }
+    
+    const regFile = await input.registration;
+    const statFile = await input.statute;
+    
+    return await this.service.handleFileUploads(user.id, regFile, statFile);
   }
 }

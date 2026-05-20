@@ -1,32 +1,22 @@
-import { InputType, Field } from '@nestjs/graphql';
-import { IsString, IsOptional, IsUrl, MaxLength } from 'class-validator';
+import { InputType, Field, PartialType } from '@nestjs/graphql';
+import { IsString, IsOptional, IsUrl, MaxLength, IsEnum } from 'class-validator';
+import { OrganizationStatus } from '../enums/organization-status.enum';
+import { CreateOrganizationInput } from './create-organization-profile.input';
 
 @InputType()
-export class UpdateOrganizationInput {
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  name?: string;
+export class UpdateOrganizationInput extends PartialType(CreateOrganizationInput) {
 
-  @Field({ nullable: true })
+  @Field(() => OrganizationStatus, { nullable: true })
   @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  description?: string;
+  @IsEnum(OrganizationStatus)
+  status?: OrganizationStatus;
 
   @Field({ nullable: true })
   @IsOptional()
   @IsUrl()
-  website?: string;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsString()
-  phone?: string;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsString()
   logoUrl?: string;
+
+  @Field(() => [String], { nullable: true })
+  @IsOptional()
+  documents?: string[];
 }

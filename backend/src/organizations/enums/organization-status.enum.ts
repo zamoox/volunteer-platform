@@ -1,0 +1,6 @@
+export enum OrganizationStatus {
+  PENDING = 'PENDING',
+  VERIFIED = 'VERIFIED',
+  REJECTED = 'REJECTED',
+  CHANGES_REQUIRED = 'CHANGES_REQUIRED',
+}
