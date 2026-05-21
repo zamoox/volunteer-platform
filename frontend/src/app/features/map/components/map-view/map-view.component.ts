@@ -316,17 +316,20 @@ export class MapViewComponent implements AfterViewInit, OnChanges, OnDestroy {
     });
   }
 
-  // Обчислення палітри кольорів відповідно до ступеня небезпеки (Наказ № 309)
   private getZoneVisualStyles(level: RiskLevel) {
     switch (level) {
-      case RiskLevel.OCCUPIED:
-        return { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.24 }; // Суворий червоний (Tailwind red-500)
-      case RiskLevel.ACTIVE:
-        return { color: '#f97316', fillColor: '#f97316', fillOpacity: 0.20 }; // Помаранчевий (Tailwind orange-500)
-      case RiskLevel.POSSIBLE:
-        return { color: '#eab308', fillColor: '#eab308', fillOpacity: 0.15 }; // Жовтий (Tailwind yellow-500)
+      case RiskLevel.ACTIVE_WAR:
+        // Максимальний ризик (коефіцієнт 1.0) - Червоний
+        return { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.24 }; 
+      
+      case RiskLevel.FRONTLINE:
+        // Підвищений ризик (коефіцієнт 0.5) - Помаранчевий
+        return { color: '#f97316', fillColor: '#f97316', fillOpacity: 0.20 }; 
+      
+      case RiskLevel.SAFE:
       default:
-        return { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.08 }; // Безпечний тил (Tailwind green-500)
+        // Безпечний тил (коефіцієнт 0.0) - Зелений
+        return { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.08 }; 
     }
   }
 }
