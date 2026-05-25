@@ -1,0 +1,6 @@
+
+    :host {
+      display: block;
+      pointer-events: auto; /* Важливо: дозволяє клікати на кнопки */
+    }
+  

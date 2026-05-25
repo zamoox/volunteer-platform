@@ -11,7 +11,13 @@ export class MapControlsComponent {
   @Input() isHeatmapMode = false;
   @Output() modeChanged = new EventEmitter<boolean>();
 
+  isCollapsed = false;
+
   setMode(heatMode: boolean): void {
     this.modeChanged.emit(heatMode);
+  }
+
+  toggleCollapse(): void {
+    this.isCollapsed = !this.isCollapsed;
   }
 }
